@@ -1,0 +1,79 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  background-image: url('bg.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.card {
+  width: 400px;
+  max-width: 90%;
+  padding: 50px;
+  background: #F8FAFC;
+  border-radius: 5px;
+  box-shadow: 0 8px 30px rgba(89, 89, 141, 0.529);
+}
+
+.login-logo {
+  max-width: 285px;
+  margin-top: -150px;
+}
+
+.card-content { 
+  margin-top: 110px;
+  color: #0F172A;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+.subtitle {
+  color: #6b6b6b;
+}
+
+label {
+  display: block;
+  margin: 14px 0 6px;
+}
+
+input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  font-size: 14px;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #1E293B;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: .9;
+}
+
+.hidden {
+  display: none;
+}
+
+#message {
+  min-height: 20px;
+}
