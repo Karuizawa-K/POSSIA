@@ -1,24 +1,34 @@
 * {
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  background: #f2f4f7;
+  background-image: url('bg.jpg');
+  background-size: cover;
+  background-position: center;
 }
 
 .card {
-  width: 380px;
+  width: 400px;
   max-width: 90%;
-  padding: 32px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,.10);
+  padding: 50px;
+  background: #F8FAFC;
+  border-radius: 5px;
+  box-shadow: 0 8px 30px rgba(89, 89, 141, 0.529);
+}
+
+.login-logo {
+  max-width: 285px;
+  margin-top: -150px;
+}
+
+.card-content { 
+  margin-top: 110px;
+  color: #0F172A;
 }
 
 h1, h2 {
@@ -26,7 +36,7 @@ h1, h2 {
 }
 
 .subtitle {
-  color: #666;
+  color: #6b6b6b;
 }
 
 label {
@@ -36,9 +46,13 @@ label {
 
 input {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border: 2px solid #E2E8F0;
+  border-radius: 8px;
+  background-color: #FFFFFF;
+  font-size: 14px;
+  outline: none;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 button {
@@ -46,8 +60,8 @@ button {
   margin-top: 18px;
   padding: 12px;
   border: 0;
-  border-radius: 6px;
-  background: #222;
+  border-radius: 8px;
+  background: #1E293B;
   color: white;
   cursor: pointer;
 }
