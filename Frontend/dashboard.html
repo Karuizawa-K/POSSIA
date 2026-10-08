@@ -3,22 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>APB Dashboard</title>
+    <link rel="stylesheet" href="dashboard_style.css">
 </head>
 <body>
-    
-    <header>
-      
-    </header>
 
-    <nav>
 
+    <nav class="navbar">
+        <div class="nav-left">
+            <span class="nav-title">DASHBOARD</span>
+        </div>
+        <div class="nav-right">
+            <span class="navi">Admin &nbsp;&nbsp;|&nbsp;&nbsp; <a href="index.html" class="logout">Logout</a></span>
+        </div>
     </nav>
 
-    <section>
+    <main class="main-content">
+        <div class="logo-container">
+            <h1 class="main-logo">APB merchandising</h1>
+        </div>
 
-    </section>
+        <div class="cards-wrapper">
+            <!-- POS Card Button -->
+            <button class="Btn bg-blue" onclick="window.location.href='pos.html'">
+                <div class="card-text">
+                    <h2>POS</h2>
+                    <p>Point of Sales</p>
+                </div>
+            </button>
 
+            <!-- Inventory Card Button -->
+            <button class="Btn bg-red" onclick="window.location.href='inventory.html'">
+                <div class="card-text">
+                    <h2>Inventory</h2>
+                    <p>View Inventory</p>
+                </div>
+            </button>
+
+            <!-- Reports Card Button -->
+            <button class="Btn bg-green" onclick="window.location.href='reports.html'">
+                <div class="card-text">
+                    <h2>Reports</h2>
+                    <p>Print/View Reports</p>
+                </div>
+            </button>
+        </div>
+    </main>
 
 </body>
 </html>

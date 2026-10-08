@@ -31,6 +31,15 @@ body {
   color: #0F172A;
 }
 
+.forget_pass {
+display: block;
+text-align: right; 
+margin-bottom: 15px; 
+font-size: 15px; 
+text-decoration: none; 
+color: #2b78c5;
+}
+
 h1, h2 {
   margin-top: 0;
 }
