@@ -39,6 +39,9 @@ body {
 
 .logout {
     color: white; 
+    background: none;
+    border: none;
+    font-size: inherit;
     text-decoration: none; 
     cursor: pointer;
 }

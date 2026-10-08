@@ -13,8 +13,12 @@
         <div class="nav-left">
             <span class="nav-title">DASHBOARD</span>
         </div>
+
         <div class="nav-right">
-            <span class="navi">Admin &nbsp;&nbsp;|&nbsp;&nbsp; <a href="index.html" class="logout">Logout</a></span>
+            <span id="userInfo">Loading user...</span>
+            &nbsp;|&nbsp;
+            <button id="logoutButton" class="logout">Logout</button>
+
         </div>
     </nav>
 
@@ -25,7 +29,7 @@
 
         <div class="cards-wrapper">
             <!-- POS Card Button -->
-            <button class="Btn bg-blue" onclick="window.location.href='pos.html'">
+            <button class="Btn bg-blue" data-page="pos.html">
                 <div class="card-text">
                     <h2>POS</h2>
                     <p>Point of Sales</p>
@@ -33,7 +37,7 @@
             </button>
 
             <!-- Inventory Card Button -->
-            <button class="Btn bg-red" onclick="window.location.href='inventory.html'">
+            <button class="Btn bg-red" data-page="inventory.html">
                 <div class="card-text">
                     <h2>Inventory</h2>
                     <p>View Inventory</p>
@@ -41,14 +45,17 @@
             </button>
 
             <!-- Reports Card Button -->
-            <button class="Btn bg-green" onclick="window.location.href='reports.html'">
+            <button class="Btn bg-green" data-page="reports.html">
                 <div class="card-text">
                     <h2>Reports</h2>
                     <p>Print/View Reports</p>
                 </div>
             </button>
+
         </div>
     </main>
 
+    <script src="dashboard.js" defer></script>
+    
 </body>
 </html>

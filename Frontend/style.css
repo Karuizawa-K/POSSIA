@@ -64,6 +64,26 @@ input {
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
+.password-input-wrapper {
+  position: relative;
+}
+
+.password-input-wrapper input {
+  padding-right: 72px;
+}
+
+.password-visibility-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: auto;
+  margin: 0;
+  padding: 4px;
+  background: transparent;
+  color: #1E293B;
+  transform: translateY(-50%);
+}
+
 button {
   width: 100%;
   margin-top: 18px;
