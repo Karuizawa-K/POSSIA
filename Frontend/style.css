@@ -7,7 +7,7 @@ body {
   margin: 0;
   min-height: 100vh;
   display: flex;
-  background-image: url('bg.jpg');
+  background-image: url('pictures\\bg.jpg');
   background-size: cover;
   background-position: center;
 }
@@ -18,7 +18,7 @@ body {
   padding: 50px;
   background: #F8FAFC;
   border-radius: 5px;
-  box-shadow: 0 8px 30px rgba(89, 89, 141, 0.529);
+  box-shadow: 0 8px 30px rgba(5, 5, 5, 0.529);
 }
 
 .login-logo {
