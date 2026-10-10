@@ -1,5 +1,16 @@
 const loginForm = document.getElementById("loginForm");
 const message = document.getElementById("message");
+const passwordInput = document.getElementById("password");
+const togglePassword = document.getElementById("togglePassword");
+
+// Show password 
+togglePassword.addEventListener("click", () => {
+    const isVisible = passwordInput.type === "text";
+    passwordInput.type = isVisible ? "password" : "text";
+    togglePassword.textContent = isVisible ? "Show" : "Hide";
+    togglePassword.setAttribute("aria-pressed", String(!isVisible));
+});
+//========================
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
