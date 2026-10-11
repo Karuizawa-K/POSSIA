@@ -17,6 +17,7 @@ const Payment = require("./models/payment");
 const Receipt = require("./models/receipt");
 const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
+const { generateUniqueBarcode } = require("./utils/barcode");
 
 const app = express();
 const frontendOrigins = process.env.FRONTEND_URL
@@ -34,6 +35,10 @@ app.use(express.static(path.join(__dirname, "..", "Frontend")));
 app.use(
   "/vendor/zxing",
   express.static(path.join(__dirname, "node_modules", "@zxing", "browser", "umd"))
+);
+app.use(
+  "/vendor/jsbarcode",
+  express.static(path.join(__dirname, "node_modules", "jsbarcode", "dist"))
 );
 
 // Test route
@@ -381,16 +386,25 @@ async function requireAdmin(req, res, next) {
   });
 }
 
-function isValidInventoryProductInput(input, { partial = false } = {}) {
-  const fields = ["barcode", "productName", "categoryId", "unitPrice"];
+function isValidInventoryProductInput(input, { partial = false, allowBlankBarcode = false } = {}) {
+  const fields = ["productName", "categoryId", "unitPrice"];
+  const allFields = [...fields, "barcode"];
   if (!partial && fields.some((field) => input[field] === undefined)) {
     return false;
   }
-  if (partial && fields.every((field) => input[field] === undefined)) {
+  if (partial && allFields.every((field) => input[field] === undefined)) {
     return false;
   }
+  const barcodeIsBlank = input.barcode === undefined ||
+    input.barcode === null ||
+    (typeof input.barcode === "string" && input.barcode.trim().length === 0);
+  const barcodeValid = allowBlankBarcode
+    ? barcodeIsBlank || typeof input.barcode === "string"
+    : input.barcode === undefined ||
+      input.barcode === null ||
+      (typeof input.barcode === "string" && input.barcode.trim().length > 0);
   return (
-    (input.barcode === undefined || (typeof input.barcode === "string" && input.barcode.trim().length > 0)) &&
+    barcodeValid &&
     (input.productName === undefined || (typeof input.productName === "string" && input.productName.trim().length > 0)) &&
     (input.categoryId === undefined || (
       typeof input.categoryId === "string" && mongoose.Types.ObjectId.isValid(input.categoryId)
@@ -412,55 +426,80 @@ function inventoryProductResponse(product, category) {
   };
 }
 
+// Reserve an unused in-store EAN-13 barcode so the form can preview the exact code before saving.
+app.get("/api/admin/inventory/next-barcode", requireAdmin, async (req, res) => {
+  try {
+    const barcode = await generateUniqueBarcode(Product);
+    res.json({ barcode });
+  } catch (error) {
+    console.error(error);
+    res.status(error.status || 500).json({
+      message: error.status ? error.message : "Unable to generate a barcode.",
+    });
+  }
+});
+
 app.post("/api/admin/inventory/products", requireAdmin, async (req, res) => {
   const { barcode, productName, categoryId, unitPrice, initialQuantity = 0 } = req.body || {};
   if (
-    !isValidInventoryProductInput({ barcode, productName, categoryId, unitPrice }) ||
+    !isValidInventoryProductInput({ barcode, productName, categoryId, unitPrice }, { allowBlankBarcode: true }) ||
     !Number.isInteger(initialQuantity) ||
     initialQuantity < 0
   ) {
-    return res.status(400).json({ message: "Enter a barcode, product name, category, valid price, and whole-number initial quantity." });
+    return res.status(400).json({ message: "Enter a product name, category, valid price, and whole-number initial quantity." });
   }
 
-  const session = await mongoose.startSession();
-  try {
-    let createdProduct;
-    await session.withTransaction(async () => {
-      const category = await Category.findById(categoryId).session(session);
-      if (!category) {
-        throw Object.assign(new Error("Category not found."), { status: 400 });
-      }
-      const [product] = await Product.create([{
-        barcode: barcode.trim(),
-        productName: productName.trim(),
-        categoryId,
-        unitPrice,
-        stockQuantity: initialQuantity,
-      }], { session });
-      if (initialQuantity > 0) {
-        await StockIn.create([{
-          productId: product._id,
-          productName: product.productName,
-          barcode: product.barcode,
-          userId: req.adminUser._id,
-          quantityAdded: initialQuantity,
-          reason: "Initial stock",
+  const shouldGenerateBarcode = typeof barcode !== "string" || !barcode.trim();
+  const maxAttempts = shouldGenerateBarcode ? 5 : 1;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const session = await mongoose.startSession();
+    try {
+      let createdProduct;
+      await session.withTransaction(async () => {
+        const category = await Category.findById(categoryId).session(session);
+        if (!category) {
+          throw Object.assign(new Error("Category not found."), { status: 400 });
+        }
+        const resolvedBarcode = shouldGenerateBarcode
+          ? await generateUniqueBarcode(Product)
+          : barcode.trim();
+        const [product] = await Product.create([{
+          barcode: resolvedBarcode,
+          productName: productName.trim(),
+          categoryId,
+          unitPrice,
+          stockQuantity: initialQuantity,
         }], { session });
+        if (initialQuantity > 0) {
+          await StockIn.create([{
+            productId: product._id,
+            productName: product.productName,
+            barcode: product.barcode,
+            userId: req.adminUser._id,
+            quantityAdded: initialQuantity,
+            reason: "Initial stock",
+          }], { session });
+        }
+        createdProduct = inventoryProductResponse(product, category);
+      });
+
+      return res.status(201).json({ message: "Product created successfully.", product: createdProduct });
+    } catch (error) {
+      console.error(error);
+      if (error.status) {
+        return res.status(error.status).json({ message: error.message });
       }
-      createdProduct = inventoryProductResponse(product, category);
-    });
-    res.status(201).json({ message: "Product created successfully.", product: createdProduct });
-  } catch (error) {
-    console.error(error);
-    if (error.status) {
-      return res.status(error.status).json({ message: error.message });
+      if (error.code === 11000) {
+        if (!shouldGenerateBarcode || attempt === maxAttempts) {
+          return res.status(409).json({ message: "Barcode is already in use." });
+        }
+        continue;
+      }
+      return res.status(500).json({ message: "Unable to create product." });
+    } finally {
+      await session.endSession();
     }
-    if (error.code === 11000) {
-      return res.status(409).json({ message: "Barcode is already in use." });
-    }
-    res.status(500).json({ message: "Unable to create product." });
-  } finally {
-    await session.endSession();
   }
 });
 

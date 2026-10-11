@@ -6,6 +6,13 @@ const productEditor = document.getElementById("productEditor");
 const statusMessage = document.getElementById("statusMessage");
 const categoryFilter = document.getElementById("categoryFilter");
 const categorySelect = document.getElementById("categoryId");
+const barcodeInput = document.getElementById("barcode");
+const productNameInput = document.getElementById("productName");
+const barcodePreviewSection = document.getElementById("barcodePreviewSection");
+const barcodePreviewSvg = document.getElementById("barcodePreview");
+const barcodePreviewName = document.getElementById("barcodePreviewName");
+const generateBarcodeButton = document.getElementById("generateBarcodeButton");
+const printBarcodeButton = document.getElementById("printBarcodeButton");
 
 let currentRole = null;
 let products = [];
@@ -184,6 +191,96 @@ async function loadInventory() {
     renderInventory();
 }
 
+function barcodeFormatFor(value) {
+    return /^\d{13}$/.test(value) ? "EAN13" : "CODE128";
+}
+
+function renderBarcodePreview() {
+    const value = barcodeInput.value.trim();
+    if (!value || !window.JsBarcode) {
+        barcodePreviewSection.hidden = true;
+        return;
+    }
+
+    barcodePreviewName.textContent = productNameInput.value.trim() || "New product";
+    try {
+        window.JsBarcode(barcodePreviewSvg, value, {
+            format: barcodeFormatFor(value),
+            displayValue: true,
+            height: 60,
+            width: 2,
+            margin: 10,
+            fontSize: 16
+        });
+        barcodePreviewSection.hidden = false;
+    } catch (error) {
+        barcodePreviewSection.hidden = true;
+        console.warn("Barcode cannot be rendered:", error);
+    }
+}
+
+async function requestGeneratedBarcode() {
+    try {
+        const { barcode } = await apiRequest("/api/admin/inventory/next-barcode");
+        barcodeInput.value = barcode;
+        renderBarcodePreview();
+        showMessage("Barcode generated. Save the product to reserve it.");
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+}
+
+function escapeHtml(value) {
+    return value.replace(/[&<>"']/g, (character) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function printBarcodeLabel() {
+    const value = barcodeInput.value.trim();
+    if (!value) {
+        showMessage("Generate or enter a barcode before printing.", true);
+        return;
+    }
+
+    const productName = escapeHtml(productNameInput.value.trim() || "Product");
+    const svgMarkup = new XMLSerializer().serializeToString(barcodePreviewSvg);
+    const printWindow = window.open("", "_blank", "width=520,height=420");
+    if (!printWindow) {
+        showMessage("Allow pop-ups to print the barcode label.", true);
+        return;
+    }
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Barcode label - ${productName}</title>
+<style>
+body { font-family: Arial, sans-serif; text-align: center; padding: 24px; }
+h1 { font-size: 18px; margin: 0 0 12px; }
+p { font-size: 13px; color: #555; margin: 0 0 16px; }
+</style>
+</head>
+<body>
+<h1>${productName}</h1>
+<p>APB Merchandising</p>
+${svgMarkup}
+<script>
+window.onload = function () {
+    window.focus();
+    window.print();
+};
+</script>
+</body>
+</html>`);
+    printWindow.document.close();
+}
+
 function resetProductForm() {
     editingProductId = null;
     productForm.reset();
@@ -192,18 +289,21 @@ function resetProductForm() {
     document.getElementById("formHeading").textContent = "Add Product";
     document.getElementById("saveProductButton").textContent = "Add Product";
     document.getElementById("cancelEditButton").hidden = true;
+    barcodePreviewSection.hidden = true;
+    barcodePreviewSvg.replaceChildren();
 }
 
 function startEditing(product) {
     editingProductId = product.id;
-    document.getElementById("barcode").value = product.barcode;
-    document.getElementById("productName").value = product.productName;
+    barcodeInput.value = product.barcode;
+    productNameInput.value = product.productName;
     categorySelect.value = product.categoryId || "";
     document.getElementById("unitPrice").value = product.unitPrice;
     document.getElementById("initialQuantityGroup").hidden = true;
     document.getElementById("formHeading").textContent = `Edit Product: ${product.productName}`;
     document.getElementById("saveProductButton").textContent = "Save Changes";
     document.getElementById("cancelEditButton").hidden = false;
+    renderBarcodePreview();
     productEditor.hidden = false;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -276,12 +376,15 @@ async function loadMovements() {
 
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const barcodeValue = barcodeInput.value.trim();
     const payload = {
-        barcode: document.getElementById("barcode").value.trim(),
-        productName: document.getElementById("productName").value.trim(),
+        productName: productNameInput.value.trim(),
         categoryId: categorySelect.value,
         unitPrice: Number(document.getElementById("unitPrice").value)
     };
+    if (barcodeValue) {
+        payload.barcode = barcodeValue;
+    }
     if (!editingProductId) {
         payload.initialQuantity = Number(document.getElementById("initialQuantity").value);
     }
@@ -293,9 +396,15 @@ productForm.addEventListener("submit", async (event) => {
             method: editingProductId ? "PUT" : "POST",
             body: JSON.stringify(payload)
         });
+        const savedProduct = result.product;
+        const wasAutoGenerated = !editingProductId && !barcodeValue;
         resetProductForm();
         productEditor.hidden = true;
-        showMessage(result.message);
+        showMessage(
+            wasAutoGenerated && savedProduct
+                ? `${result.message} Assigned barcode: ${savedProduct.barcode}`
+                : result.message
+        );
         await Promise.all([loadInventory(), loadMovements()]);
     } catch (error) {
         showMessage(error.message, true);
@@ -310,6 +419,14 @@ document.getElementById("showProductFormButton").addEventListener("click", () =>
     resetProductForm();
     productEditor.hidden = false;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+generateBarcodeButton.addEventListener("click", requestGeneratedBarcode);
+printBarcodeButton.addEventListener("click", printBarcodeLabel);
+barcodeInput.addEventListener("input", renderBarcodePreview);
+productNameInput.addEventListener("input", () => {
+    if (!barcodePreviewSection.hidden) {
+        renderBarcodePreview();
+    }
 });
 document.getElementById("inventorySearch").addEventListener("input", renderInventory);
 categoryFilter.addEventListener("change", renderInventory);

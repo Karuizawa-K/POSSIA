@@ -32,7 +32,12 @@
             <form class="input-grid" id="productForm">
                 <div class="form-group">
                     <label for="barcode">Barcode</label>
-                    <input type="text" id="barcode" name="barcode" maxlength="100" required>
+                    <div class="barcode-field">
+                        <input type="text" id="barcode" name="barcode" maxlength="100"
+                            placeholder="Leave blank to auto-generate">
+                        <button type="button" class="btn-secondary" id="generateBarcodeButton">Generate</button>
+                    </div>
+                    <p class="field-note">Leave blank and a unique in-store EAN-13 barcode is created automatically.</p>
                 </div>
                 <div class="form-group">
                     <label for="productName">Product Name</label>
@@ -55,6 +60,14 @@
                     <button type="button" class="btn-secondary" id="cancelEditButton" hidden>Cancel Edit</button>
                 </div>
             </form>
+            <div class="barcode-preview" id="barcodePreviewSection" hidden>
+                <h3>Barcode Label</h3>
+                <p class="field-note" id="barcodePreviewName"></p>
+                <svg id="barcodePreview" role="img" aria-label="Barcode preview"></svg>
+                <div class="form-actions">
+                    <button type="button" class="btn-submit" id="printBarcodeButton">Print Label</button>
+                </div>
+            </div>
         </section>
 
         <section class="grid-section">
@@ -132,6 +145,7 @@
             </div>
         </section>
     </main>
+    <script src="/vendor/jsbarcode/JsBarcode.all.min.js"></script>
     <script src="inventory.js" defer></script>
 </body>
 </html>
