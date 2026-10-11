@@ -1,4 +1,4 @@
- * {
+* {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -87,32 +87,174 @@
     transform: translateY(-5px);
 }
 
-.main-content{
+/* =========================================
+   NEW INVENTORY UI STYLES
+   ========================================= */
+
+.inventory-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: #333;
+}
+
+.inventory-container h2 {
+    font-size: 18px;
+    margin-bottom: 20px;
+    color: #173d72;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+/* Data Input Section */
+.input-section {
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 25px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    align-items: end;
+}
+
+.form-group {
     display: flex;
-    justify-content: stretch;
-    align-items: center;
-    padding-top: 20px;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.form-group input, 
+.form-group select {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus, 
+.form-group select:focus {
+    border-color: #5d97d2;
+}
+
+.form-actions {
+    display: flex;
+}
+
+.btn-submit {
+    background-color: #173d72;
+    color: #fff;
     border: none;
-    border-radius: 5px
+    padding: 11px 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.2s ease;
 }
 
-.total-stock{
-    border-radius: inherit;
-    background-color: #c43939;
-    padding: 50px;
-    margin: 10px;
+.btn-submit:hover {
+    background-color: #112d54;
 }
 
-.low-stock{
-    border-radius: inherit;
-    background-color: #5987c9;
-    padding: 50px;
-    margin: 10px;
+/* Inventory Grid Section */
+.grid-section {
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 25px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.items{
-    border-radius: inherit;
-    background-color: aquamarine;
-    padding: 50px 70px;
-    margin: 10px;
+.table-responsive {
+    overflow-x: auto;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.inventory-table th, 
+.inventory-table td {
+    padding: 14px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.inventory-table th {
+    background-color: #f8f9fa;
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.inventory-table td {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.inventory-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+/* Actions styling */
+.action-cells {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.action-input {
+    width: 70px;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.btn-stockin, 
+.btn-stockout {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-stockin {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.btn-stockin:hover {
+    background-color: #c8e6c9;
+}
+
+.btn-stockout {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+.btn-stockout:hover {
+    background-color: #ffcdd2;
 }
