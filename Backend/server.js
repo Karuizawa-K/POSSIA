@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
-const { randomBytes } = require("crypto");
+const { randomBytes, createHash, timingSafeEqual } = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import DB models
@@ -19,6 +19,7 @@ const Receipt = require("./models/receipt");
 const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
 const { generateUniqueBarcode } = require("./utils/barcode");
+const { getReportPeriod } = require("./utils/report-period");
 
 const app = express();
 const frontendOrigins = process.env.FRONTEND_URL
@@ -751,41 +752,6 @@ app.get("/api/admin/inventory/movements", requireAdmin, async (req, res) => {
   }
 });
 
-function getReportPeriod(period, dateValue) {
-  if (!["daily", "weekly", "monthly", "yearly"].includes(period) ||
-    typeof dateValue !== "string" ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-    return null;
-  }
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  if (dateValue > today) {
-    return null;
-  }
-  const anchor = new Date(`${dateValue}T00:00:00.000Z`);
-  if (Number.isNaN(anchor.getTime()) || anchor.toISOString().slice(0, 10) !== dateValue) {
-    return null;
-  }
-
-  const start = new Date(anchor);
-  const end = new Date(anchor);
-  if (period === "daily") {
-    end.setUTCDate(end.getUTCDate() + 1);
-  } else if (period === "weekly") {
-    const daysSinceMonday = (start.getUTCDay() + 6) % 7;
-    start.setUTCDate(start.getUTCDate() - daysSinceMonday);
-    end.setTime(start.getTime());
-    end.setUTCDate(end.getUTCDate() + 7);
-  } else if (period === "monthly") {
-    start.setUTCDate(1);
-    end.setUTCMonth(end.getUTCMonth() + 1, 1);
-  } else {
-    start.setUTCMonth(0, 1);
-    end.setUTCFullYear(end.getUTCFullYear() + 1, 0, 1);
-  }
-  return { start, end };
-}
-
 app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
   const { period, date } = req.query;
   const range = getReportPeriod(period, date);
@@ -965,6 +931,8 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
       ownerConfigured: ownerIsValid,
       ownerConfigurationInvalid: Boolean(ownerSetting) && !ownerIsValid,
       currentUserIsOwner: ownerUserId === req.adminUser._id.toString(),
+      recoveryCodeConfigured: typeof process.env.OWNER_RECOVERY_CODE === "string" &&
+        process.env.OWNER_RECOVERY_CODE.length >= 32,
       users: users.map((user) => ({
         id: user._id,
         username: user.username,
@@ -1279,6 +1247,96 @@ app.post("/api/admin/owner-transfer", requireAdmin, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Unable to transfer system ownership." });
+  }
+});
+
+app.post("/api/admin/owner-recovery", requireAdmin, async (req, res) => {
+  try {
+    const { targetUserId, password, recoveryCode, confirmRecovery } = req.body || {};
+    if (
+      typeof targetUserId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(targetUserId) ||
+      typeof password !== "string" ||
+      !password ||
+      typeof recoveryCode !== "string" ||
+      !recoveryCode ||
+      recoveryCode.length > 256 ||
+      confirmRecovery !== true
+    ) {
+      return res.status(400).json({
+        message: "Choose an Admin, enter your password and recovery code, and confirm recovery.",
+      });
+    }
+
+    const configuredCode = process.env.OWNER_RECOVERY_CODE;
+    if (typeof configuredCode !== "string" || configuredCode.length < 32) {
+      return res.status(503).json({
+        message: "Owner recovery is not configured. Ask a trusted operator to configure OWNER_RECOVERY_CODE.",
+      });
+    }
+
+    const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
+    const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
+    if (
+      suppliedCodeBuffer.length !== configuredCodeBuffer.length ||
+      !timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer)
+    ) {
+      return res.status(403).json({ message: "The recovery code is incorrect." });
+    }
+
+    const [requestingAdmin, targetUser] = await Promise.all([
+      User.findById(req.adminUser._id).select("password"),
+      User.findById(targetUserId).select("_id username role"),
+    ]);
+    if (!requestingAdmin || !await bcrypt.compare(password, requestingAdmin.password)) {
+      return res.status(403).json({ message: "The current password is incorrect." });
+    }
+    if (!targetUser || targetUser.role !== "Admin") {
+      return res.status(400).json({
+        message: "Ownership can only be recovered to an existing Admin account.",
+      });
+    }
+
+    const recoveryCodeHash = createHash("sha256")
+      .update(configuredCodeBuffer)
+      .digest("hex");
+    const recoveredSetting = await SystemSetting.findOneAndUpdate(
+      {
+        key: "owner",
+        usedRecoveryCodeHashes: { $ne: recoveryCodeHash },
+      },
+      {
+        $set: { ownerUserId: targetUser._id },
+        $setOnInsert: { key: "owner" },
+        $addToSet: { usedRecoveryCodeHashes: recoveryCodeHash },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
+    );
+    if (!recoveredSetting) {
+      return res.status(409).json({
+        message: "Ownership changed during recovery. Reload the page and try again.",
+      });
+    }
+
+    res.json({
+      message: `Ownership recovered and transferred to "${targetUser.username}". Configure a new recovery code before another recovery.`,
+      owner: {
+        id: targetUser._id,
+        username: targetUser.username,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "This recovery code has already been used. A trusted operator must configure a new code.",
+      });
+    }
+    console.error(error);
+    res.status(500).json({ message: "Unable to recover system ownership." });
   }
 });
 

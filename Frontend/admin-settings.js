@@ -11,6 +11,11 @@ const ownershipTransferSection = document.getElementById("ownershipTransferSecti
 const ownershipTarget = document.getElementById("ownershipTarget");
 const ownerPasswordInput = document.getElementById("ownerPassword");
 const ownershipNotice = document.getElementById("ownershipNotice");
+const ownershipRecoverySection = document.getElementById("ownershipRecoverySection");
+const ownershipRecoveryForm = document.getElementById("ownershipRecoveryForm");
+const recoveryTarget = document.getElementById("recoveryTarget");
+const recoveryAdminPassword = document.getElementById("recoveryAdminPassword");
+const ownerRecoveryCode = document.getElementById("ownerRecoveryCode");
 
 let currentUserId;
 let editingUserId = null;
@@ -57,6 +62,25 @@ function resetAccountForm() {
 
 function renderAccounts(users) {
     accountsList.replaceChildren();
+    ownershipTarget.replaceChildren();
+    recoveryTarget.replaceChildren();
+
+    for (const user of users.filter((account) => account.role === "Admin")) {
+        const recoveryOption = document.createElement("option");
+        recoveryOption.value = user.id;
+        recoveryOption.textContent = `${user.fullName} (@${user.username})`;
+        recoveryTarget.append(recoveryOption);
+
+        if (user.id !== currentUserId) {
+            ownershipTarget.append(recoveryOption.cloneNode(true));
+        }
+    }
+    ownershipTarget.disabled = ownershipTarget.options.length === 0;
+    recoveryTarget.disabled = recoveryTarget.options.length === 0;
+    ownershipTransferForm.querySelector("button[type='submit']").disabled =
+        ownershipTarget.disabled;
+    ownershipRecoveryForm.querySelector("button[type='submit']").disabled =
+        recoveryTarget.disabled;
 
     if (users.length === 0) {
         const row = document.createElement("tr");
@@ -120,19 +144,6 @@ function renderAccounts(users) {
         accountsList.append(row);
     }
     window.makeTableSortable(accountsList.closest("table"));
-
-    ownershipTarget.replaceChildren();
-    for (const user of users.filter((account) =>
-        account.role === "Admin" && account.id !== currentUserId
-    )) {
-        const option = document.createElement("option");
-        option.value = user.id;
-        option.textContent = `${user.fullName} (@${user.username})`;
-        ownershipTarget.append(option);
-    }
-    ownershipTarget.disabled = ownershipTarget.options.length === 0;
-    ownershipTransferForm.querySelector("button[type='submit']").disabled =
-        ownershipTarget.disabled;
 }
 
 function startEditing(user) {
@@ -156,14 +167,21 @@ async function loadAccounts() {
     const data = await apiRequest("/api/admin/users");
     currentUserIsOwner = data.currentUserIsOwner;
     ownershipTransferSection.hidden = !currentUserIsOwner;
+    ownershipRecoverySection.hidden = !data.recoveryCodeConfigured;
     ownershipNotice.hidden = data.ownerConfigured && currentUserIsOwner;
     ownershipNotice.textContent = !data.ownerConfigured
         ? data.ownerConfigurationInvalid
-            ? "The configured system owner is missing or is not an Admin. Contact a trusted system operator for recovery; ownership was not reassigned."
-            : "System ownership has not been initialized. Run npm run migrate:owner in Backend before using owner-only account controls."
+            ? data.recoveryCodeConfigured
+                ? "The configured owner is missing or invalid. A trusted operator can authorize recovery below."
+                : "The configured owner is missing or invalid. Ask a trusted operator to configure OWNER_RECOVERY_CODE for in-app recovery."
+            : data.recoveryCodeConfigured
+                ? "System ownership is not initialized. Run npm run migrate:owner or use operator-authorized recovery below."
+                : "System ownership has not been initialized. Run npm run migrate:owner in Backend before using owner-only account controls."
         : currentUserIsOwner
             ? ""
-            : "Only the system owner can delete or demote Admin accounts, or transfer ownership.";
+            : data.recoveryCodeConfigured
+                ? "Only the system owner can delete or demote Admin accounts, or transfer ownership. Operator-authorized recovery is available below."
+                : "Only the system owner can delete or demote Admin accounts, or transfer ownership.";
     renderAccounts(data.users);
 }
 
@@ -198,6 +216,42 @@ ownershipTransferForm.addEventListener("submit", async (event) => {
         showMessage(error.message, true);
     } finally {
         submitButton.disabled = ownershipTarget.disabled;
+    }
+});
+
+ownershipRecoveryForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const selectedOption = recoveryTarget.selectedOptions[0];
+    if (!selectedOption) {
+        showMessage("Create an Admin account before recovering ownership.", true);
+        return;
+    }
+    if (!window.confirm(
+        `Recover and transfer system ownership to ${selectedOption.textContent}? The current owner will immediately lose owner-only privileges. This recovery code can only be used once.`
+    )) {
+        return;
+    }
+
+    const submitButton = ownershipRecoveryForm.querySelector("button[type='submit']");
+    submitButton.disabled = true;
+    try {
+        const result = await apiRequest("/api/admin/owner-recovery", {
+            method: "POST",
+            body: JSON.stringify({
+                targetUserId: recoveryTarget.value,
+                password: recoveryAdminPassword.value,
+                recoveryCode: ownerRecoveryCode.value,
+                confirmRecovery: true
+            })
+        });
+        recoveryAdminPassword.value = "";
+        ownerRecoveryCode.value = "";
+        showMessage(result.message);
+        await loadAccounts();
+    } catch (error) {
+        showMessage(error.message, true);
+    } finally {
+        submitButton.disabled = recoveryTarget.disabled;
     }
 });
 

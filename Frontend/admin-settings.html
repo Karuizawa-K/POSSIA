@@ -72,6 +72,28 @@
             </form>
         </section>
 
+        <section class="account-form-section" id="ownershipRecoverySection" hidden>
+            <h2>Recover System Ownership</h2>
+            <p>
+                Use this only when normal ownership transfer is unavailable or a trusted operator
+                has authorized recovery. Recovery immediately replaces the current owner.
+            </p>
+            <form id="ownershipRecoveryForm">
+                <label for="recoveryTarget">New owner (Admin)</label>
+                <select id="recoveryTarget" required></select>
+
+                <label for="recoveryAdminPassword">Your current password</label>
+                <input id="recoveryAdminPassword" type="password" autocomplete="current-password" required>
+
+                <label for="ownerRecoveryCode">One-time recovery code</label>
+                <input id="ownerRecoveryCode" type="password" autocomplete="off" required>
+
+                <div class="account-form-actions">
+                    <button class="admin-settings-btn" type="submit">Recover Ownership</button>
+                </div>
+            </form>
+        </section>
+
         <section class="accounts-section">
             <h2>Accounts</h2>
             <div class="accounts-table-wrapper">
