@@ -3,9 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports</title>
+    <title>Point of Sale</title>
+    <link rel="stylesheet" href="inventory_style.css">
 </head>
+
 <body>
-    <button type="button" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+
+    <nav class="navbar">
+
+        <div class="nav-left">
+            <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
+        </div>
+        
+        <div class="nav-center">
+            <h1 class="nav-title">Apb merchandising</h1>
+            <span class="nav-subtitle">Reports • Admin Access</span>
+        </div>
+
+        <div class="nav-right">
+            <span id="userInfo">Loading user...</span>
+            &nbsp;|&nbsp;
+            <button id="logoutButton" class="logout">Logout</button>
+            
+        </div>
+    </nav>
+    
 </body>
 </html>

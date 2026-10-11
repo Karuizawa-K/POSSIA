@@ -1,0 +1,346 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #f4f6f8;
+    color: #1a1a1a;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    height: 75px;
+}
+
+.nav-left, .nav-right {
+    flex: 1;
+}
+
+.nav-right {
+    text-align: right;
+    font-size: 14px;
+    color: #374151;
+}
+
+.nav-center {
+    flex: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.dashboard {
+    color: #7b7e81;
+    border: none;
+    background: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-size: inherit;
+    font-weight: inherit;
+    text-decoration: none; 
+    cursor: pointer;
+    transition: color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
+}
+
+.dashboard:hover {
+    transform: translateY(-5px);
+    color: #5d97d2;
+    background-color: #f1f5f9;
+}
+
+.nav-title {
+    font-size: 20px;
+    color: #0f2046; /* Navy Blue Brand */
+    margin-bottom: 2px;
+    text-transform: capitalize;
+    font-weight: 700;
+}
+
+.nav-subtitle {
+    font-size: 12px;
+    color: #6b7280;
+    letter-spacing: 0.5px;
+}
+
+.logout {
+    color: rgb(4, 4, 4); 
+    background: none;
+    border: none;
+    font-size: inherit;
+    text-decoration: none; 
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.logout:hover {
+    color: #ff4d4d;
+    transform: translateY(-5px);
+}
+
+/*Main Content Designs*/
+.app-container {
+    display: flex;
+    flex: 1;
+    background: #ffffff;
+    overflow: hidden; /* Keeps scrollbars inside the specific panels */
+}
+
+/* --- Left: Catalog Section --- */
+.catalog-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #ffffff;
+}
+
+.catalog-header {
+    padding: 20px 30px;
+    display: flex;
+    justify-content: flex-end; /* Pushes search bar to the right */
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.search-input {
+    padding: 12px 20px;
+    border: 1px solid #e5e7eb;
+    border-radius: 30px;
+    width: 300px;
+    font-size: 14px;
+    outline: none;
+    background: #f9fafb;
+    transition: border-color 0.2s;
+}
+
+.search-input:focus {
+    border-color: #0f2046;
+}
+
+.product-grid {
+    padding: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    overflow-y: auto; /* Allows only the grid to scroll vertically */
+}
+
+.product-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.product-card:hover {
+    border-color: #0f2046;
+    box-shadow: 0 4px 12px rgba(15, 32, 70, 0.08);
+    transform: translateY(-2px);
+}
+
+.product-icon {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+.product-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #374151;
+}
+
+.product-price {
+    font-size: 14px;
+    color: #6b7280;
+}
+
+/* --- Right: Cart Section --- */
+.cart-section {
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    background: #f9fafb;
+    border-left: 1px solid #e5e7eb;
+}
+
+.cart-header {
+    padding: 25px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.cart-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.clear-text-btn {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.clear-text-btn:hover {
+    text-decoration: underline;
+}
+
+.cart-items {
+    flex: 1;
+    overflow-y: auto; /* Allows only the cart items to scroll vertically */
+    padding: 20px 30px;
+}
+
+.empty-cart-msg {
+    text-align: center;
+    color: #9ca3af;
+    margin-top: 50px;
+    font-size: 14px;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.cart-item:last-child {
+    border-bottom: none;
+}
+
+.item-info h4 {
+    font-size: 14px;
+    margin-bottom: 4px;
+    color: #1a1a1a;
+}
+
+.item-info p {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.qty-btn {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: #374151;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.qty-btn:hover {
+    background: #e5e7eb;
+}
+
+.cart-footer {
+    padding: 25px 30px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.total-row {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f2046;
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+
+.payment-methods {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.pay-btn {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    background:  #0f2046;
+    border-radius: 8px;
+    font-weight: 500;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.bg-white{
+    background: #ffffff;
+    color: #0f2046;
+}
+
+.checkout-btn {
+    width: 100%;
+    padding: 18px;
+    background: #0f2046;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.checkout-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.checkout-btn:not(:disabled):hover {
+    opacity: 0.9;
+}
