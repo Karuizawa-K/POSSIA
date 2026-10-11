@@ -58,7 +58,7 @@
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #3481ec;
+    color: #173d72;
 }
 
 .nav-subtitle {
@@ -85,4 +85,34 @@
 .logout:hover {
     color: #ff4d4d;
     transform: translateY(-5px);
+}
+
+.main-content{
+    display: flex;
+    justify-content: stretch;
+    align-items: center;
+    padding-top: 20px;
+    border: none;
+    border-radius: 5px
+}
+
+.total-stock{
+    border-radius: inherit;
+    background-color: #c43939;
+    padding: 50px;
+    margin: 10px;
+}
+
+.low-stock{
+    border-radius: inherit;
+    background-color: #5987c9;
+    padding: 50px;
+    margin: 10px;
+}
+
+.items{
+    border-radius: inherit;
+    background-color: aquamarine;
+    padding: 50px 70px;
+    margin: 10px;
 }
