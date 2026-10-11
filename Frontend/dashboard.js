@@ -23,7 +23,12 @@ async function loadSession() {
 
         document.getElementById("userInfo").textContent =
             `${data.user.fullName} (@${data.user.username})`;
-        if (data.user.role === "Admin") {
+        const isAdmin = data.user.role === "Admin";
+        document.getElementById("dashboardTitle").textContent =
+            isAdmin ? "Admin Dashboard" : "Dashboard";
+        document.getElementById("reportsButton").hidden = !isAdmin;
+        document.querySelector(".cards-wrapper").classList.toggle("staff-view", !isAdmin);
+        if (isAdmin) {
             document.getElementById("adminSettingsButton").hidden = false;
         }
         return data.user.role;

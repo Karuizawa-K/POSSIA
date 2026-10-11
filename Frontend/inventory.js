@@ -331,7 +331,7 @@ async function initializeInventory() {
         document.getElementById("userInfo").textContent = `${user.fullName} (@${user.username})`;
         document.getElementById("accessDescription").textContent = currentRole === "Admin"
             ? "Manage products and stock. Stock changes are recorded in the movement history."
-            : "Read-only view of current active inventory.";
+            : "Active Inventory of APB Merchandising.";
         for (const element of document.querySelectorAll(".admin-only")) {
             element.hidden = currentRole !== "Admin";
         }
