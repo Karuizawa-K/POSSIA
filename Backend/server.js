@@ -31,6 +31,10 @@ app.use(
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "..", "Frontend")));
+app.use(
+  "/vendor/zxing",
+  express.static(path.join(__dirname, "node_modules", "@zxing", "browser", "umd"))
+);
 
 // Test route
 app.get("/", (req, res) => {
@@ -129,12 +133,12 @@ app.post("/api/sales", requireAuth, async (req, res) => {
   if (
     (paymentMethod === "Cash" && (!Number.isFinite(amountPaid) || amountPaid < 0)) ||
     (paymentMethod === "GCash" &&
-      (typeof referenceNumber !== "string" || !referenceNumber.trim()))
+      (typeof referenceNumber !== "string" || !/^\d{13}$/.test(referenceNumber.trim())))
   ) {
     return res.status(400).json({
       message: paymentMethod === "Cash"
         ? "Enter a valid cash amount received."
-        : "A GCash reference number is required.",
+        : "GCash reference number must contain exactly 13 digits.",
     });
   }
 

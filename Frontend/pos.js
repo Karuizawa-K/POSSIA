@@ -6,6 +6,13 @@ let products = [];
 let discountCents = 0;
 let selectedPaymentMethod = null;
 let checkoutInProgress = false;
+const gcashReferenceNumberPattern = /^\d{13}$/;
+let barcodeReader = null;
+let barcodeControls = null;
+let scannedProduct = null;
+let handlingBarcode = false;
+let lastScannedBarcode = "";
+let lastScannedAt = 0;
 
 const currency = new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -109,18 +116,24 @@ function renderProducts() {
     }
 }
 
-function addToCart(product) {
+function addToCart(product, quantity = 1) {
     const selected = cart.get(product.id);
+    const currentQuantity = selected ? selected.quantity : 0;
+    if (!Number.isInteger(quantity) || quantity < 1 ||
+        currentQuantity + quantity > product.stockQuantity) {
+        return false;
+    }
+
     if (selected) {
-        if (selected.quantity >= product.stockQuantity) {
-            return;
-        }
-        selected.quantity += 1;
+        selected.quantity += quantity;
     } else if (product.stockQuantity > 0) {
-        cart.set(product.id, { product, quantity: 1 });
+        cart.set(product.id, { product, quantity });
+    } else {
+        return false;
     }
 
     renderCart();
+    return true;
 }
 
 function changeQuantity(productId, change) {
@@ -266,6 +279,104 @@ async function refreshProducts() {
     }
 }
 
+function stopBarcodeScanner() {
+    if (barcodeControls) {
+        barcodeControls.stop();
+        barcodeControls = null;
+    }
+    const video = document.getElementById("barcode-video");
+    for (const track of video.srcObject?.getTracks() || []) {
+        track.stop();
+    }
+    video.srcObject = null;
+    document.getElementById("start-scanner-btn").disabled = false;
+}
+
+function handleScannedBarcode(barcode) {
+    const now = Date.now();
+    if (handlingBarcode || (barcode === lastScannedBarcode && now - lastScannedAt < 2500)) {
+        return;
+    }
+    lastScannedBarcode = barcode;
+    lastScannedAt = now;
+
+    const product = products.find((item) => item.barcode.trim() === barcode.trim());
+    if (!product) {
+        document.getElementById("scanner-status").textContent =
+            `No item found for barcode ${barcode}. Try another barcode.`;
+        return;
+    }
+    if (product.stockQuantity <= 0) {
+        document.getElementById("scanner-status").textContent =
+            `${product.productName} is out of stock.`;
+        return;
+    }
+    const alreadySelected = cart.get(product.id)?.quantity || 0;
+    if (alreadySelected >= product.stockQuantity) {
+        stopBarcodeScanner();
+        document.getElementById("scanner-dialog").close();
+        window.alert(`All available stock for ${product.productName} is already in the order.`);
+        return;
+    }
+
+    handlingBarcode = true;
+    stopBarcodeScanner();
+    document.getElementById("scanner-dialog").close();
+    scannedProduct = product;
+    document.getElementById("scanned-product-name").textContent =
+        `${product.productName} (${barcode}) — ${product.stockQuantity} in stock`;
+    const quantityInput = document.getElementById("scan-quantity");
+    quantityInput.max = String(product.stockQuantity - alreadySelected);
+    quantityInput.value = "1";
+    document.getElementById("scan-quantity-error").textContent = "";
+    document.getElementById("scan-quantity-dialog").showModal();
+    quantityInput.focus();
+}
+
+async function startBarcodeScanner() {
+    if (!window.isSecureContext && location.hostname !== "localhost") {
+        document.getElementById("scanner-status").textContent =
+            "Camera access requires a secure HTTPS connection.";
+        return;
+    }
+    if (!window.ZXingBrowser?.BrowserMultiFormatReader) {
+        document.getElementById("scanner-status").textContent =
+            "Barcode scanner could not be loaded. Refresh the page and try again.";
+        return;
+    }
+
+    const video = document.getElementById("barcode-video");
+    const startButton = document.getElementById("start-scanner-btn");
+    startButton.disabled = true;
+    document.getElementById("scanner-status").textContent =
+        "Requesting camera access...";
+
+    try {
+        barcodeReader ||= new window.ZXingBrowser.BrowserMultiFormatReader();
+        barcodeControls = await barcodeReader.decodeFromConstraints(
+            { video: { facingMode: { ideal: "environment" } }, audio: false },
+            video,
+            (result, error) => {
+                if (result) {
+                    handleScannedBarcode(result.getText());
+                } else if (error && error.name !== "NotFoundException" &&
+                    error.name !== "ChecksumException" && error.name !== "FormatException") {
+                    console.error("Barcode scan error:", error);
+                }
+            }
+        );
+        document.getElementById("scanner-status").textContent =
+            "Camera active. Position a barcode in the view.";
+    } catch (error) {
+        console.error("Unable to start barcode camera:", error);
+        document.getElementById("scanner-status").textContent =
+            error.name === "NotAllowedError"
+                ? "Camera permission was denied. Allow camera access in browser settings and try again."
+                : "Unable to start the camera. Check camera access and try again.";
+        stopBarcodeScanner();
+    }
+}
+
 productSearch.addEventListener("input", renderProducts);
 document.getElementById("clear-btn").addEventListener("click", () => {
     cart.clear();
@@ -339,25 +450,45 @@ document.getElementById("checkout-btn").addEventListener("click", () => {
         paymentInput.type = "number";
         paymentInput.min = String((getSubtotalCents() - discountCents) / 100);
         paymentInput.step = "0.01";
-        paymentInput.value = "";
         paymentInput.inputMode = "decimal";
+        paymentInput.removeAttribute("maxlength");
+        paymentInput.removeAttribute("minlength");
+        paymentInput.removeAttribute("pattern");
+        paymentInput.placeholder = "";
+        paymentInput.value = "";
         paymentInput.autocomplete = "off";
         paymentInput.required = true;
+        paymentInput.setCustomValidity("");
     } else {
         paymentTitle.textContent = "GCash Payment";
-        paymentLabel.textContent = "GCash reference number";
+        paymentLabel.textContent = "GCash reference number (13 digits)";
         paymentInput.type = "text";
         paymentInput.removeAttribute("min");
         paymentInput.removeAttribute("step");
+        paymentInput.inputMode = "numeric";
+        paymentInput.maxLength = 13;
+        paymentInput.minLength = 13;
+        paymentInput.pattern = "[0-9]{13}";
+        paymentInput.placeholder = "Enter 13 digits";
         paymentInput.value = "";
-        paymentInput.inputMode = "text";
         paymentInput.autocomplete = "off";
         paymentInput.required = true;
+        paymentInput.setCustomValidity("");
     }
 
     document.getElementById("payment-error").textContent = "";
     document.getElementById("payment-dialog").showModal();
     paymentInput.focus();
+});
+
+document.getElementById("payment-input").addEventListener("input", (event) => {
+    if (selectedPaymentMethod === "GCash") {
+        event.target.setCustomValidity(
+            event.target.value === "" || gcashReferenceNumberPattern.test(event.target.value)
+                ? ""
+                : "Enter exactly 13 digits from the GCash transaction receipt."
+        );
+    }
 });
 
 document.getElementById("payment-form").addEventListener("submit", async (event) => {
@@ -385,9 +516,9 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
             return;
         }
     } else {
-        if (!inputValue) {
+        if (!gcashReferenceNumberPattern.test(inputValue)) {
             document.getElementById("payment-error").textContent =
-                "Enter the GCash reference number.";
+                "GCash reference number must contain exactly 13 digits.";
             return;
         }
         payload.referenceNumber = inputValue;
@@ -446,6 +577,49 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
         checkoutInProgress = false;
         renderCart();
     }
+});
+
+document.getElementById("scan-barcode-btn").addEventListener("click", () => {
+    document.getElementById("scanner-status").textContent =
+        "Position the barcode inside the camera view.";
+    document.getElementById("scanner-dialog").showModal();
+});
+
+document.getElementById("start-scanner-btn").addEventListener("click", startBarcodeScanner);
+document.getElementById("close-scanner-btn").addEventListener("click", () => {
+    stopBarcodeScanner();
+    document.getElementById("scanner-dialog").close();
+});
+document.getElementById("scanner-dialog").addEventListener("close", stopBarcodeScanner);
+
+document.getElementById("scan-quantity-form").addEventListener("submit", (event) => {
+    if (event.submitter.value !== "add") {
+        scannedProduct = null;
+        handlingBarcode = false;
+        return;
+    }
+    event.preventDefault();
+    const quantity = Number.parseInt(document.getElementById("scan-quantity").value, 10);
+    if (!scannedProduct || !Number.isInteger(quantity) || quantity < 1) {
+        document.getElementById("scan-quantity-error").textContent =
+            "Enter a quantity of at least 1.";
+        return;
+    }
+
+    if (!addToCart(scannedProduct, quantity)) {
+        document.getElementById("scan-quantity-error").textContent =
+            "Quantity exceeds available stock.";
+        return;
+    }
+
+    document.getElementById("scan-quantity-dialog").close();
+    document.getElementById("product-search").value = "";
+    scannedProduct = null;
+    handlingBarcode = false;
+});
+document.getElementById("scan-quantity-dialog").addEventListener("close", () => {
+    scannedProduct = null;
+    handlingBarcode = false;
 });
 
 document.getElementById("print-receipt-btn").addEventListener("click", () => {

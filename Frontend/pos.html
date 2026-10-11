@@ -35,6 +35,9 @@
             <header class="catalog-header">
                 <label class="search-label" for="product-search">Search items</label>
                 <input type="search" class="search-input" id="product-search" placeholder="Name or barcode...">
+                <button class="scan-barcode-btn" id="scan-barcode-btn" type="button">
+                    Scan barcode
+                </button>
             </header>
 
             <div class="data-grid-wrapper">
@@ -132,6 +135,32 @@
         </form>
     </dialog>
 
+    <dialog class="pos-dialog scanner-dialog" id="scanner-dialog" aria-labelledby="scanner-title">
+        <div class="scanner-content">
+            <h2 id="scanner-title">Scan barcode</h2>
+            <p id="scanner-status" role="status">Position the barcode inside the camera view.</p>
+            <video id="barcode-video" playsinline muted></video>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" id="close-scanner-btn" type="button">Close</button>
+                <button class="dialog-confirm" id="start-scanner-btn" type="button">Start Camera</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog class="pos-dialog" id="scan-quantity-dialog" aria-labelledby="scan-quantity-title">
+        <form id="scan-quantity-form" method="dialog">
+            <h2 id="scan-quantity-title">Add scanned item</h2>
+            <p id="scanned-product-name"></p>
+            <label for="scan-quantity">Quantity</label>
+            <input id="scan-quantity" type="number" min="1" step="1" value="1" required>
+            <p class="dialog-error" id="scan-quantity-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="add">Add to Order</button>
+            </div>
+        </form>
+    </dialog>
+
     <dialog class="receipt-dialog" id="receipt-dialog" aria-labelledby="receipt-title">
         <article class="receipt-content" id="receipt-content">
             <header class="receipt-header">
@@ -170,6 +199,7 @@
         </article>
     </dialog>
 
+    <script src="/vendor/zxing/zxing-browser.min.js" defer></script>
     <script src="pos.js" defer></script>
     
 </body>
