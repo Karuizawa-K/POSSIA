@@ -7,6 +7,9 @@ const reportResults = document.getElementById("reportResults");
 const summaryCards = document.getElementById("summaryCards");
 const reportTableHead = document.getElementById("reportTableHead");
 const reportTableBody = document.getElementById("reportTableBody");
+const additionalReportSection = document.getElementById("additionalReportSection");
+const additionalTableHead = document.getElementById("additionalTableHead");
+const additionalTableBody = document.getElementById("additionalTableBody");
 const reportMessage = document.getElementById("reportMessage");
 const exportButton = document.getElementById("exportReportButton");
 const printButton = document.getElementById("printReportButton");
@@ -46,7 +49,12 @@ function localDateValue(date = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+function updateDatepickerMaximum() {
+    periodDate.max = localDateValue();
+}
+
 function updateReportControls() {
+    updateDatepickerMaximum();
     const isSales = reportType.value === "sales";
     document.getElementById("periodGroup").hidden = !isSales;
     document.getElementById("dateGroup").hidden = !isSales;
@@ -79,7 +87,15 @@ function renderSummary(items) {
     }
 }
 
-function renderTable(headers, rows, emptyMessage, sortTypes = [], sortValues = []) {
+function renderTable(
+    tableHead,
+    tableBody,
+    headers,
+    rows,
+    emptyMessage,
+    sortTypes = [],
+    sortValues = []
+) {
     const headerRow = document.createElement("tr");
     for (const [index, header] of headers.entries()) {
         const cell = document.createElement("th");
@@ -88,14 +104,15 @@ function renderTable(headers, rows, emptyMessage, sortTypes = [], sortValues = [
         cell.textContent = header;
         headerRow.append(cell);
     }
-    reportTableHead.replaceChildren(headerRow);
-    reportTableBody.replaceChildren();
+    tableHead.replaceChildren(headerRow);
+    tableBody.replaceChildren();
 
     if (rows.length === 0) {
         const row = document.createElement("tr");
         const cell = addCell(row, emptyMessage);
         cell.colSpan = headers.length;
-        reportTableBody.append(row);
+        tableBody.append(row);
+        window.makeTableSortable(tableBody.closest("table"));
         return;
     }
 
@@ -108,9 +125,23 @@ function renderTable(headers, rows, emptyMessage, sortTypes = [], sortValues = [
                 cell.dataset.sortValue = String(sortValue);
             }
         }
-        reportTableBody.append(row);
+        tableBody.append(row);
     }
-    window.makeTableSortable(reportTableBody.closest("table"));
+    window.makeTableSortable(tableBody.closest("table"));
+}
+
+function renderAdditionalReport(title, headers, rows, emptyMessage, sortTypes, sortValues) {
+    document.getElementById("additionalTableTitle").textContent = title;
+    additionalReportSection.hidden = false;
+    renderTable(
+        additionalTableHead,
+        additionalTableBody,
+        headers,
+        rows,
+        emptyMessage,
+        sortTypes,
+        sortValues
+    );
 }
 
 function formatDate(value) {
@@ -163,11 +194,31 @@ function renderSalesReport(data) {
     });
     document.getElementById("tableTitle").textContent = "Transactions and Items";
     renderTable(
+        reportTableHead,
+        reportTableBody,
         ["Date", "Receipt", "Cashier", "Payment", "Gross", "Discount", "Net", "Items"],
         rows,
         "No completed sales in this period.",
         ["date", "text", "text", "text", "number", "number", "number", "text"],
         data.transactions.map((transaction) => [transaction.date])
+    );
+    renderAdditionalReport(
+        "Most Purchased Products (Top 10 by Units Sold)",
+        ["Product", "Barcode", "Units Sold", "Sales Revenue"],
+        data.mostPurchasedProducts.map((product) => [
+            product.productName,
+            product.barcode || "—",
+            product.unitsSold,
+            currency.format(product.revenue)
+        ]),
+        "No products were sold in this period.",
+        ["text", "text", "number", "number"],
+        data.mostPurchasedProducts.map((product) => [
+            product.productName,
+            product.barcode,
+            product.unitsSold,
+            product.revenue
+        ])
     );
 }
 
@@ -179,10 +230,13 @@ function renderInventoryReport(data) {
     renderSummary([
         ["Products", String(data.summary.productCount)],
         ["Units in Stock", String(data.summary.totalUnits)],
-        ["Total Stock Value", currency.format(data.summary.totalValue)]
+        ["Total Stock Value", currency.format(data.summary.totalValue)],
+        [`Low Stock (${data.lowStockThreshold} or fewer)`, String(data.summary.lowStockCount), data.summary.lowStockCount > 0]
     ]);
     document.getElementById("tableTitle").textContent = "Inventory Details";
     renderTable(
+        reportTableHead,
+        reportTableBody,
         ["Barcode", "Product", "Category", "Quantity", "Unit Price", "Stock Value", "Status"],
         data.products.map((product) => [
             product.barcode || "—",
@@ -205,10 +259,34 @@ function renderInventoryReport(data) {
             product.status
         ])
     );
+    renderAdditionalReport(
+        `Low Stock (${data.lowStockThreshold} or Fewer Units; Active Products Only)`,
+        ["Barcode", "Product", "Category", "Quantity"],
+        data.lowStockProducts.map((product) => [
+            product.barcode || "—",
+            product.productName,
+            product.categoryName,
+            product.stockQuantity
+        ]),
+        "No active products are at or below the low-stock threshold.",
+        ["text", "text", "text", "number"],
+        data.lowStockProducts.map((product) => [
+            product.barcode,
+            product.productName,
+            product.categoryName,
+            product.stockQuantity
+        ])
+    );
 }
 
 async function generateReport() {
     setMessage("");
+    updateDatepickerMaximum();
+    if (reportType.value === "sales" &&
+        (!periodDate.value || periodDate.value > periodDate.max)) {
+        setMessage("Choose a sales report date that is not in the future.", true);
+        return;
+    }
     const query = reportType.value === "sales"
         ? `/api/admin/reports/sales?period=${encodeURIComponent(salesPeriod.value)}&date=${encodeURIComponent(periodDate.value)}`
         : "/api/admin/reports/inventory";
@@ -270,6 +348,17 @@ function salesCsvRows() {
             ]);
         }
     }
+    rows.push(
+        [],
+        ["Most Purchased Products (Top 10 by Units Sold)"],
+        ["Product", "Barcode", "Units Sold", "Sales Revenue"],
+        ...currentReport.mostPurchasedProducts.map((product) => [
+            product.productName,
+            product.barcode,
+            product.unitsSold,
+            product.revenue
+        ])
+    );
     return [headers, ...rows];
 }
 
@@ -284,6 +373,15 @@ function inventoryCsvRows() {
             product.unitPrice,
             product.stockValue,
             product.status
+        ]),
+        [],
+        [`Low Stock (${currentReport.lowStockThreshold} or Fewer Units; Active Products Only)`],
+        ["Barcode", "Product", "Category", "Quantity"],
+        ...currentReport.lowStockProducts.map((product) => [
+            product.barcode,
+            product.productName,
+            product.categoryName,
+            product.stockQuantity
         ])
     ];
 }

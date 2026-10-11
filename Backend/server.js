@@ -756,6 +756,11 @@ function getReportPeriod(period, dateValue) {
     !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
     return null;
   }
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (dateValue > today) {
+    return null;
+  }
   const anchor = new Date(`${dateValue}T00:00:00.000Z`);
   if (Number.isNaN(anchor.getTime()) || anchor.toISOString().slice(0, 10) !== dateValue) {
     return null;
@@ -784,7 +789,7 @@ app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
   const { period, date } = req.query;
   const range = getReportPeriod(period, date);
   if (!range) {
-    return res.status(400).json({ message: "Choose a valid report period and date." });
+    return res.status(400).json({ message: "Choose a valid report period and a date that is not in the future." });
   }
 
   try {
@@ -799,7 +804,7 @@ app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
     const [details, payments] = await Promise.all([
       saleIds.length
         ? SaleDetail.find({ saleId: { $in: saleIds } })
-            .select("saleId productName barcode quantity unitPrice subtotal")
+            .select("saleId productId productName barcode quantity unitPrice subtotal")
         : [],
       saleIds.length
         ? Payment.find({ saleId: { $in: saleIds } })
@@ -851,6 +856,31 @@ app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
         items: detailsBySale.get(sale._id.toString()) || [],
       };
     });
+    const productSales = new Map();
+    for (const detail of details) {
+      const productKey = detail.productId?.toString() ||
+        `${detail.barcode || ""}:${detail.productName || "Unknown product"}`;
+      const product = productSales.get(productKey) || {
+        productName: detail.productName || "Unknown product",
+        barcode: detail.barcode || "",
+        unitsSold: 0,
+        revenueCents: 0,
+      };
+      product.unitsSold += detail.quantity;
+      product.revenueCents += Math.round(detail.subtotal * 100);
+      productSales.set(productKey, product);
+    }
+    const mostPurchasedProducts = Array.from(productSales.values())
+      .map((product) => ({
+        ...product,
+        revenue: product.revenueCents / 100,
+      }))
+      .sort((left, right) =>
+        right.unitsSold - left.unitsSold ||
+        left.productName.localeCompare(right.productName)
+      )
+      .slice(0, 10)
+      .map(({ revenueCents, ...product }) => product);
 
     res.json({
       period,
@@ -864,6 +894,7 @@ app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
         paymentTotals,
       },
       transactions,
+      mostPurchasedProducts,
     });
   } catch (error) {
     console.error(error);
@@ -893,14 +924,21 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
         status: product.isActive === false ? "Archived" : "Active",
       };
     });
+    const lowStockThreshold = 10;
+    const lowStockProducts = inventory.filter((product) =>
+      product.status === "Active" && product.stockQuantity <= lowStockThreshold
+    );
     res.json({
       generatedAt: new Date(),
+      lowStockThreshold,
       summary: {
         productCount: inventory.length,
         totalUnits,
         totalValue,
+        lowStockCount: lowStockProducts.length,
       },
       products: inventory,
+      lowStockProducts,
     });
   } catch (error) {
     console.error(error);
