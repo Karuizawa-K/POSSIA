@@ -1,24 +1,15 @@
-const loginForm = document.getElementById("loginForm");
-const message = document.getElementById("message");
-const passwordInput = document.getElementById("password");
-const togglePassword = document.getElementById("togglePassword");
+// =========================
+// LOGIN
+// =========================
 
-// Show password 
-togglePassword.addEventListener("click", () => {
-    const isVisible = passwordInput.type === "text";
-    passwordInput.type = isVisible ? "password" : "text";
-    togglePassword.textContent = isVisible ? "Show" : "Hide";
-    togglePassword.setAttribute("aria-pressed", String(!isVisible));
-});
-//========================
+const loginForm = document.getElementById("loginForm");
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
-    message.textContent = "Logging in...";
-
-    const email = document.getElementById("email").value;
+    const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value;
+    const message = document.getElementById("message");
 
     try {
         const response = await fetch("/api/login", {
@@ -26,7 +17,10 @@ loginForm.addEventListener("submit", async (event) => {
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({
+                username,
+                password
+            })
         });
 
         const data = await response.json();
@@ -36,10 +30,14 @@ loginForm.addEventListener("submit", async (event) => {
             return;
         }
 
-        window.location.href = data.redirect;
+        // Save JWT token
+        localStorage.setItem("token", data.token);
+
+        // Go to dashboard
+        window.location.href = "dashboard.html";
 
     } catch (error) {
-        message.textContent =
-            "Unable to connect to the server.";
+        message.textContent = "Unable to connect to the server.";
+        console.error(error);
     }
 });

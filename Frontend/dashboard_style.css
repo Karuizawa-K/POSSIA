@@ -33,6 +33,148 @@ body {
 .nav-right {
     font-size: 15px;
     opacity: 0.9;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.nav-user-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.admin-settings-btn {
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.admin-settings-btn:hover {
+    background: #e2e8f0;
+}
+
+.admin-settings-content {
+    width: min(1100px, calc(100% - 40px));
+    margin: 40px auto;
+    flex: 1;
+}
+
+.admin-settings-content[hidden] {
+    display: none;
+}
+
+.account-form-section,
+.accounts-section {
+    margin-bottom: 32px;
+    padding: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.account-form-section h2,
+.accounts-section h2 {
+    margin-bottom: 18px;
+    color: #1e293b;
+}
+
+#accountForm {
+    display: grid;
+    grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
+    align-items: center;
+    gap: 12px 16px;
+    max-width: 700px;
+}
+
+#accountForm input,
+#accountForm select {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font: inherit;
+}
+
+#accountForm small {
+    grid-column: 2;
+    margin-top: -8px;
+    color: #64748b;
+}
+
+.account-form-actions {
+    grid-column: 2;
+    display: flex;
+    gap: 8px;
+}
+
+#statusMessage {
+    margin-bottom: 16px;
+    color: #166534;
+}
+
+#statusMessage:empty {
+    display: none;
+}
+
+#statusMessage.error-message {
+    color: #b91c1c;
+}
+
+.accounts-table-wrapper {
+    overflow-x: auto;
+}
+
+.accounts-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.accounts-table th,
+.accounts-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.accounts-table th {
+    color: #334155;
+    background: #f8fafc;
+}
+
+.account-action-btn {
+    margin-right: 8px;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.account-action-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.delete-account-btn {
+    color: #b91c1c;
+}
+
+@media (max-width: 600px) {
+    #accountForm {
+        grid-template-columns: 1fr;
+    }
+
+    #accountForm small,
+    .account-form-actions {
+        grid-column: 1;
+    }
 }
 
 .logout {

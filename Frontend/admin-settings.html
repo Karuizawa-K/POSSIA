@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Settings</title>
+    <link rel="stylesheet" href="dashboard_style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Admin Settings</h1>
+        <a class="admin-settings-btn" href="dashboard.html">Back to Dashboard</a>
+    </nav>
+
+    <main id="adminSettings" class="admin-settings-content" hidden>
+        <p id="statusMessage" role="status" aria-live="polite"></p>
+
+        <section class="account-form-section">
+            <h2 id="formHeading">Create Account</h2>
+            <form id="accountForm">
+                <label for="username">Username</label>
+                <input id="username" name="username" autocomplete="username" required>
+
+                <label for="fullName">Full name</label>
+                <input id="fullName" name="fullName" autocomplete="name" required>
+
+                <label for="password">Password</label>
+                <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+                <small id="passwordHelp">At least 6 characters.</small>
+
+                <label for="role">Role</label>
+                <select id="role" name="role" required>
+                    <option value="Staff">Staff</option>
+                    <option value="Admin">Admin</option>
+                </select>
+
+                <div class="account-form-actions">
+                    <button id="saveAccountButton" class="admin-settings-btn" type="submit">Create Account</button>
+                    <button id="cancelEditButton" class="admin-settings-btn" type="button" hidden>Cancel</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="accounts-section">
+            <h2>Accounts</h2>
+            <div class="accounts-table-wrapper">
+                <table class="accounts-table">
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Full name</th>
+                            <th>Role</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsList">
+                        <tr><td colspan="5">Loading accounts...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script src="admin-settings.js" defer></script>
+</body>
+</html>

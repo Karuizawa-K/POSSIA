@@ -14,9 +14,14 @@
         </div>
 
         <div class="nav-right">
-            <span id="userInfo">Loading user...</span>
-            &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout">Logout</button>
+            <div class="nav-user-row">
+                <span id="userInfo">Loading user...</span>
+                <span aria-hidden="true">|</span>
+                <button id="logoutButton" class="logout">Logout</button>
+            </div>
+            <button id="adminSettingsButton" class="admin-settings-btn" hidden>
+                Admin Settings
+            </button>
         </div>
     </nav>
 
