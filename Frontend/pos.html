@@ -95,9 +95,9 @@
                 </div>
 
                 <div class="payment-methods" id="payment-methods">
-                    <button class="pay-btn bg-white">Discount</button>
-                    <button class="pay-btn">Cash</button>
-                    <button class="pay-btn">GCash</button>
+                    <button class="pay-btn bg-white" id="discount-btn" type="button">Discount</button>
+                    <button class="pay-btn" id="cash-btn" type="button" data-method="Cash">Cash</button>
+                    <button class="pay-btn" id="gcash-btn" type="button" data-method="GCash">GCash</button>
                 </div>
 
                 <button class="checkout-btn" id="checkout-btn" disabled>Checkout • ₱0.00</button>
@@ -105,6 +105,32 @@
         </aside>
 
     </section>
+
+    <dialog class="pos-dialog" id="discount-dialog">
+        <form id="discount-form" method="dialog">
+            <h2>Apply Discount</h2>
+            <label for="discount-amount">Discount amount (₱)</label>
+            <input id="discount-amount" type="number" min="0" step="0.01" required>
+            <p class="dialog-error" id="discount-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="apply">Apply Discount</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pos-dialog" id="payment-dialog">
+        <form id="payment-form" method="dialog">
+            <h2 id="payment-dialog-title">Payment</h2>
+            <label id="payment-input-label" for="payment-input"></label>
+            <input id="payment-input" type="number" min="0" step="0.01" required>
+            <p class="dialog-error" id="payment-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="confirm">Confirm Payment</button>
+            </div>
+        </form>
+    </dialog>
 
     <script src="pos.js" defer></script>
     
