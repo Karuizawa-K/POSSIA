@@ -3,42 +3,48 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Roboto', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 body {
-    background-color: azure;
+    background-color:#f9fbfd;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+  
 }
 
-
-.navbar {
-    background-color: #0073b7; 
-    color: white;
+.navbar {  
+    background-color: #ffffff;    
+    border-bottom: solid 1px #e9ecef; 
+    color: rgb(1, 1, 1);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 30px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .nav-left {
     display: flex;
     align-items: center;
-    font-size: 35px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 500;
     letter-spacing: 1px;
 }
 
+.nav-title {
+    font-size: 35px;
+    font-weight: 700;
+    color: #3481ec;
+}
+
 .nav-right {
-    font-size: 13px;
+    font-size: 15px;
     opacity: 0.9;
 }
 
 .logout {
-    color: white; 
+    color: rgb(4, 4, 4); 
     background: none;
     border: none;
     font-size: inherit;
@@ -55,18 +61,22 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: start;
+    margin-left: 225px;
     padding-top: 80px; 
 }
 
-.main-logo {
-    color: #0073b7;
-    font-size: 72px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    margin-bottom: 60px;
+.welcome-section h1 {
+    font-size: 40px;
+    color: #1e293b;
+    margin-bottom: 8px;
 }
 
+.welcome-section p {
+    color: #64748b;
+    font-size: 16px;
+    margin-bottom: 48px;
+}
 .cards-wrapper {
     display: flex;
     gap: 30px;
@@ -81,25 +91,42 @@ body {
     align-items: center;
     justify-content: center; 
     text-align: center; 
-    width: 260px;
-    height: 110px;
+    width: 350px;
+    height: 250px; 
     border-radius: 5px;
-    color: white;
+    color: #1e293b;
     padding: 20px;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.15);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #f1f5f9;
+    background-color: rgb(170, 220, 239);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.4s ease, background-color 0.4s ease;
+}
+
+.Btn h2 {
+    font-size: 24px;
+    font-weight: 200;
+    margin-bottom: 8px;
+}
+
+.Btn p {
+    font-size: 16px;
+    color: #1e293b;
 }
 
 .Btn:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+    background-color: #0073ba;
+    color: #ffffff;
 }
 
+
 .card-text h2 {
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 5px;
+    margin-top: 5px;
     text-transform: uppercase;
 }
 
@@ -108,14 +135,13 @@ body {
     opacity: 0.9;
 }
 
-.bg-blue {
-    background-color: #0073b7; 
-}
-
-.bg-red {
-    background-color: #dd4b39; 
-}
-
-.bg-green {
-    background-color: #00a65a; 
+footer{
+    background-color: #ffffff;    
+    border-top: solid 1px #e9ecef; 
+    color: #64748b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 30px;
+    font-size: 14px;
 }

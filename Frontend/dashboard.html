@@ -11,49 +11,55 @@
 
     <nav class="navbar">
         <div class="nav-left">
-            <span class="nav-title">DASHBOARD</span>
+            <p><span class="nav-title">APB</span> merchandising</p>
         </div>
 
         <div class="nav-right">
             <span id="userInfo">Loading user...</span>
             &nbsp;|&nbsp;
             <button id="logoutButton" class="logout">Logout</button>
-
         </div>
     </nav>
 
     <main class="main-content">
-        <div class="logo-container">
-            <h1 class="main-logo">APB merchandising</h1>
-        </div>
+        <section class="welcome-section">
+            <h1>Dashboard</h1>
+            <p>Welcome to APB merchandising. Choose a workspace to get started.</p>
+        </section>
 
-        <div class="cards-wrapper">
-            <!-- POS Card Button -->
-            <button class="Btn bg-blue" data-page="pos.html">
-                <div class="card-text">
-                    <h2>POS</h2>
-                    <p>Point of Sales</p>
-                </div>
-            </button>
+        <section>          
+            <div class="cards-wrapper">
+                <!-- POS Card Button -->
+                <button class="Btn 1" data-page="pos.html">
+                    <div class="card-text">
+                        <h2>POS</h2>
+                        <p>Point of Sales</p>
+                    </div>
+                </button>
 
-            <!-- Inventory Card Button -->
-            <button class="Btn bg-red" data-page="inventory.html">
-                <div class="card-text">
-                    <h2>Inventory</h2>
-                    <p>View Inventory</p>
-                </div>
-            </button>
+                <!-- Inventory Card Button -->
+                <button class="Btn 2" data-page="inventory.html">
+                    <div class="card-text">
+                        <h2>Inventory</h2>
+                        <p>View Inventory</p>
+                    </div>
+                </button>
 
-            <!-- Reports Card Button -->
-            <button class="Btn bg-green" data-page="reports.html">
-                <div class="card-text">
-                    <h2>Reports</h2>
-                    <p>Print/View Reports</p>
-                </div>
-            </button>
+                <!-- Reports Card Button -->
+                <button class="Btn 3" data-page="reports.html">
+                    <div class="card-text">
+                        <h2>Reports</h2>
+                        <p>Print/View Reports</p>
+                    </div>
+                </button>
+            </div>
+        </section>
 
-        </div>
     </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 APB Merchandising. All rights reserved.</p>
+    </footer>
 
     <script src="dashboard.js" defer></script>
     
