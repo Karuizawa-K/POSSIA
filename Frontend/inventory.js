@@ -15,11 +15,17 @@ const barcodePreviewSvg = document.getElementById("barcodePreview");
 const barcodePreviewName = document.getElementById("barcodePreviewName");
 const generateBarcodeButton = document.getElementById("generateBarcodeButton");
 const printBarcodeButton = document.getElementById("printBarcodeButton");
+const inventoryBarcodeDialog = document.getElementById("inventoryBarcodeDialog");
+const inventoryBarcodePreview = document.getElementById("inventoryBarcodePreview");
+const inventoryBarcodeTitle = document.getElementById("inventoryBarcodeTitle");
+const inventoryBarcodeValue = document.getElementById("inventoryBarcodeValue");
+const showProductFormButton = document.getElementById("showProductFormButton");
 
 let currentRole = null;
 let products = [];
 let categories = [];
 let editingProductId = null;
+let dialogBarcodeProductName = "";
 
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
@@ -95,7 +101,16 @@ function renderInventory() {
     inventoryRows.replaceChildren();
     for (const product of shownProducts) {
         const row = document.createElement("tr");
-        addCell(row, product.barcode || "—");
+        const barcodeCell = addCell(row, product.barcode || "—");
+        if (product.barcode) {
+            const barcodeButton = document.createElement("button");
+            barcodeButton.type = "button";
+            barcodeButton.className = "barcode-row-button";
+            barcodeButton.textContent = "View / Print";
+            barcodeButton.setAttribute("aria-label", `View or print barcode for ${product.productName}`);
+            barcodeButton.addEventListener("click", () => showInventoryBarcode(product));
+            barcodeCell.append(barcodeButton);
+        }
         addCell(row, product.productName);
         addCell(row, product.categoryName);
         addCell(row, `₱${Number(product.unitPrice).toFixed(2)}`);
@@ -300,27 +315,55 @@ function barcodeFormatFor(value) {
     return /^\d{13}$/.test(value) ? "EAN13" : "CODE128";
 }
 
+function renderBarcode(svg, value, productName) {
+    if (!window.JsBarcode) {
+        throw new Error("Barcode renderer is unavailable. Reload the page and try again.");
+    }
+    window.JsBarcode(svg, value, {
+        format: barcodeFormatFor(value),
+        displayValue: true,
+        height: 60,
+        width: 2,
+        margin: 10,
+        fontSize: 16
+    });
+    svg.setAttribute("aria-label", `Barcode for ${productName}: ${value}`);
+}
+
 function renderBarcodePreview() {
     const value = barcodeInput.value.trim();
-    if (!value || !window.JsBarcode) {
+    if (!value) {
         barcodePreviewSection.hidden = true;
+        barcodePreviewSvg.replaceChildren();
         return;
     }
 
     barcodePreviewName.textContent = productNameInput.value.trim() || "New product";
     try {
-        window.JsBarcode(barcodePreviewSvg, value, {
-            format: barcodeFormatFor(value),
-            displayValue: true,
-            height: 60,
-            width: 2,
-            margin: 10,
-            fontSize: 16
-        });
+        renderBarcode(barcodePreviewSvg, value, barcodePreviewName.textContent);
         barcodePreviewSection.hidden = false;
     } catch (error) {
         barcodePreviewSection.hidden = true;
-        console.warn("Barcode cannot be rendered:", error);
+        barcodePreviewSvg.replaceChildren();
+        showMessage(error.message, true);
+    }
+}
+
+function showInventoryBarcode(product) {
+    const barcode = (product.barcode || "").trim();
+    if (!barcode) {
+        showMessage("This product does not have a barcode to print.", true);
+        return;
+    }
+    dialogBarcodeProductName = product.productName;
+    inventoryBarcodeTitle.textContent = product.productName;
+    inventoryBarcodeValue.textContent = barcode;
+    inventoryBarcodePreview.replaceChildren();
+    try {
+        renderBarcode(inventoryBarcodePreview, barcode, product.productName);
+        inventoryBarcodeDialog.showModal();
+    } catch (error) {
+        showMessage(error.message, true);
     }
 }
 
@@ -345,15 +388,14 @@ function escapeHtml(value) {
     })[character]);
 }
 
-function printBarcodeLabel() {
-    const value = barcodeInput.value.trim();
+function printBarcodeLabel(svg, value, productName) {
     if (!value) {
         showMessage("Generate or enter a barcode before printing.", true);
         return;
     }
 
-    const productName = escapeHtml(productNameInput.value.trim() || "Product");
-    const svgMarkup = new XMLSerializer().serializeToString(barcodePreviewSvg);
+    const safeProductName = escapeHtml(productName || "Product");
+    const svgMarkup = new XMLSerializer().serializeToString(svg);
     const printWindow = window.open("", "_blank", "width=520,height=420");
     if (!printWindow) {
         showMessage("Allow pop-ups to print the barcode label.", true);
@@ -364,7 +406,7 @@ function printBarcodeLabel() {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Barcode label - ${productName}</title>
+<title>Barcode label - ${safeProductName}</title>
 <style>
 body { font-family: Arial, sans-serif; text-align: center; padding: 24px; }
 h1 { font-size: 18px; margin: 0 0 12px; }
@@ -372,7 +414,7 @@ p { font-size: 13px; color: #555; margin: 0 0 16px; }
 </style>
 </head>
 <body>
-<h1>${productName}</h1>
+<h1>${safeProductName}</h1>
 <p>APB Merchandising</p>
 ${svgMarkup}
 <script>
@@ -398,6 +440,8 @@ function resetProductForm() {
     document.getElementById("cancelEditButton").hidden = true;
     barcodePreviewSection.hidden = true;
     barcodePreviewSvg.replaceChildren();
+    productEditor.hidden = true;
+    showProductFormButton.hidden = false;
 }
 
 function startEditing(product) {
@@ -414,6 +458,7 @@ function startEditing(product) {
     document.getElementById("cancelEditButton").hidden = false;
     renderBarcodePreview();
     productEditor.hidden = false;
+    showProductFormButton.hidden = true;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -535,13 +580,35 @@ document.getElementById("cancelEditButton").addEventListener("click", () => {
     resetProductForm();
     productEditor.hidden = true;
 });
-document.getElementById("showProductFormButton").addEventListener("click", () => {
+showProductFormButton.addEventListener("click", () => {
     resetProductForm();
     productEditor.hidden = false;
+    showProductFormButton.hidden = true;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 generateBarcodeButton.addEventListener("click", requestGeneratedBarcode);
-printBarcodeButton.addEventListener("click", printBarcodeLabel);
+printBarcodeButton.addEventListener("click", () =>
+    printBarcodeLabel(
+        barcodePreviewSvg,
+        barcodeInput.value.trim(),
+        productNameInput.value.trim() || "Product"
+    )
+);
+document.getElementById("closeInventoryBarcodeButton").addEventListener("click", () => {
+    inventoryBarcodeDialog.close();
+});
+document.getElementById("printInventoryBarcodeButton").addEventListener("click", () =>
+    printBarcodeLabel(
+        inventoryBarcodePreview,
+        inventoryBarcodeValue.textContent,
+        dialogBarcodeProductName
+    )
+);
+inventoryBarcodeDialog.addEventListener("click", (event) => {
+    if (event.target === inventoryBarcodeDialog) {
+        inventoryBarcodeDialog.close();
+    }
+});
 barcodeInput.addEventListener("input", () => {
     renderBarcodePreview();
 });

@@ -56,7 +56,7 @@
                     <input type="number" id="initialQuantity" name="initialQuantity" min="0" step="1" value="0">
                 </div>
                 <div class="form-actions">
-                    <button type="submit" class="btn-submit" id="saveProductButton">Add Product</button>
+                    <button type="submit" class="btn-submit" id="saveProductButton">Save Product</button>
                     <button type="button" class="btn-secondary" id="cancelEditButton" hidden>Cancel Edit</button>
                 </div>
             </form>
@@ -166,6 +166,17 @@
             </div>
         </section>
     </main>
+    <dialog class="barcode-dialog" id="inventoryBarcodeDialog" aria-labelledby="inventoryBarcodeTitle">
+        <div class="barcode-dialog-content">
+            <h2 id="inventoryBarcodeTitle"></h2>
+            <p id="inventoryBarcodeValue"></p>
+            <svg id="inventoryBarcodePreview" role="img" aria-label="Product barcode preview"></svg>
+            <div class="dialog-actions">
+                <button type="button" class="btn-secondary" id="closeInventoryBarcodeButton">Close</button>
+                <button type="button" class="btn-submit" id="printInventoryBarcodeButton">Print Label</button>
+            </div>
+        </div>
+    </dialog>
     <script src="/vendor/jsbarcode/JsBarcode.all.min.js"></script>
     <script src="inventory.js" defer></script>
 </body>
