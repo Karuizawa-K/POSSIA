@@ -3,12 +3,21 @@
 // =========================
 
 const loginForm = document.getElementById("loginForm");
+const passwordInput = document.getElementById("password");
+const togglePasswordButton = document.getElementById("togglePassword");
+
+togglePasswordButton.addEventListener("click", () => {
+    const isPasswordHidden = passwordInput.type === "password";
+    passwordInput.type = isPasswordHidden ? "text" : "password";
+    togglePasswordButton.textContent = isPasswordHidden ? "Hide" : "Show";
+    togglePasswordButton.setAttribute("aria-pressed", String(isPasswordHidden));
+});
 
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const username = document.getElementById("username").value.trim();
-    const password = document.getElementById("password").value;
+    const password = passwordInput.value;
     const message = document.getElementById("message");
 
     try {
