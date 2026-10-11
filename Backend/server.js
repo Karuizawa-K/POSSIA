@@ -97,7 +97,7 @@ app.get("/api/products", requireAuth, async (req, res) => {
     res.json({
       products: products.map((product) => ({
         id: product._id,
-        barcode: product.barcode,
+        barcode: product.barcode || "",
         productName: product.productName,
         unitPrice: product.unitPrice,
         stockQuantity: product.stockQuantity,
@@ -126,7 +126,7 @@ app.get("/api/inventory", requireAuth, async (req, res) => {
     res.json({
       products: products.map((product) => ({
         id: product._id,
-        barcode: product.barcode,
+        barcode: product.barcode || "",
         productName: product.productName,
         categoryId: product.categoryId?._id || product.categoryId,
         categoryName: product.categoryId?.categoryName || "Uncategorized",
@@ -416,7 +416,7 @@ function isValidInventoryProductInput(input, { partial = false, allowBlankBarcod
 function inventoryProductResponse(product, category) {
   return {
     id: product._id,
-    barcode: product.barcode,
+    barcode: product.barcode || "",
     productName: product.productName,
     categoryId: category?._id || product.categoryId,
     categoryName: category?.categoryName || "Uncategorized",
@@ -518,18 +518,39 @@ app.put("/api/admin/inventory/products/:productId", requireAdmin, async (req, re
     if (input.categoryId !== undefined && !(await Category.exists({ _id: input.categoryId }))) {
       return res.status(400).json({ message: "Category not found." });
     }
+    const storedBarcodeIsMissing = !product.barcode || !product.barcode.trim();
+    const generatedBarcode = storedBarcodeIsMissing &&
+      (typeof input.barcode !== "string" || !input.barcode.trim());
+    if (generatedBarcode) {
+      product.barcode = await generateUniqueBarcode(Product);
+    }
     for (const field of ["barcode", "productName", "categoryId", "unitPrice"]) {
       if (input[field] !== undefined) {
         product[field] = typeof input[field] === "string" ? input[field].trim() : input[field];
       }
     }
-    await product.save();
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        await product.save();
+        break;
+      } catch (error) {
+        if (error.code !== 11000 || !generatedBarcode || attempt >= 5) {
+          throw error;
+        }
+        product.barcode = await generateUniqueBarcode(Product);
+      }
+    }
     const category = await Category.findById(product.categoryId).select("_id categoryName");
-    res.json({ message: "Product updated successfully.", product: inventoryProductResponse(product, category) });
+    res.json({
+      message: generatedBarcode
+        ? "Product updated and missing barcode generated successfully."
+        : "Product updated successfully.",
+      product: inventoryProductResponse(product, category),
+    });
   } catch (error) {
     console.error(error);
     if (error.code === 11000) {
-      return res.status(409).json({ message: "Barcode is already in use." });
+      return res.status(409).json({ message: "Barcode is already in use. Try a different barcode." });
     }
     res.status(500).json({ message: "Unable to update product." });
   }

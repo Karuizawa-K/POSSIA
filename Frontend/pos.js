@@ -84,7 +84,7 @@ function renderProducts() {
     const query = productSearch.value.trim().toLowerCase();
     const visibleProducts = products.filter((product) =>
         product.productName.toLowerCase().includes(query) ||
-        product.barcode.toLowerCase().includes(query)
+        (product.barcode || "").toLowerCase().includes(query)
     );
 
     productGrid.replaceChildren();
@@ -300,7 +300,7 @@ function handleScannedBarcode(barcode) {
     lastScannedBarcode = barcode;
     lastScannedAt = now;
 
-    const product = products.find((item) => item.barcode.trim() === barcode.trim());
+    const product = products.find((item) => (item.barcode || "").trim() === barcode.trim());
     if (!product) {
         document.getElementById("scanner-status").textContent =
             `No item found for barcode ${barcode}. Try another barcode.`;
