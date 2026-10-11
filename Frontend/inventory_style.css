@@ -62,13 +62,9 @@
 }
 
 .nav-subtitle {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-top: 0.25rem;
-    font-weight: 600;
+    font-size: 12px;
+    color: #6b7280;
+    letter-spacing: 0.5px;
 }
 
 .nav-right {
