@@ -21,6 +21,10 @@ function wirePasswordToggle(input, button) {
 wirePasswordToggle(passwordInput, togglePasswordButton);
 wirePasswordToggle(recoveryCodeInput, document.getElementById("toggleRecoveryCode"));
 wirePasswordToggle(newPasswordInput, document.getElementById("toggleNewPassword"));
+wirePasswordToggle(
+    document.getElementById("confirmNewPassword"),
+    document.getElementById("toggleConfirmNewPassword")
+);
 
 document.getElementById("showRecoveryForm").addEventListener("click", () => {
     document.getElementById("message").textContent = "";
