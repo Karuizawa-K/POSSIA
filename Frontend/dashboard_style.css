@@ -62,7 +62,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: start;
-    margin-left: 225px;
+    margin-left: 220px;
     padding-top: 80px; 
 }
 
@@ -120,7 +120,6 @@ body {
     background-color: #0073ba;
     color: #ffffff;
 }
-
 
 .card-text h2 {
     font-size: 45px;
