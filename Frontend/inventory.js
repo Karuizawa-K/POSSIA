@@ -1,8 +1,10 @@
 const inventoryPage = document.getElementById("inventoryPage");
 const inventoryRows = document.getElementById("inventoryRows");
 const movementRows = document.getElementById("movementRows");
+const categoryRows = document.getElementById("categoryRows");
 const productForm = document.getElementById("productForm");
 const productEditor = document.getElementById("productEditor");
+const categoryForm = document.getElementById("categoryForm");
 const statusMessage = document.getElementById("statusMessage");
 const categoryFilter = document.getElementById("categoryFilter");
 const categorySelect = document.getElementById("categoryId");
@@ -18,6 +20,7 @@ let currentRole = null;
 let products = [];
 let categories = [];
 let editingProductId = null;
+let generatedBarcodePreview = "";
 
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
@@ -176,10 +179,113 @@ function renderCategories() {
         const filterOption = editorOption.cloneNode(true);
         categoryFilter.append(filterOption);
     }
+    renderCategoryManagement();
     categorySelect.disabled = categories.length === 0;
     document.getElementById("saveProductButton").disabled = categories.length === 0;
     if (categories.length === 0 && currentRole === "Admin") {
         showMessage("Add a product category before creating inventory items.", true);
+    }
+}
+
+function renderCategoryManagement() {
+    if (!categoryRows || currentRole !== "Admin") {
+        return;
+    }
+    if (categories.length === 0) {
+        appendEmptyRow(categoryRows, 2, "No categories found. Add one above.");
+        return;
+    }
+
+    categoryRows.replaceChildren();
+    for (const category of categories) {
+        const row = document.createElement("tr");
+        const nameCell = document.createElement("td");
+        const nameInput = document.createElement("input");
+        nameInput.type = "text";
+        nameInput.value = category.categoryName;
+        nameInput.minLength = 2;
+        nameInput.maxLength = 100;
+        nameInput.disabled = true;
+        nameInput.setAttribute("aria-label", `Category name: ${category.categoryName}`);
+        nameCell.append(nameInput);
+        row.append(nameCell);
+
+        const actionsCell = document.createElement("td");
+        const renameButton = document.createElement("button");
+        renameButton.type = "button";
+        renameButton.className = "btn-secondary";
+        renameButton.textContent = "Rename";
+        renameButton.addEventListener("click", async () => {
+            if (nameInput.disabled) {
+                nameInput.disabled = false;
+                nameInput.focus();
+                renameButton.textContent = "Save";
+                cancelButton.hidden = false;
+                return;
+            }
+            await renameCategory(category, nameInput.value);
+        });
+        actionsCell.append(renameButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className = "btn-stockout";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deleteCategory(category));
+        actionsCell.append(deleteButton);
+
+        const cancelButton = document.createElement("button");
+        cancelButton.type = "button";
+        cancelButton.className = "btn-secondary";
+        cancelButton.textContent = "Cancel";
+        cancelButton.hidden = true;
+        cancelButton.addEventListener("click", () => {
+            nameInput.value = category.categoryName;
+            nameInput.disabled = true;
+            renameButton.textContent = "Rename";
+            cancelButton.hidden = true;
+        });
+        actionsCell.append(cancelButton);
+
+        nameInput.addEventListener("input", () => {
+            cancelButton.hidden = nameInput.disabled;
+        });
+        row.append(actionsCell);
+        categoryRows.append(row);
+    }
+}
+
+async function renameCategory(category, categoryName) {
+    const normalizedName = categoryName.trim();
+    if (normalizedName.length < 2 || normalizedName.length > 100) {
+        showMessage("Category name must be between 2 and 100 characters.", true);
+        return;
+    }
+    try {
+        const result = await apiRequest(
+            `/api/admin/inventory/categories/${encodeURIComponent(category.id)}`,
+            { method: "PUT", body: JSON.stringify({ categoryName: normalizedName }) }
+        );
+        showMessage(result.message);
+        await loadInventory();
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+}
+
+async function deleteCategory(category) {
+    if (!window.confirm(`Delete category "${category.categoryName}"? This is allowed only if no products use it.`)) {
+        return;
+    }
+    try {
+        const result = await apiRequest(
+            `/api/admin/inventory/categories/${encodeURIComponent(category.id)}`,
+            { method: "DELETE" }
+        );
+        showMessage(result.message);
+        await loadInventory();
+    } catch (error) {
+        showMessage(error.message, true);
     }
 }
 
@@ -223,8 +329,9 @@ async function requestGeneratedBarcode() {
     try {
         const { barcode } = await apiRequest("/api/admin/inventory/next-barcode");
         barcodeInput.value = barcode;
+        generatedBarcodePreview = barcode;
         renderBarcodePreview();
-        showMessage("Barcode generated. Save the product to reserve it.");
+        showMessage("Barcode preview generated. If it is taken before saving, a new barcode will be assigned automatically.");
     } catch (error) {
         showMessage(error.message, true);
     }
@@ -283,6 +390,7 @@ window.onload = function () {
 
 function resetProductForm() {
     editingProductId = null;
+    generatedBarcodePreview = "";
     productForm.reset();
     barcodeInput.readOnly = false;
     generateBarcodeButton.hidden = false;
@@ -378,14 +486,33 @@ async function loadMovements() {
     }
 }
 
+categoryForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("newCategoryName");
+    try {
+        const result = await apiRequest("/api/admin/inventory/categories", {
+            method: "POST",
+            body: JSON.stringify({ categoryName: input.value.trim() })
+        });
+        categoryForm.reset();
+        showMessage(result.message);
+        await loadInventory();
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+});
+
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const barcodeValue = barcodeInput.value.trim();
+    const barcodeWasGenerated = Boolean(
+        generatedBarcodePreview && barcodeValue === generatedBarcodePreview
+    );
     const productBeforeEdit = editingProductId
         ? products.find((product) => product.id === editingProductId)
         : null;
-    const barcodeWillBeGenerated = !barcodeValue &&
-        (!editingProductId || !productBeforeEdit || !productBeforeEdit.barcode);
+    const barcodeWillBeGenerated = barcodeWasGenerated || (!barcodeValue &&
+        (!editingProductId || !productBeforeEdit || !productBeforeEdit.barcode));
     const payload = {
         productName: productNameInput.value.trim(),
         categoryId: categorySelect.value,
@@ -393,6 +520,9 @@ productForm.addEventListener("submit", async (event) => {
     };
     if (barcodeValue) {
         payload.barcode = barcodeValue;
+    }
+    if (barcodeWasGenerated) {
+        payload.barcodeGenerated = true;
     }
     if (!editingProductId) {
         payload.initialQuantity = Number(document.getElementById("initialQuantity").value);
@@ -430,7 +560,10 @@ document.getElementById("showProductFormButton").addEventListener("click", () =>
 });
 generateBarcodeButton.addEventListener("click", requestGeneratedBarcode);
 printBarcodeButton.addEventListener("click", printBarcodeLabel);
-barcodeInput.addEventListener("input", renderBarcodePreview);
+barcodeInput.addEventListener("input", () => {
+    generatedBarcodePreview = "";
+    renderBarcodePreview();
+});
 productNameInput.addEventListener("input", () => {
     if (!barcodePreviewSection.hidden) {
         renderBarcodePreview();

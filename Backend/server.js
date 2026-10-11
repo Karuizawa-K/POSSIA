@@ -426,7 +426,83 @@ function inventoryProductResponse(product, category) {
   };
 }
 
-// Reserve an unused in-store EAN-13 barcode so the form can preview the exact code before saving.
+app.post("/api/admin/inventory/categories", requireAdmin, async (req, res) => {
+  const { categoryName } = req.body || {};
+  if (
+    typeof categoryName !== "string" ||
+    categoryName.trim().length < 2 ||
+    categoryName.trim().length > 100
+  ) {
+    return res.status(400).json({ message: "Category name must be between 2 and 100 characters." });
+  }
+  try {
+    const category = await Category.create({ categoryName: categoryName.trim() });
+    res.status(201).json({
+      message: "Category created successfully.",
+      category: { id: category._id, categoryName: category.categoryName },
+    });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "A category with that name already exists." });
+    }
+    res.status(500).json({ message: "Unable to create category." });
+  }
+});
+
+app.put("/api/admin/inventory/categories/:categoryId", requireAdmin, async (req, res) => {
+  const { categoryId } = req.params;
+  const { categoryName } = req.body || {};
+  if (
+    !mongoose.Types.ObjectId.isValid(categoryId) ||
+    typeof categoryName !== "string" ||
+    categoryName.trim().length < 2 ||
+    categoryName.trim().length > 100
+  ) {
+    return res.status(400).json({ message: "Provide a valid category ID and a name between 2 and 100 characters." });
+  }
+  try {
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+    category.categoryName = categoryName.trim();
+    await category.save();
+    res.json({
+      message: "Category renamed successfully.",
+      category: { id: category._id, categoryName: category.categoryName },
+    });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "A category with that name already exists." });
+    }
+    res.status(500).json({ message: "Unable to rename category." });
+  }
+});
+
+app.delete("/api/admin/inventory/categories/:categoryId", requireAdmin, async (req, res) => {
+  const { categoryId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    return res.status(400).json({ message: "Invalid category ID." });
+  }
+  try {
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found." });
+    }
+    if (await Product.exists({ categoryId })) {
+      return res.status(409).json({ message: "This category is assigned to products and cannot be deleted." });
+    }
+    await category.deleteOne();
+    res.json({ message: "Category deleted successfully." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to delete category." });
+  }
+});
+
+// Generate an unused in-store EAN-13 barcode preview; creation retries if it becomes unavailable.
 app.get("/api/admin/inventory/next-barcode", requireAdmin, async (req, res) => {
   try {
     const barcode = await generateUniqueBarcode(Product);
@@ -440,16 +516,24 @@ app.get("/api/admin/inventory/next-barcode", requireAdmin, async (req, res) => {
 });
 
 app.post("/api/admin/inventory/products", requireAdmin, async (req, res) => {
-  const { barcode, productName, categoryId, unitPrice, initialQuantity = 0 } = req.body || {};
+  const {
+    barcode,
+    barcodeGenerated = false,
+    productName,
+    categoryId,
+    unitPrice,
+    initialQuantity = 0,
+  } = req.body || {};
   if (
     !isValidInventoryProductInput({ barcode, productName, categoryId, unitPrice }, { allowBlankBarcode: true }) ||
+    typeof barcodeGenerated !== "boolean" ||
     !Number.isInteger(initialQuantity) ||
     initialQuantity < 0
   ) {
     return res.status(400).json({ message: "Enter a product name, category, valid price, and whole-number initial quantity." });
   }
 
-  const shouldGenerateBarcode = typeof barcode !== "string" || !barcode.trim();
+  const shouldGenerateBarcode = barcodeGenerated || typeof barcode !== "string" || !barcode.trim();
   const maxAttempts = shouldGenerateBarcode ? 5 : 1;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -462,7 +546,9 @@ app.post("/api/admin/inventory/products", requireAdmin, async (req, res) => {
           throw Object.assign(new Error("Category not found."), { status: 400 });
         }
         const resolvedBarcode = shouldGenerateBarcode
-          ? await generateUniqueBarcode(Product)
+          ? (attempt === 1 && barcodeGenerated && typeof barcode === "string" && barcode.trim()
+            ? barcode.trim()
+            : await generateUniqueBarcode(Product))
           : barcode.trim();
         const [product] = await Product.create([{
           barcode: resolvedBarcode,
@@ -506,7 +592,11 @@ app.post("/api/admin/inventory/products", requireAdmin, async (req, res) => {
 app.put("/api/admin/inventory/products/:productId", requireAdmin, async (req, res) => {
   const { productId } = req.params;
   const input = req.body || {};
-  if (!mongoose.Types.ObjectId.isValid(productId) || !isValidInventoryProductInput(input, { partial: true })) {
+  if (
+    !mongoose.Types.ObjectId.isValid(productId) ||
+    (input.barcodeGenerated !== undefined && typeof input.barcodeGenerated !== "boolean") ||
+    !isValidInventoryProductInput(input, { partial: true })
+  ) {
     return res.status(400).json({ message: "Provide a valid product ID and at least one valid product field." });
   }
 
@@ -515,14 +605,21 @@ app.put("/api/admin/inventory/products/:productId", requireAdmin, async (req, re
     if (!product) {
       return res.status(404).json({ message: "Product not found." });
     }
+    if (input.barcodeGenerated === true && product.barcode && product.barcode.trim()) {
+      return res.status(400).json({ message: "Products with an existing barcode cannot receive a generated replacement." });
+    }
     if (input.categoryId !== undefined && !(await Category.exists({ _id: input.categoryId }))) {
       return res.status(400).json({ message: "Category not found." });
     }
     const storedBarcodeIsMissing = !product.barcode || !product.barcode.trim();
     const generatedBarcode = storedBarcodeIsMissing &&
-      (typeof input.barcode !== "string" || !input.barcode.trim());
+      (input.barcodeGenerated === true || typeof input.barcode !== "string" || !input.barcode.trim());
     if (generatedBarcode) {
-      product.barcode = await generateUniqueBarcode(Product);
+      product.barcode = input.barcodeGenerated === true &&
+        typeof input.barcode === "string" &&
+        input.barcode.trim()
+        ? input.barcode.trim()
+        : await generateUniqueBarcode(Product);
     }
     for (const field of ["barcode", "productName", "categoryId", "unitPrice"]) {
       if (input[field] !== undefined) {

@@ -123,6 +123,27 @@
             </div>
         </section>
 
+        <section class="grid-section admin-only" id="categorySection" hidden>
+            <h2>Manage Categories</h2>
+            <form class="category-form" id="categoryForm">
+                <div class="form-group">
+                    <label for="newCategoryName">New Category Name</label>
+                    <input type="text" id="newCategoryName" minlength="2" maxlength="100" required>
+                </div>
+                <button type="submit" class="btn-submit">Add Category</button>
+            </form>
+            <div class="table-responsive">
+                <table class="inventory-table">
+                    <thead>
+                        <tr><th>Category</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="categoryRows">
+                        <tr><td colspan="2">Loading categories...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <section class="grid-section admin-only" id="historySection" hidden>
             <h2>Recent Stock Movements</h2>
             <p class="section-note">Showing the latest 100 stock adjustments.</p>

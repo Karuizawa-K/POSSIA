@@ -355,6 +355,37 @@
     margin: 8px 0 18px;
 }
 
+.category-form {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) auto;
+    align-items: end;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.category-form .btn-submit {
+    width: auto;
+}
+
+.inventory-table td input[type="text"] {
+    width: min(100%, 360px);
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font: inherit;
+}
+
+.inventory-table td input[type="text"]:disabled {
+    padding-left: 0;
+    border-color: transparent;
+    background: transparent;
+    color: inherit;
+}
+
+.inventory-table td button + button {
+    margin-left: 8px;
+}
+
 .inventory-filters .form-group {
     gap: 6px;
 }
@@ -454,6 +485,10 @@
     .input-section,
     .grid-section {
         padding: 16px;
+    }
+
+    .category-form {
+        grid-template-columns: 1fr;
     }
 
     .section-heading {
