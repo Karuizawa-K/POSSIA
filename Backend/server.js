@@ -750,6 +750,164 @@ app.get("/api/admin/inventory/movements", requireAdmin, async (req, res) => {
   }
 });
 
+function getReportPeriod(period, dateValue) {
+  if (!["daily", "weekly", "monthly", "yearly"].includes(period) ||
+    typeof dateValue !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return null;
+  }
+  const anchor = new Date(`${dateValue}T00:00:00.000Z`);
+  if (Number.isNaN(anchor.getTime()) || anchor.toISOString().slice(0, 10) !== dateValue) {
+    return null;
+  }
+
+  const start = new Date(anchor);
+  const end = new Date(anchor);
+  if (period === "daily") {
+    end.setUTCDate(end.getUTCDate() + 1);
+  } else if (period === "weekly") {
+    const daysSinceMonday = (start.getUTCDay() + 6) % 7;
+    start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+    end.setTime(start.getTime());
+    end.setUTCDate(end.getUTCDate() + 7);
+  } else if (period === "monthly") {
+    start.setUTCDate(1);
+    end.setUTCMonth(end.getUTCMonth() + 1, 1);
+  } else {
+    start.setUTCMonth(0, 1);
+    end.setUTCFullYear(end.getUTCFullYear() + 1, 0, 1);
+  }
+  return { start, end };
+}
+
+app.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
+  const { period, date } = req.query;
+  const range = getReportPeriod(period, date);
+  if (!range) {
+    return res.status(400).json({ message: "Choose a valid report period and date." });
+  }
+
+  try {
+    const sales = await Sale.find({
+      status: "Completed",
+      saleDate: { $gte: range.start, $lt: range.end },
+    })
+      .select("_id userId saleDate subtotal discount totalAmount")
+      .populate("userId", "fullName username")
+      .sort({ saleDate: -1 });
+    const saleIds = sales.map((sale) => sale._id);
+    const [details, payments] = await Promise.all([
+      saleIds.length
+        ? SaleDetail.find({ saleId: { $in: saleIds } })
+            .select("saleId productName barcode quantity unitPrice subtotal")
+        : [],
+      saleIds.length
+        ? Payment.find({ saleId: { $in: saleIds } })
+            .select("_id saleId paymentMethod amountPaid changeAmount referenceNumber")
+        : [],
+    ]);
+    const paymentIds = payments.map((payment) => payment._id);
+    const receipts = paymentIds.length
+      ? await Receipt.find({ paymentId: { $in: paymentIds } }).select("paymentId receiptNumber")
+      : [];
+    const detailsBySale = new Map();
+    for (const detail of details) {
+      const key = detail.saleId.toString();
+      if (!detailsBySale.has(key)) {
+        detailsBySale.set(key, []);
+      }
+      detailsBySale.get(key).push({
+        productName: detail.productName || "Unknown product",
+        barcode: detail.barcode || "",
+        quantity: detail.quantity,
+        unitPrice: detail.unitPrice,
+        subtotal: detail.subtotal,
+      });
+    }
+    const paymentsBySale = new Map(payments.map((payment) => [payment.saleId.toString(), payment]));
+    const receiptsByPayment = new Map(receipts.map((receipt) => [receipt.paymentId.toString(), receipt]));
+    const paymentTotals = {};
+    let grossSales = 0;
+    let discounts = 0;
+    let netSales = 0;
+    const transactions = sales.map((sale) => {
+      const payment = paymentsBySale.get(sale._id.toString());
+      const paymentMethod = payment?.paymentMethod || "Unknown";
+      grossSales += sale.subtotal;
+      discounts += sale.discount;
+      netSales += sale.totalAmount;
+      paymentTotals[paymentMethod] = (paymentTotals[paymentMethod] || 0) + sale.totalAmount;
+      return {
+        date: sale.saleDate,
+        receiptNumber: payment ? receiptsByPayment.get(payment._id.toString())?.receiptNumber || "" : "",
+        cashier: sale.userId?.fullName || sale.userId?.username || "Unknown user",
+        paymentMethod,
+        amountPaid: payment?.amountPaid ?? sale.totalAmount,
+        changeAmount: payment?.changeAmount ?? 0,
+        referenceNumber: payment?.referenceNumber || "",
+        subtotal: sale.subtotal,
+        discount: sale.discount,
+        totalAmount: sale.totalAmount,
+        items: detailsBySale.get(sale._id.toString()) || [],
+      };
+    });
+
+    res.json({
+      period,
+      startDate: range.start,
+      endDateExclusive: range.end,
+      summary: {
+        salesCount: sales.length,
+        grossSales,
+        discounts,
+        netSales,
+        paymentTotals,
+      },
+      transactions,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to generate sales report." });
+  }
+});
+
+app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
+  try {
+    const products = await Product.find()
+      .select("_id barcode productName categoryId unitPrice stockQuantity isActive")
+      .populate("categoryId", "categoryName")
+      .sort({ productName: 1 });
+    let totalUnits = 0;
+    let totalValue = 0;
+    const inventory = products.map((product) => {
+      const stockValue = product.unitPrice * product.stockQuantity;
+      totalUnits += product.stockQuantity;
+      totalValue += stockValue;
+      return {
+        barcode: product.barcode || "",
+        productName: product.productName,
+        categoryName: product.categoryId?.categoryName || "Uncategorized",
+        stockQuantity: product.stockQuantity,
+        unitPrice: product.unitPrice,
+        stockValue,
+        status: product.isActive === false ? "Archived" : "Active",
+      };
+    });
+    res.json({
+      generatedAt: new Date(),
+      summary: {
+        productCount: inventory.length,
+        totalUnits,
+        totalValue,
+      },
+      products: inventory,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to generate inventory report." });
+  }
+});
+
 // List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
