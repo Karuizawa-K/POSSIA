@@ -4,8 +4,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
+    <!-- Assuming you combined the CSS into one file, or you can link both -->
+    <link rel="stylesheet" href="pos_style.css"> 
 </head>
+
 <body>
-    <button type="button" onclick="window.location.href='dashboard.html'">Back to Dashboard</button>
+    
+    <nav class="navbar">
+        <div class="nav-left">
+            <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
+        </div>
+        
+        <div class="nav-center">
+            <h1 class="nav-title">Apb merchandising</h1>
+            <span class="nav-subtitle">Point of Sale • Admin Access</span>
+        </div>
+
+        <div class="nav-right">
+            <span id="userInfo">Loading user...</span>
+            &nbsp;|&nbsp;
+            <button id="logoutButton" class="logout">Logout</button>
+        </div>
+    </nav>
+
+    <!-- POS APPLICATION AREA -->
+    <section class="app-container">
+        
+        <!-- LEFT: Product Catalog -->
+        <div class="catalog-section">
+            <header class="catalog-header">
+                <!-- Search bar pushed to the right, brand title removed since it's in the navbar -->
+                <input type="text" class="search-input" placeholder="Search products...">
+            </header>
+
+            <div class="product-grid" id="product-grid">
+                <!-- Products will be injected here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- RIGHT: Cart Sidebar -->
+        <aside class="cart-section">
+            <div class="cart-header">
+                <h2>Current Order</h2>
+                <button class="clear-text-btn" id="clear-btn">Clear</button>
+            </div>
+
+            <div class="cart-items" id="cart-items">
+                <!-- Cart items injected here -->
+                <div class="empty-cart-msg">Cart is empty</div>
+            </div>
+
+            <div class="cart-footer">
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span id="subtotal">₱0.00</span>
+                </div>
+
+                <div class="summary-row">
+                    <span>Discount</span>
+                    <span id="discount">₱0.00</span>
+                </div>
+
+                <div class="summary-row total-row">
+                    <span>Total</span>
+                    <span id="total">₱0.00</span>
+                </div>
+
+                <div class="payment-methods" id="payment-methods">
+                    <button class="pay-btn bg-white">Discount</button>
+                    <button class="pay-btn">Cash</button>
+                    <button class="pay-btn">GCash</button>
+                </div>
+
+                <button class="checkout-btn" id="checkout-btn" disabled>Checkout • ₱0.00</button>
+            </div>
+        </aside>
+
+    </section>
+
+    <script src="pos.js"></script>
+    
 </body>
 </html>

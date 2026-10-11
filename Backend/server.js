@@ -66,13 +66,13 @@ app.post("/api/login", (req, res) => {
     // Temp env accounts to be replaced with a database user query later.
     const validEmail = process.env.DEMO_EMAIL?.trim();
     const validPassword = process.env.DEMO_PASSWORD;
-    const configuredRole = process.env.DEMO_ROLE?.trim();
+    const configuredRole = (process.env.DEMO_ROLE ?? process.env.ROLE)?.trim();
     const role = ["Admin", "Staff"].find(
         (allowedRole) =>
             allowedRole.toLowerCase() === configuredRole?.toLowerCase()
     );
-    const staffEmail = process.env.DEMO_STAFF_EMAIL?.trim();
-    const staffPassword = process.env.DEMO_STAFF_PASSWORD;
+    const staffEmail = (process.env.DEMO_STAFF_EMAIL ?? process.env.STAFF_EMAIL)?.trim();
+    const staffPassword = process.env.DEMO_STAFF_PASSWORD ?? process.env.STAFF_PASSWORD;
     const hasStaffEmail = Boolean(staffEmail);
     const hasStaffPassword = Boolean(staffPassword);
 

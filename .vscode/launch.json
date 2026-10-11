@@ -7,8 +7,8 @@
         {
             "type": "editor-browser",
             "request": "launch",
-            "name": "Open index.html",
-            "url": "file:///c%3A/Users/jshdl/OneDrive/Documents/MyProjects/POSSIA/Frontend/index.html"
+            "name": "Open POSSIA",
+            "url": "http://localhost:3000/"
         }
     ]
 }
