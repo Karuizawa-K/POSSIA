@@ -132,6 +132,44 @@
         </form>
     </dialog>
 
+    <dialog class="receipt-dialog" id="receipt-dialog" aria-labelledby="receipt-title">
+        <article class="receipt-content" id="receipt-content">
+            <header class="receipt-header">
+                <h2 id="receipt-title">APB Merchandising</h2>
+                <p>Sales Receipt</p>
+            </header>
+            <dl class="receipt-meta">
+                <div><dt>Receipt</dt><dd id="receipt-number"></dd></div>
+                <div><dt>Date</dt><dd id="receipt-date"></dd></div>
+                <div><dt>Cashier</dt><dd id="receipt-cashier"></dd></div>
+            </dl>
+            <table class="receipt-items">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="receipt-item-list"></tbody>
+            </table>
+            <dl class="receipt-totals">
+                <div><dt>Subtotal</dt><dd id="receipt-subtotal"></dd></div>
+                <div><dt>Discount</dt><dd id="receipt-discount"></dd></div>
+                <div class="receipt-grand-total"><dt>Total</dt><dd id="receipt-total"></dd></div>
+                <div><dt id="receipt-payment-label">Payment</dt><dd id="receipt-payment"></dd></div>
+                <div id="receipt-reference-row" hidden><dt>Reference</dt><dd id="receipt-reference"></dd></div>
+                <div id="receipt-change-row"><dt>Change</dt><dd id="receipt-change"></dd></div>
+            </dl>
+            <p class="receipt-thanks">Thank you for your purchase!</p>
+            <div class="receipt-actions" id="receipt-actions">
+                <button class="dialog-cancel" id="close-receipt-btn" type="button">Close</button>
+                <button class="dialog-confirm" id="print-receipt-btn" type="button">Print / Save as PDF</button>
+            </div>
+        </article>
+    </dialog>
+
     <script src="pos.js" defer></script>
     
 </body>

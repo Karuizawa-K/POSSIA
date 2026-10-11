@@ -37,6 +37,42 @@ function getSubtotalCents() {
     );
 }
 
+function showReceipt(receipt) {
+    const setReceiptText = (id, value) => {
+        document.getElementById(id).textContent = value;
+    };
+    const receiptItemList = document.getElementById("receipt-item-list");
+    receiptItemList.replaceChildren();
+
+    for (const item of receipt.items) {
+        const row = document.createElement("tr");
+        row.append(
+            makeCell(item.productName),
+            makeCell(String(item.quantity)),
+            makeCell(currency.format(item.unitPrice)),
+            makeCell(currency.format(item.subtotal))
+        );
+        receiptItemList.append(row);
+    }
+
+    setReceiptText("receipt-number", receipt.receiptNumber);
+    setReceiptText("receipt-date", new Date(receipt.receiptDate).toLocaleString());
+    setReceiptText("receipt-cashier", receipt.cashier);
+    setReceiptText("receipt-subtotal", currency.format(receipt.subtotal));
+    setReceiptText("receipt-discount", currency.format(receipt.discount));
+    setReceiptText("receipt-total", currency.format(receipt.totalAmount));
+    setReceiptText(
+        "receipt-payment",
+        receipt.paymentMethod === "Cash"
+            ? `Cash received: ${currency.format(receipt.amountPaid)}`
+            : `GCash: ${currency.format(receipt.amountPaid)}`
+    );
+    setReceiptText("receipt-change", currency.format(receipt.changeAmount));
+    document.getElementById("receipt-reference-row").hidden = !receipt.referenceNumber;
+    setReceiptText("receipt-reference", receipt.referenceNumber || "");
+    document.getElementById("receipt-dialog").showModal();
+}
+
 function renderProducts() {
     const query = productSearch.value.trim().toLowerCase();
     const visibleProducts = products.filter((product) =>
@@ -383,6 +419,7 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
         document.getElementById("payment-dialog").close();
         document.getElementById("payment-error").textContent = "";
         const completedPaymentMethod = selectedPaymentMethod;
+        const receipt = data.receipt;
         cart.clear();
         discountCents = 0;
         selectedPaymentMethod = null;
@@ -391,12 +428,16 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
             button.setAttribute("aria-pressed", "false");
         });
         renderCart();
-        window.alert(
-            `Sale completed. Receipt: ${data.sale.receiptNumber}` +
-            (completedPaymentMethod === "Cash"
-                ? `\nChange: ${currency.format(data.sale.changeAmount)}`
-                : "")
-        );
+        if (receipt) {
+            showReceipt(receipt);
+        } else {
+            window.alert(
+                `Sale completed. Receipt: ${data.sale.receiptNumber}` +
+                (completedPaymentMethod === "Cash"
+                    ? `\nChange: ${currency.format(data.sale.changeAmount)}`
+                    : "")
+            );
+        }
         await refreshProducts();
     } catch (error) {
         console.error("Unable to complete sale:", error);
@@ -405,6 +446,14 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
         checkoutInProgress = false;
         renderCart();
     }
+});
+
+document.getElementById("print-receipt-btn").addEventListener("click", () => {
+    window.print();
+});
+
+document.getElementById("close-receipt-btn").addEventListener("click", () => {
+    document.getElementById("receipt-dialog").close();
 });
 
 document.getElementById("logoutButton").addEventListener("click", () => {

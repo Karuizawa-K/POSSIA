@@ -185,6 +185,8 @@ app.post("/api/sales", requireAuth, async (req, res) => {
         saleItems.map(({ item, product, unitPriceCents, lineTotalCents }) => ({
           saleId: sale._id,
           productId: product._id,
+          productName: product.productName,
+          barcode: product.barcode,
           quantity: item.quantity,
           unitPrice: unitPriceCents / 100,
           subtotal: lineTotalCents / 100,
@@ -212,7 +214,7 @@ app.post("/api/sales", requireAuth, async (req, res) => {
       }], { session });
 
       const receiptNumber = `POSSIA-${Date.now()}-${randomBytes(3).toString("hex").toUpperCase()}`;
-      await Receipt.create([{
+      const [receipt] = await Receipt.create([{
         paymentId: payment._id,
         userId: req.authUser._id,
         receiptNumber,
@@ -220,17 +222,29 @@ app.post("/api/sales", requireAuth, async (req, res) => {
 
       completedSale = {
         receiptNumber,
+        receiptDate: receipt.receiptDate,
+        cashier: req.authUser.fullName,
+        items: saleItems.map(({ item, product, unitPriceCents, lineTotalCents }) => ({
+          productName: product.productName,
+          barcode: product.barcode,
+          quantity: item.quantity,
+          unitPrice: unitPriceCents / 100,
+          subtotal: lineTotalCents / 100,
+        })),
         subtotal: subtotalCents / 100,
         discount: discountCents / 100,
         totalAmount: totalCents / 100,
+        paymentMethod,
         amountPaid: paidCents / 100,
         changeAmount: (paidCents - totalCents) / 100,
+        referenceNumber: paymentMethod === "GCash" ? referenceNumber.trim() : null,
       };
     });
 
     res.status(201).json({
       message: "Sale completed successfully.",
       sale: completedSale,
+      receipt: completedSale,
     });
   } catch (error) {
     console.error(error);

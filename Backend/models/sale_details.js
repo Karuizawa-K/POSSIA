@@ -13,6 +13,14 @@ const saleDetailSchema = new mongoose.Schema(
             ref: "Product",
             required: true
         },
+        productName: {
+            type: String,
+            trim: true
+        },
+        barcode: {
+            type: String,
+            trim: true
+        },
         quantity: {
             type: Number,
             required: true,
