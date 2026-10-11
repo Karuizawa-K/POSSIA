@@ -102,6 +102,34 @@ body {
     font: inherit;
 }
 
+.admin-password-field {
+    position: relative;
+    width: 100%;
+}
+
+.admin-password-field input {
+    padding-right: 64px !important;
+}
+
+.admin-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    padding: 4px 6px;
+    border: 0;
+    background: transparent;
+    color: #334155;
+    font: inherit;
+    cursor: pointer;
+}
+
+.admin-password-toggle:focus-visible {
+    outline: 2px solid #3481ec;
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
 #ownershipTransferForm {
     display: grid;
     grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
@@ -128,6 +156,12 @@ body {
     border: 1px solid #cbd5e1;
     border-radius: 4px;
     font: inherit;
+}
+
+#accountForm .admin-password-field,
+#ownershipTransferForm .admin-password-field,
+#ownershipRecoveryForm .admin-password-field {
+    grid-column: 2;
 }
 
 #accountForm small {
@@ -202,6 +236,9 @@ body {
     }
 
     #accountForm small,
+    #accountForm .admin-password-field,
+    #ownershipTransferForm .admin-password-field,
+    #ownershipRecoveryForm .admin-password-field,
     #ownershipTransferForm .account-form-actions,
     #accountForm .account-form-actions,
     #ownershipRecoveryForm .account-form-actions {

@@ -1,0 +1,34 @@
+ACCOUNT OWNERSHIP - CLIENT GUIDE
+
+WHAT IS THE OWNER?
+Your system has one "owner" account. The owner is one of your Admins.
+
+- All Admins can manage user accounts.
+- Only the owner can delete or demote another Admin.
+- Only the owner can edit the owner account.
+- The owner account cannot be deleted or demoted.
+
+
+WHAT YOU CAN DO YOURSELF
+
+Transfer ownership to another Admin
+1. Sign in as the owner and open Admin Settings.
+2. Choose the Admin who will become the new owner.
+3. Enter your password and confirm.
+4. The change happens right away. The previous owner stays an Admin but loses owner-only privileges.
+
+
+PLEASE CONTACT YOUR TRUSTED OPERATOR FOR THE FOLLOWING
+
+- First-time setup or after a system update:
+  If Admin Settings says owner-only actions are unavailable, contact your trusted operator. They will fix this for you.
+
+- The owner is unavailable, or the owner record is missing or broken:
+  Contact your trusted operator for emergency recovery. They will give you a one-time recovery code and tell you what to do next.
+
+- Any other technical change related to ownership.
+
+
+KEEP IN MIND
+- Only your trusted operator should hold the recovery code. Do not share it with other Admins.
+- Each recovery code works only once. After a recovery, your operator will need to prepare a new one before it can be used again.

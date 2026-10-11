@@ -17,6 +17,16 @@ const recoveryTarget = document.getElementById("recoveryTarget");
 const recoveryAdminPassword = document.getElementById("recoveryAdminPassword");
 const ownerRecoveryCode = document.getElementById("ownerRecoveryCode");
 
+document.querySelectorAll("[data-password-toggle]").forEach((button) => {
+    const input = document.getElementById(button.dataset.passwordToggle);
+    button.addEventListener("click", () => {
+        const showPassword = input.type === "password";
+        input.type = showPassword ? "text" : "password";
+        button.textContent = showPassword ? "Hide" : "Show";
+        button.setAttribute("aria-pressed", String(showPassword));
+    });
+});
+
 let currentUserId;
 let editingUserId = null;
 let currentUserIsOwner = false;

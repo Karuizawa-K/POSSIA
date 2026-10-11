@@ -40,7 +40,11 @@
                 <input id="fullName" name="fullName" autocomplete="name" required>
 
                 <label for="password">Password</label>
-                <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+                <div class="admin-password-field">
+                    <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
+                    <button type="button" class="admin-password-toggle" data-password-toggle="password"
+                        aria-controls="password" aria-pressed="false">Show</button>
+                </div>
                 <small id="passwordHelp">At least 6 characters.</small>
 
                 <label for="role">Role</label>
@@ -64,7 +68,11 @@
                 <select id="ownershipTarget" required></select>
 
                 <label for="ownerPassword">Your current password</label>
-                <input id="ownerPassword" type="password" autocomplete="current-password" required>
+                <div class="admin-password-field">
+                    <input id="ownerPassword" type="password" autocomplete="current-password" required>
+                    <button type="button" class="admin-password-toggle" data-password-toggle="ownerPassword"
+                        aria-controls="ownerPassword" aria-pressed="false">Show</button>
+                </div>
 
                 <div class="account-form-actions">
                     <button class="admin-settings-btn" type="submit">Transfer Ownership</button>
@@ -83,10 +91,18 @@
                 <select id="recoveryTarget" required></select>
 
                 <label for="recoveryAdminPassword">Your current password</label>
-                <input id="recoveryAdminPassword" type="password" autocomplete="current-password" required>
+                <div class="admin-password-field">
+                    <input id="recoveryAdminPassword" type="password" autocomplete="current-password" required>
+                    <button type="button" class="admin-password-toggle" data-password-toggle="recoveryAdminPassword"
+                        aria-controls="recoveryAdminPassword" aria-pressed="false">Show</button>
+                </div>
 
                 <label for="ownerRecoveryCode">One-time recovery code</label>
-                <input id="ownerRecoveryCode" type="password" autocomplete="off" required>
+                <div class="admin-password-field">
+                    <input id="ownerRecoveryCode" type="password" autocomplete="off" required>
+                    <button type="button" class="admin-password-toggle" data-password-toggle="ownerRecoveryCode"
+                        aria-controls="ownerRecoveryCode" aria-pressed="false">Show</button>
+                </div>
 
                 <div class="account-form-actions">
                     <button class="admin-settings-btn" type="submit">Recover Ownership</button>
