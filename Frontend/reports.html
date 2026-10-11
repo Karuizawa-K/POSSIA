@@ -28,5 +28,96 @@
         </div>
     </nav>
     
+    <main class="reports-container">
+        <!-- Summary Cards -->
+        <div class="summary-section">
+            <div class="summary-card">
+                <h3>Total Inventory Value</h3>
+                <p class="value">₱ 124,500.00</p>
+            </div>
+            <div class="summary-card">
+                <h3>Total Items in Stock</h3>
+                <p class="value">1,842</p>
+            </div>
+            <div class="summary-card">
+                <h3>Low Stock Alerts</h3>
+                <p class="value alert">14 Items</p>
+            </div>
+        </div>
+
+        <!-- Filter & Report Generation -->
+        <div class="filter-section">
+            <h2>Generate Custom Report</h2>
+            <form class="filter-grid" action="#" method="POST">
+                <div class="form-group">
+                    <label for="reportType">Report Category</label>
+                    <select id="reportType" name="reportType">
+                        <option value="stock_movement">Stock Movement (In/Out)</option>
+                        <option value="current_inventory">Current Inventory Status</option>
+                        <option value="sales_summary">Sales Summary</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">From Date</label>
+                    <input type="date" id="startDate" name="startDate">
+                </div>
+                <div class="form-group">
+                    <label for="endDate">To Date</label>
+                    <input type="date" id="endDate" name="endDate">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-generate">Generate Report</button>
+                    <button type="button" class="btn-export">Export to CSV</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Report Results Data Grid -->
+        <div class="data-section">
+            <h2>Report Results</h2>
+            <div class="table-wrapper">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Reference ID</th>
+                            <th>Transaction Type</th>
+                            <th>Item Name</th>
+                            <th>Quantity</th>
+                            <th>Processed By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Placeholder rows for MongoDB data injection -->
+                        <tr>
+                            <td>2026-10-11</td>
+                            <td>TRX-00192</td>
+                            <td><span class="status status-in">Stock In</span></td>
+                            <td>Basic T-Shirt (White)</td>
+                            <td>+100</td>
+                            <td>Admin</td>
+                        </tr>
+                        <tr>
+                            <td>2026-10-11</td>
+                            <td>TRX-00193</td>
+                            <td><span class="status status-out">Stock Out (Sale)</span></td>
+                            <td>Canvas Tote Bag</td>
+                            <td>-2</td>
+                            <td>Staff 1</td>
+                        </tr>
+                        <tr>
+                            <td>2026-10-10</td>
+                            <td>TRX-00191</td>
+                            <td><span class="status status-in">Stock In</span></td>
+                            <td>Display Rack</td>
+                            <td>+5</td>
+                            <td>Manager</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
 </body>
 </html>
