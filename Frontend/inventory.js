@@ -95,6 +95,7 @@ function renderInventory() {
     const admin = currentRole === "Admin";
     if (shownProducts.length === 0) {
         appendEmptyRow(inventoryRows, admin ? 7 : 6, "No products match your search.");
+        window.makeTableSortable(inventoryRows.closest("table"));
         return;
     }
 
@@ -174,6 +175,7 @@ function renderInventory() {
         }
         inventoryRows.append(row);
     }
+    window.makeTableSortable(inventoryRows.closest("table"));
 }
 
 function renderCategories() {
@@ -207,6 +209,7 @@ function renderCategoryManagement() {
     }
     if (categories.length === 0) {
         appendEmptyRow(categoryRows, 2, "No categories found. Add one above.");
+        window.makeTableSortable(categoryRows.closest("table"));
         return;
     }
 
@@ -267,6 +270,7 @@ function renderCategoryManagement() {
         row.append(actionsCell);
         categoryRows.append(row);
     }
+    window.makeTableSortable(categoryRows.closest("table"));
 }
 
 async function renameCategory(category, categoryName) {
@@ -513,12 +517,14 @@ async function loadMovements() {
     const { movements } = await apiRequest("/api/admin/inventory/movements");
     if (movements.length === 0) {
         appendEmptyRow(movementRows, 6, "No stock movements recorded yet.");
+        window.makeTableSortable(movementRows.closest("table"));
         return;
     }
     movementRows.replaceChildren();
     for (const movement of movements) {
         const row = document.createElement("tr");
-        addCell(row, new Date(movement.date).toLocaleString());
+        const dateCell = addCell(row, new Date(movement.date).toLocaleString());
+        dateCell.dataset.sortValue = new Date(movement.date).toISOString();
         addCell(row, movement.type);
         addCell(row, `${movement.productName}${movement.barcode ? ` (${movement.barcode})` : ""}`);
         addCell(row, String(movement.quantity));
@@ -526,6 +532,7 @@ async function loadMovements() {
         addCell(row, movement.user);
         movementRows.append(row);
     }
+    window.makeTableSortable(movementRows.closest("table"));
 }
 
 categoryForm.addEventListener("submit", async (event) => {

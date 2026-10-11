@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reports</title>
     <link rel="stylesheet" href="reports_style.css">
+    <link rel="stylesheet" href="navigation.css">
+    <link rel="stylesheet" href="table-sort.css">
 </head>
 <body>
     <nav class="navbar">
@@ -16,9 +18,11 @@
             <span class="nav-subtitle">Reports • Admin Access</span>
         </div>
         <div class="nav-right">
-            <span id="userInfo">Loading user...</span>
-            &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout" type="button">Logout</button>
+            <div class="nav-user-row">
+                <span id="userInfo">Loading user...</span>
+                <span aria-hidden="true">|</span>
+                <button id="logoutButton" class="logout" type="button">Logout</button>
+            </div>
         </div>
     </nav>
 
@@ -75,6 +79,7 @@
             </section>
         </section>
     </main>
+    <script src="table-sort.js" defer></script>
     <script src="reports.js" defer></script>
 </body>
 </html>

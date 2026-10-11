@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
-    <link rel="stylesheet" href="pos_style.css"> 
+    <link rel="stylesheet" href="pos_style.css">
+    <link rel="stylesheet" href="navigation.css">
+    <link rel="stylesheet" href="table-sort.css">
 </head>
 
 <body>
@@ -20,9 +22,11 @@
         </div>
 
         <div class="nav-right">
-            <span id="userInfo">Loading user...</span>
-            &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout">Logout</button>
+            <div class="nav-user-row">
+                <span id="userInfo">Loading user...</span>
+                <span aria-hidden="true">|</span>
+                <button id="logoutButton" class="logout" type="button">Logout</button>
+            </div>
         </div>
     </nav>
 
@@ -43,11 +47,11 @@
                 <table class="data-grid">
                     <thead>
                         <tr>
-                            <th>Item</th>
-                            <th>Barcode</th>
-                            <th>Price</th>
-                            <th>In stock</th>
-                            <th></th>
+                            <th data-sort-type="text">Item</th>
+                            <th data-sort-type="text">Barcode</th>
+                            <th data-sort-type="number">Price</th>
+                            <th data-sort-type="number">In stock</th>
+                            <th data-sortable="false"></th>
                         </tr>
                     </thead>
                     <tbody id="product-grid">
@@ -68,10 +72,10 @@
                 <table class="data-grid selected-grid">
                     <thead>
                         <tr>
-                            <th>Selected item</th>
-                            <th>Price</th>
-                            <th>Qty</th>
-                            <th>Amount</th>
+                            <th data-sort-type="text">Selected item</th>
+                            <th data-sort-type="number">Price</th>
+                            <th data-sort-type="number">Qty</th>
+                            <th data-sort-type="number">Amount</th>
                         </tr>
                     </thead>
                     <tbody id="cart-items">
@@ -174,10 +178,10 @@
             <table class="receipt-items">
                 <thead>
                     <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Amount</th>
+                        <th data-sort-type="text">Item</th>
+                        <th data-sort-type="number">Qty</th>
+                        <th data-sort-type="number">Price</th>
+                        <th data-sort-type="number">Amount</th>
                     </tr>
                 </thead>
                 <tbody id="receipt-item-list"></tbody>
@@ -199,6 +203,7 @@
     </dialog>
 
     <script src="/vendor/zxing/zxing-browser.min.js" defer></script>
+    <script src="table-sort.js" defer></script>
     <script src="pos.js" defer></script>
     
 </body>

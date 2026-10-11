@@ -1,0 +1,228 @@
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    min-height: 76px;
+    height: auto;
+    padding: 12px clamp(12px, 3vw, 30px);
+    background: #f3f3f3;
+    border-bottom: 1px solid #e9ecef;
+    color: #111827;
+}
+
+.navbar .nav-left,
+.navbar .nav-right {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.navbar .nav-left {
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: normal;
+}
+
+.navbar .nav-center {
+    display: flex;
+    flex: 2 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    margin: 0;
+    text-align: center;
+}
+
+.navbar .nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    font-size: 14px;
+    text-align: right;
+}
+
+.navbar .nav-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.navbar #userInfo {
+    display: inline-block;
+    max-width: min(32vw, 320px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.navbar .login-logo {
+    display: block;
+    width: min(200px, 100%);
+    max-width: 200px;
+    height: auto;
+    margin: 0;
+}
+
+.navbar .nav-title {
+    margin: 0;
+    color: #173d72;
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-transform: none;
+}
+
+.navbar .nav-subtitle {
+    margin-top: 3px;
+    color: #6b7280;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.navbar .dashboard,
+.navbar .logout,
+.navbar .admin-settings-btn {
+    width: auto;
+    min-height: 40px;
+    margin: 0;
+}
+
+.navbar .dashboard {
+    padding: 8px 12px;
+    color: #475569;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.navbar .dashboard:hover {
+    transform: none;
+    color: #173d72;
+    background: #e8eef5;
+}
+
+.navbar .logout {
+    padding: 8px 10px;
+    color: #334155;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.navbar .logout:hover {
+    transform: none;
+    color: #c62828;
+}
+
+.navbar .admin-settings-btn {
+    padding: 7px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #1e293b;
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.navbar .admin-settings-btn:hover {
+    background: #e8eef5;
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+        grid-template-areas: "left center right";
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .navbar .nav-left {
+        grid-area: left;
+    }
+
+    .navbar .nav-center {
+        grid-area: center;
+    }
+
+    .navbar .nav-right {
+        grid-area: right;
+        flex-wrap: wrap;
+        gap: 4px;
+        font-size: 12px;
+    }
+
+    .navbar .nav-user-row {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .navbar #userInfo {
+        max-width: 28vw;
+    }
+
+    .navbar .nav-title {
+        font-size: 1rem;
+    }
+
+    .navbar .nav-subtitle {
+        font-size: 11px;
+    }
+
+    .navbar .dashboard,
+    .navbar .logout,
+    .navbar .admin-settings-btn {
+        min-height: 38px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .navbar .login-logo {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "center right"
+            "left left";
+    }
+
+    .navbar .nav-center {
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .navbar .nav-right {
+        max-width: 48vw;
+    }
+
+    .navbar .nav-user-row {
+        justify-content: flex-end;
+    }
+
+    .navbar #userInfo {
+        max-width: 28vw;
+    }
+
+    .navbar .nav-left {
+        min-width: 0;
+    }
+
+    .navbar .login-logo {
+        max-width: 140px;
+    }
+}

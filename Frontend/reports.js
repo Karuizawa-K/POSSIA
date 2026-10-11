@@ -79,11 +79,12 @@ function renderSummary(items) {
     }
 }
 
-function renderTable(headers, rows, emptyMessage) {
+function renderTable(headers, rows, emptyMessage, sortTypes = [], sortValues = []) {
     const headerRow = document.createElement("tr");
-    for (const header of headers) {
+    for (const [index, header] of headers.entries()) {
         const cell = document.createElement("th");
         cell.scope = "col";
+        cell.dataset.sortType = sortTypes[index] || "text";
         cell.textContent = header;
         headerRow.append(cell);
     }
@@ -98,13 +99,18 @@ function renderTable(headers, rows, emptyMessage) {
         return;
     }
 
-    for (const values of rows) {
+    for (const [rowIndex, values] of rows.entries()) {
         const row = document.createElement("tr");
-        for (const value of values) {
-            addCell(row, value);
+        for (const [cellIndex, value] of values.entries()) {
+            const cell = addCell(row, value);
+            const sortValue = sortValues[rowIndex]?.[cellIndex];
+            if (sortValue !== undefined && sortValue !== null) {
+                cell.dataset.sortValue = String(sortValue);
+            }
         }
         reportTableBody.append(row);
     }
+    window.makeTableSortable(reportTableBody.closest("table"));
 }
 
 function formatDate(value) {
@@ -159,7 +165,9 @@ function renderSalesReport(data) {
     renderTable(
         ["Date", "Receipt", "Cashier", "Payment", "Gross", "Discount", "Net", "Items"],
         rows,
-        "No completed sales in this period."
+        "No completed sales in this period.",
+        ["date", "text", "text", "text", "number", "number", "number", "text"],
+        data.transactions.map((transaction) => [transaction.date])
     );
 }
 
@@ -185,7 +193,17 @@ function renderInventoryReport(data) {
             currency.format(product.stockValue),
             product.status
         ]),
-        "No inventory products found."
+        "No inventory products found.",
+        ["text", "text", "text", "number", "number", "number", "text"],
+        data.products.map((product) => [
+            product.barcode,
+            product.productName,
+            product.categoryName,
+            product.stockQuantity,
+            product.unitPrice,
+            product.stockValue,
+            product.status
+        ])
     );
 }
 

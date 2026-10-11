@@ -61,6 +61,7 @@ function showReceipt(receipt) {
         );
         receiptItemList.append(row);
     }
+    window.makeTableSortable(document.querySelector(".receipt-items"));
 
     setReceiptText("receipt-number", receipt.receiptNumber);
     setReceiptText("receipt-date", new Date(receipt.receiptDate).toLocaleString());
@@ -90,6 +91,7 @@ function renderProducts() {
     productGrid.replaceChildren();
     if (visibleProducts.length === 0) {
         showGridMessage(productGrid, products.length ? "No matching items." : "No items available.");
+        window.makeTableSortable(productGrid.closest("table"));
         return;
     }
 
@@ -114,6 +116,7 @@ function renderProducts() {
         row.append(actionCell);
         productGrid.append(row);
     }
+    window.makeTableSortable(productGrid.closest("table"));
 }
 
 function addToCart(product, quantity = 1) {
@@ -164,6 +167,7 @@ function renderCart() {
             `Checkout • ${currency.format(0)}`;
         document.getElementById("checkout-btn").disabled = true;
         document.getElementById("discount-btn").disabled = true;
+        window.makeTableSortable(cartGrid.closest("table"));
         return;
     }
 
@@ -213,6 +217,7 @@ function renderCart() {
     checkoutButton.textContent = `Checkout • ${currency.format(totalCents / 100)}`;
     checkoutButton.disabled = !selectedPaymentMethod || checkoutInProgress;
     document.getElementById("discount-btn").disabled = false;
+    window.makeTableSortable(cartGrid.closest("table"));
 }
 
 async function loadPos() {

@@ -1,0 +1,36 @@
+.table-sort-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    width: auto;
+    min-height: 32px;
+    margin: 0;
+    padding: 2px 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.table-sort-button:hover {
+    color: #173d72;
+}
+
+.table-sort-button:focus-visible {
+    outline: 2px solid #3481ec;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.table-sort-indicator {
+    color: #173d72;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .table-sort-button {
+        min-height: 36px;
+    }
+}

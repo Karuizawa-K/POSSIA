@@ -57,21 +57,25 @@ function renderAccounts(users) {
         cell.textContent = "No accounts found.";
         row.append(cell);
         accountsList.append(row);
+        window.makeTableSortable(accountsList.closest("table"));
         return;
     }
 
     for (const user of users) {
         const row = document.createElement("tr");
-        for (const value of [
-            user.username,
-            user.fullName,
-            user.role,
-            user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"
-        ]) {
+        for (const value of [user.username, user.fullName, user.role]) {
             const cell = document.createElement("td");
             cell.textContent = value;
             row.append(cell);
         }
+        const createdCell = document.createElement("td");
+        createdCell.textContent = user.createdAt
+            ? new Date(user.createdAt).toLocaleDateString()
+            : "—";
+        if (user.createdAt) {
+            createdCell.dataset.sortValue = new Date(user.createdAt).toISOString();
+        }
+        row.append(createdCell);
 
         const actionsCell = document.createElement("td");
         const editButton = document.createElement("button");
@@ -94,6 +98,7 @@ function renderAccounts(users) {
         row.append(actionsCell);
         accountsList.append(row);
     }
+    window.makeTableSortable(accountsList.closest("table"));
 }
 
 function startEditing(user) {
@@ -179,6 +184,8 @@ async function authorizeAdminSettings() {
         }
 
         currentUserId = user.id;
+        document.getElementById("userInfo").textContent =
+            `${user.fullName} (@${user.username})`;
         document.getElementById("adminSettings").hidden = false;
         await loadAccounts();
     } catch (error) {
@@ -186,5 +193,10 @@ async function authorizeAdminSettings() {
         console.error("Unable to load admin account settings:", error);
     }
 }
+
+document.getElementById("logoutButton").addEventListener("click", () => {
+    localStorage.removeItem("token");
+    window.location.replace("/");
+});
 
 authorizeAdminSettings();

@@ -363,8 +363,10 @@ body {
 
 .pos-dialog {
     width: min(420px, calc(100% - 32px));
+    max-height: calc(100vh - 32px);
     margin: auto;
     padding: 24px;
+    overflow-y: auto;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     color: #1a1a1a;
@@ -571,23 +573,34 @@ body {
     body {
         height: auto;
         min-height: 100vh;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 
     .app-container {
         flex-direction: column;
         overflow: visible;
+        flex: 0 0 auto;
     }
 
     .catalog-section {
-        min-height: 50vh;
+        flex: 0 0 auto;
+        min-height: 0;
+    }
+
+    .catalog-section > .data-grid-wrapper {
+        max-height: 55vh;
     }
 
     .cart-section {
         width: 100%;
-        min-height: 420px;
+        min-height: 0;
         border-left: none;
         border-top: 1px solid #e5e7eb;
+    }
+
+    .cart-items {
+        max-height: 40vh;
     }
 }
 
@@ -633,17 +646,44 @@ body {
 
 @media (max-width: 600px) {
     .navbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "title user"
+            "back back";
         padding: 12px;
         height: auto;
-        gap: 8px;
+        gap: 10px 8px;
+    }
+
+    .nav-left {
+        grid-area: back;
     }
 
     .nav-center {
-        flex: 1;
+        grid-area: title;
+        align-items: flex-start;
+        min-width: 0;
+    }
+
+    .nav-right {
+        grid-area: user;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        min-width: 0;
+        max-width: 45vw;
+        white-space: nowrap;
+    }
+
+    #userInfo {
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .nav-title {
         font-size: 16px;
+        overflow-wrap: anywhere;
     }
 
     .nav-subtitle,
@@ -657,20 +697,85 @@ body {
     }
 
     .catalog-header {
-        padding: 14px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        justify-content: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .search-label {
+        grid-column: 1 / -1;
     }
 
     .search-input {
-        width: min(48vw, 300px);
+        width: 100%;
+        min-width: 0;
+        padding: 10px 12px;
     }
 
     .scan-barcode-btn {
-        padding: 8px 10px;
+        min-height: 44px;
+        padding: 8px;
         font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .catalog-section > .data-grid-wrapper {
+        max-height: 52vh;
+    }
+
+    .cart-items {
+        max-height: 38vh;
+    }
+
+    .cart-header,
+    .cart-footer {
+        padding: 16px;
+    }
+
+    .payment-methods {
+        gap: 6px;
+    }
+
+    .pay-btn {
+        min-height: 44px;
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+
+    .checkout-btn {
+        min-height: 48px;
+        padding: 12px;
     }
 
     .data-grid th,
     .data-grid td {
-        padding: 10px;
+        padding: 9px 8px;
+    }
+
+    .grid-add-btn,
+    .qty-btn {
+        min-height: 40px;
+        min-width: 40px;
+    }
+
+    .pos-dialog,
+    .receipt-dialog {
+        max-height: calc(100dvh - 24px);
+    }
+
+    .receipt-content {
+        padding: 20px;
+    }
+
+    .dialog-actions,
+    .receipt-actions {
+        flex-wrap: wrap;
+    }
+
+    .dialog-actions button,
+    .receipt-actions button {
+        min-height: 44px;
     }
 }
