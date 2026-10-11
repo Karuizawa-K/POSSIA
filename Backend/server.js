@@ -67,10 +67,16 @@ async function requireAuth(req, res, next) {
       });
     }
 
-    const user = await User.findById(decoded.userId).select("_id username fullName role");
+    const user = await User.findById(decoded.userId)
+      .select("_id username fullName role tokenVersion");
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized.",
+      });
+    }
+    if ((decoded.tokenVersion ?? 0) !== (user.tokenVersion || 0)) {
+      return res.status(401).json({
+        message: "Session expired. Please sign in again.",
       });
     }
 
@@ -351,6 +357,7 @@ app.post("/api/login", async (req, res) => {
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        tokenVersion: user.tokenVersion || 0,
       },
       process.env.JWT_SECRET,
       {
@@ -372,6 +379,113 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({
       message: "Server error.",
     });
+  }
+});
+
+app.post("/api/owner/password-recovery", async (req, res) => {
+  const { username, recoveryCode, newPassword, confirmPassword } = req.body || {};
+  if (
+    typeof username !== "string" ||
+    typeof recoveryCode !== "string" ||
+    typeof newPassword !== "string" ||
+    typeof confirmPassword !== "string" ||
+    !username.trim() ||
+    !recoveryCode ||
+    recoveryCode.length > 256 ||
+    newPassword.length < 6 ||
+    newPassword !== confirmPassword
+  ) {
+    return res.status(400).json({
+      message: "Enter the owner username and recovery code, and provide matching passwords of at least 6 characters.",
+    });
+  }
+
+  const configuredCode = process.env.OWNER_PASSWORD_RECOVERY_CODE;
+  if (typeof configuredCode !== "string" || configuredCode.length < 32) {
+    return res.status(503).json({
+      message: "Owner password recovery is not configured. Contact a trusted operator.",
+    });
+  }
+
+  const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
+  const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
+  const codeMatches = suppliedCodeBuffer.length === configuredCodeBuffer.length &&
+    timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer);
+  const recoveryCodeHash = createHash("sha256")
+    .update(configuredCodeBuffer)
+    .digest("hex");
+
+  let session;
+  try {
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" })
+      .select("ownerUserId usedOwnerPasswordRecoveryCodeHashes");
+    const owner = ownerSetting
+      ? await User.findOne({
+          _id: ownerSetting.ownerUserId,
+          username: username.trim(),
+          role: "Admin",
+        }).select("_id")
+      : null;
+    if (
+      !codeMatches ||
+      !owner ||
+      ownerSetting.usedOwnerPasswordRecoveryCodeHashes.includes(recoveryCodeHash)
+    ) {
+      return res.status(400).json({
+        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    session = await mongoose.startSession();
+    let recoveryApplied = false;
+    await session.withTransaction(async () => {
+      recoveryApplied = false;
+      const updatedSetting = await SystemSetting.findOneAndUpdate(
+        {
+          _id: ownerSetting._id,
+          ownerUserId: owner._id,
+          usedOwnerPasswordRecoveryCodeHashes: { $ne: recoveryCodeHash },
+        },
+        { $addToSet: { usedOwnerPasswordRecoveryCodeHashes: recoveryCodeHash } },
+        { new: true, session }
+      );
+      if (!updatedSetting) {
+        return;
+      }
+
+      const passwordUpdate = await User.updateOne(
+        { _id: owner._id, role: "Admin" },
+        {
+          $set: { password: hashedPassword },
+          $inc: { tokenVersion: 1 },
+        },
+        { session }
+      );
+      if (passwordUpdate.matchedCount !== 1) {
+        throw new Error("Owner account changed during password recovery.");
+      }
+      recoveryApplied = true;
+    });
+
+    if (!recoveryApplied) {
+      return res.status(400).json({
+        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
+      });
+    }
+
+    res.json({
+      message: "Owner password reset successfully. Sign in using your new password. Configure a new recovery code before another reset.",
+    });
+  } catch (error) {
+    console.error("Owner password recovery failed:", error);
+    res.status(500).json({
+      message: "Unable to reset the owner password. Contact a trusted operator if the problem continues.",
+    });
+  } finally {
+    if (session) {
+      await session.endSession();
+    }
   }
 });
 

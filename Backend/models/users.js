@@ -22,6 +22,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             enum: ["Admin", "Staff"]
+        },
+        tokenVersion: {
+            type: Number,
+            default: 0
         }
     },
     {

@@ -106,3 +106,20 @@ button:hover {
 #message {
   min-height: 20px;
 }
+
+.recovery-link {
+  margin-top: 8px;
+  padding: 6px 0;
+  background: transparent;
+  color: #2b78c5;
+  text-align: right;
+}
+
+.secondary-button {
+  margin-top: 6px;
+  background: #64748B;
+}
+
+#recoveryMessage {
+  min-height: 20px;
+}

@@ -15,6 +15,10 @@ const systemSettingSchema = new mongoose.Schema(
         usedRecoveryCodeHashes: {
             type: [String],
             default: []
+        },
+        usedOwnerPasswordRecoveryCodeHashes: {
+            type: [String],
+            default: []
         }
     },
     {
