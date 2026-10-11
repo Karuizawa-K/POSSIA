@@ -118,8 +118,15 @@ body {
 .catalog-header {
     padding: 20px 30px;
     display: flex;
-    justify-content: flex-end; /* Pushes search bar to the right */
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
     border-bottom: 1px solid #e5e7eb;
+}
+
+.search-label {
+    color: #6b7280;
+    font-size: 14px;
 }
 
 .search-input {
@@ -137,46 +144,66 @@ body {
     border-color: #0f2046;
 }
 
-.product-grid {
-    padding: 30px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
+.data-grid-wrapper {
     overflow-y: auto; /* Allows only the grid to scroll vertically */
+    overflow-x: auto;
 }
 
-.product-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.product-card:hover {
-    border-color: #0f2046;
-    box-shadow: 0 4px 12px rgba(15, 32, 70, 0.08);
-    transform: translateY(-2px);
-}
-
-.product-icon {
-    font-size: 40px;
-    margin-bottom: 15px;
-}
-
-.product-name {
+.data-grid {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
     font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    color: #374151;
 }
 
-.product-price {
-    font-size: 14px;
+.data-grid th,
+.data-grid td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.data-grid th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f9fafb;
     color: #6b7280;
+    font-weight: 600;
+}
+
+.data-grid tbody tr:hover {
+    background: #f8fafc;
+}
+
+.grid-add-btn,
+.qty-btn {
+    min-width: 32px;
+    min-height: 30px;
+    padding: 4px 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background: #ffffff;
+    color: #0f2046;
+    cursor: pointer;
+}
+
+.grid-add-btn:hover,
+.qty-btn:hover:not(:disabled) {
+    background: #eaf2ff;
+    border-color: #3481ec;
+}
+
+.grid-add-btn:disabled,
+.qty-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.grid-empty {
+    padding: 30px !important;
+    color: #9ca3af;
+    text-align: center;
 }
 
 /* --- Right: Cart Section --- */
@@ -217,63 +244,18 @@ body {
 
 .cart-items {
     flex: 1;
-    overflow-y: auto; /* Allows only the cart items to scroll vertically */
-    padding: 20px 30px;
+    overflow-y: auto;
 }
 
 .empty-cart-msg {
     text-align: center;
-    color: #9ca3af;
-    margin-top: 50px;
-    font-size: 14px;
-}
-
-.cart-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 0;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.cart-item:last-child {
-    border-bottom: none;
-}
-
-.item-info h4 {
-    font-size: 14px;
-    margin-bottom: 4px;
-    color: #1a1a1a;
-}
-
-.item-info p {
-    font-size: 13px;
-    color: #6b7280;
-}
-
-.qty-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
+    color: #9ca3af !important;
 }
 
 .qty-btn {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    color: #374151;
-    font-size: 16px;
-    line-height: 1;
-}
-
-.qty-btn:hover {
-    background: #e5e7eb;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 2px 8px;
 }
 
 .cart-footer {
@@ -350,4 +332,67 @@ body {
 
 .checkout-btn:not(:disabled):hover {
     opacity: 0.9;
+}
+
+@media (max-width: 900px) {
+    body {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+
+    .app-container {
+        flex-direction: column;
+        overflow: visible;
+    }
+
+    .catalog-section {
+        min-height: 50vh;
+    }
+
+    .cart-section {
+        width: 100%;
+        min-height: 420px;
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+    }
+}
+
+@media (max-width: 600px) {
+    .navbar {
+        padding: 12px;
+        height: auto;
+        gap: 8px;
+    }
+
+    .nav-center {
+        flex: 1;
+    }
+
+    .nav-title {
+        font-size: 16px;
+    }
+
+    .nav-subtitle,
+    .nav-right {
+        font-size: 11px;
+    }
+
+    .dashboard {
+        padding: 6px;
+        font-size: 12px;
+    }
+
+    .catalog-header {
+        padding: 14px;
+    }
+
+    .search-input {
+        width: min(65vw, 300px);
+    }
+
+    .data-grid th,
+    .data-grid td {
+        padding: 10px;
+    }
 }

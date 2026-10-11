@@ -36,6 +36,71 @@ app.get("/", (req, res) => {
   res.json({ message: "Login API is running." });
 });
 
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      message: "Unauthorized.",
+    });
+  }
+
+  try {
+    const decoded = jwt.verify(
+      authHeader.slice("Bearer ".length),
+      process.env.JWT_SECRET
+    );
+    if (!mongoose.Types.ObjectId.isValid(decoded.userId)) {
+      return res.status(401).json({
+        message: "Invalid or expired token.",
+      });
+    }
+
+    const user = await User.findById(decoded.userId).select("_id username fullName role");
+    if (!user) {
+      return res.status(401).json({
+        message: "Unauthorized.",
+      });
+    }
+
+    req.authUser = user;
+    next();
+  } catch (error) {
+    if (error.name === "JsonWebTokenError" || error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        message: "Invalid or expired token.",
+      });
+    }
+    console.error(error);
+    res.status(500).json({
+      message: "Server error.",
+    });
+  }
+}
+
+// List products for the point-of-sale catalog
+app.get("/api/products", requireAuth, async (req, res) => {
+  try {
+    const products = await Product.find()
+      .select("_id barcode productName unitPrice stockQuantity")
+      .sort({ productName: 1 });
+
+    res.json({
+      products: products.map((product) => ({
+        id: product._id,
+        barcode: product.barcode,
+        productName: product.productName,
+        unitPrice: product.unitPrice,
+        stockQuantity: product.stockQuantity,
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to load products.",
+    });
+  }
+});
+
 // Login
 app.post("/api/login", async (req, res) => {
   try {
@@ -101,52 +166,16 @@ app.post("/api/login", async (req, res) => {
 });
 
 async function requireAdmin(req, res, next) {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        message: "Unauthorized.",
-      });
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(
-        authHeader.slice("Bearer ".length),
-        process.env.JWT_SECRET
-      );
-    } catch (error) {
-      return res.status(401).json({
-        message: "Invalid or expired token.",
-      });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(decoded.userId)) {
-      return res.status(401).json({
-        message: "Invalid or expired token.",
-      });
-    }
-
-    const currentUser = await User.findById(decoded.userId).select("_id role");
-    if (!currentUser) {
-      return res.status(401).json({
-        message: "Unauthorized.",
-      });
-    }
-    if (currentUser.role !== "Admin") {
+  await requireAuth(req, res, () => {
+    if (req.authUser.role !== "Admin") {
       return res.status(403).json({
         message: "Admin access is required.",
       });
     }
 
-    req.adminUser = currentUser;
+    req.adminUser = req.authUser;
     next();
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: "Server error.",
-    });
-  }
+  });
 }
 
 // List accounts (Admin only)
@@ -377,13 +406,8 @@ app.get("/api/profile", async (req, res) => {
       });
     }
 
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
+    const token = authHeader.slice("Bearer ".length);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.userId).select("_id username fullName role");
     if (!user) {
       return res.status(401).json({

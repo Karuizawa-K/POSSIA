@@ -17,7 +17,7 @@
         
         <div class="nav-center">
             <h1 class="nav-title">Apb merchandising</h1>
-            <span class="nav-subtitle">Point of Sale • Admin Access</span>
+            <span class="nav-subtitle">Point of Sale</span>
         </div>
 
         <div class="nav-right">
@@ -33,12 +33,25 @@
         <!-- LEFT: Product Catalog -->
         <div class="catalog-section">
             <header class="catalog-header">
-                <!-- Search bar pushed to the right, brand title removed since it's in the navbar -->
-                <input type="text" class="search-input" placeholder="Search products...">
+                <label class="search-label" for="product-search">Search items</label>
+                <input type="search" class="search-input" id="product-search" placeholder="Name or barcode...">
             </header>
 
-            <div class="product-grid" id="product-grid">
-                <!-- Products will be injected here by JavaScript -->
+            <div class="data-grid-wrapper">
+                <table class="data-grid">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Barcode</th>
+                            <th>Price</th>
+                            <th>In stock</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-grid">
+                        <tr><td colspan="5">Loading items...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -49,9 +62,20 @@
                 <button class="clear-text-btn" id="clear-btn">Clear</button>
             </div>
 
-            <div class="cart-items" id="cart-items">
-                <!-- Cart items injected here -->
-                <div class="empty-cart-msg">Cart is empty</div>
+            <div class="cart-items data-grid-wrapper">
+                <table class="data-grid selected-grid">
+                    <thead>
+                        <tr>
+                            <th>Selected item</th>
+                            <th>Price</th>
+                            <th>Qty</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items">
+                        <tr><td colspan="4" class="empty-cart-msg">No items selected.</td></tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="cart-footer">
@@ -82,7 +106,7 @@
 
     </section>
 
-    <script src="pos.js"></script>
+    <script src="pos.js" defer></script>
     
 </body>
 </html>
