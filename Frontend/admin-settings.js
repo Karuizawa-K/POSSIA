@@ -5,9 +5,16 @@ const passwordInput = document.getElementById("password");
 const formHeading = document.getElementById("formHeading");
 const saveAccountButton = document.getElementById("saveAccountButton");
 const cancelEditButton = document.getElementById("cancelEditButton");
+const roleInput = document.getElementById("role");
+const ownershipTransferForm = document.getElementById("ownershipTransferForm");
+const ownershipTransferSection = document.getElementById("ownershipTransferSection");
+const ownershipTarget = document.getElementById("ownershipTarget");
+const ownerPasswordInput = document.getElementById("ownerPassword");
+const ownershipNotice = document.getElementById("ownershipNotice");
 
 let currentUserId;
 let editingUserId = null;
+let currentUserIsOwner = false;
 
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
@@ -45,6 +52,7 @@ function resetAccountForm() {
     formHeading.textContent = "Create Account";
     saveAccountButton.textContent = "Create Account";
     cancelEditButton.hidden = true;
+    roleInput.disabled = false;
 }
 
 function renderAccounts(users) {
@@ -63,9 +71,11 @@ function renderAccounts(users) {
 
     for (const user of users) {
         const row = document.createElement("tr");
-        for (const value of [user.username, user.fullName, user.role]) {
+        for (const [index, value] of [user.username, user.fullName, user.role].entries()) {
             const cell = document.createElement("td");
-            cell.textContent = value;
+            cell.textContent = user.isOwner && index === 2
+                ? "Admin (System Owner)"
+                : value;
             row.append(cell);
         }
         const createdCell = document.createElement("td");
@@ -82,6 +92,10 @@ function renderAccounts(users) {
         editButton.type = "button";
         editButton.className = "account-action-btn";
         editButton.textContent = "Edit";
+        editButton.disabled = user.isOwner && !currentUserIsOwner;
+        editButton.title = editButton.disabled
+            ? "Only the system owner can edit the owner account."
+            : "Edit account";
         editButton.addEventListener("click", () => startEditing(user));
         actionsCell.append(editButton);
 
@@ -89,23 +103,44 @@ function renderAccounts(users) {
         deleteButton.type = "button";
         deleteButton.className = "account-action-btn delete-account-btn";
         deleteButton.textContent = "Delete";
-        deleteButton.disabled = user.id === currentUserId;
-        deleteButton.title = deleteButton.disabled
+        const cannotDeleteSelf = user.id === currentUserId;
+        const cannotDeleteAdmin = user.role === "Admin" && !currentUserIsOwner;
+        const cannotDeleteOwner = user.isOwner;
+        deleteButton.disabled = cannotDeleteSelf || cannotDeleteAdmin || cannotDeleteOwner;
+        deleteButton.title = cannotDeleteSelf
             ? "You cannot delete your own account."
-            : "Delete account";
+            : cannotDeleteOwner
+                ? "Transfer ownership before deleting the owner account."
+                : cannotDeleteAdmin
+                    ? "Only the system owner can delete another Admin account."
+                    : "Delete account";
         deleteButton.addEventListener("click", () => deleteAccount(user));
         actionsCell.append(deleteButton);
         row.append(actionsCell);
         accountsList.append(row);
     }
     window.makeTableSortable(accountsList.closest("table"));
+
+    ownershipTarget.replaceChildren();
+    for (const user of users.filter((account) =>
+        account.role === "Admin" && account.id !== currentUserId
+    )) {
+        const option = document.createElement("option");
+        option.value = user.id;
+        option.textContent = `${user.fullName} (@${user.username})`;
+        ownershipTarget.append(option);
+    }
+    ownershipTarget.disabled = ownershipTarget.options.length === 0;
+    ownershipTransferForm.querySelector("button[type='submit']").disabled =
+        ownershipTarget.disabled;
 }
 
 function startEditing(user) {
     editingUserId = user.id;
     document.getElementById("username").value = user.username;
     document.getElementById("fullName").value = user.fullName;
-    document.getElementById("role").value = user.role;
+    roleInput.value = user.role;
+    roleInput.disabled = user.role === "Admin" && !currentUserIsOwner;
     passwordInput.value = "";
     passwordInput.required = false;
     passwordInput.placeholder = "Leave blank to keep current password";
@@ -118,9 +153,53 @@ function startEditing(user) {
 }
 
 async function loadAccounts() {
-    const { users } = await apiRequest("/api/admin/users");
-    renderAccounts(users);
+    const data = await apiRequest("/api/admin/users");
+    currentUserIsOwner = data.currentUserIsOwner;
+    ownershipTransferSection.hidden = !currentUserIsOwner;
+    ownershipNotice.hidden = data.ownerConfigured && currentUserIsOwner;
+    ownershipNotice.textContent = !data.ownerConfigured
+        ? data.ownerConfigurationInvalid
+            ? "The configured system owner is missing or is not an Admin. Contact a trusted system operator for recovery; ownership was not reassigned."
+            : "System ownership has not been initialized. Run npm run migrate:owner in Backend before using owner-only account controls."
+        : currentUserIsOwner
+            ? ""
+            : "Only the system owner can delete or demote Admin accounts, or transfer ownership.";
+    renderAccounts(data.users);
 }
+
+ownershipTransferForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const selectedOption = ownershipTarget.selectedOptions[0];
+    if (!selectedOption) {
+        showMessage("Create or select another Admin account before transferring ownership.", true);
+        return;
+    }
+    if (!window.confirm(
+        `Transfer system ownership to ${selectedOption.textContent}? You will immediately lose owner-only privileges.`
+    )) {
+        return;
+    }
+
+    const submitButton = ownershipTransferForm.querySelector("button[type='submit']");
+    submitButton.disabled = true;
+    try {
+        const result = await apiRequest("/api/admin/owner-transfer", {
+            method: "POST",
+            body: JSON.stringify({
+                targetUserId: ownershipTarget.value,
+                password: ownerPasswordInput.value,
+                confirmTransfer: true
+            })
+        });
+        ownerPasswordInput.value = "";
+        showMessage(result.message);
+        await loadAccounts();
+    } catch (error) {
+        showMessage(error.message, true);
+    } finally {
+        submitButton.disabled = ownershipTarget.disabled;
+    }
+});
 
 async function deleteAccount(user) {
     if (!window.confirm(`Delete the account for "${user.username}"? This cannot be undone.`)) {

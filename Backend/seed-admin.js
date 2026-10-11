@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const User = require("./models/users");
+const SystemSetting = require("./models/system_settings");
 
 function prompt(label, maskInput = false) {
   return new Promise((resolve, reject) => {
@@ -85,14 +86,18 @@ async function main() {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    await User.create({
+    const admin = await User.create({
       username,
       fullName,
       password: hashedPassword,
       role: "Admin",
     });
+    await SystemSetting.create({
+      key: "owner",
+      ownerUserId: admin._id,
+    });
 
-    console.log(`Admin account "${username}" created successfully.`);
+    console.log(`Admin account "${username}" created successfully and designated as system owner.`);
   } finally {
     process.stdin.setRawMode(false);
   }

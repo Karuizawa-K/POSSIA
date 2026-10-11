@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-    "seed:admin": "node seed-admin.js"
+    "seed:admin": "node seed-admin.js",
+    "migrate:owner": "node migrate-owner.js"
   },
   "keywords": [],
   "author": "",

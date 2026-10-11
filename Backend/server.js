@@ -9,6 +9,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import DB models
 const User = require("./models/users");
+const SystemSetting = require("./models/system_settings");
 const Category = require("./models/categories");
 const Product = require("./models/products");
 const Sale = require("./models/sales");
@@ -949,17 +950,28 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
 // List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const users = await User.find()
-      .select("_id username fullName role createdAt")
-      .sort({ username: 1 });
+    const [users, ownerSetting] = await Promise.all([
+      User.find()
+        .select("_id username fullName role createdAt")
+        .sort({ username: 1 }),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
+    const ownerUserId = ownerSetting?.ownerUserId?.toString() || null;
+    const ownerIsValid = users.some((user) =>
+      user._id.toString() === ownerUserId && user.role === "Admin"
+    );
 
     res.json({
+      ownerConfigured: ownerIsValid,
+      ownerConfigurationInvalid: Boolean(ownerSetting) && !ownerIsValid,
+      currentUserIsOwner: ownerUserId === req.adminUser._id.toString(),
       users: users.map((user) => ({
         id: user._id,
         username: user.username,
         fullName: user.fullName,
         role: user.role,
         createdAt: user.createdAt,
+        isOwner: user._id.toString() === ownerUserId,
       })),
     });
   } catch (error) {
@@ -1067,6 +1079,28 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" }).select("ownerUserId");
+    const isOwner = ownerSetting?.ownerUserId?.toString() === user._id.toString();
+    if (isOwner && req.adminUser._id.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        message: "Only the system owner can edit their own account.",
+      });
+    }
+    if (isOwner && role !== undefined && role !== "Admin") {
+      return res.status(409).json({
+        message: "Transfer system ownership before changing the owner's role.",
+      });
+    }
+    if (
+      user.role === "Admin" &&
+      role === "Staff" &&
+      ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the system owner can change another Admin account to Staff.",
+      });
+    }
+
     if (
       user._id.toString() === req.adminUser._id.toString() &&
       role !== undefined &&
@@ -1136,13 +1170,26 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId).select("_id role");
+    const [user, ownerSetting] = await Promise.all([
+      User.findById(userId).select("_id role"),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
     if (!user) {
       return res.status(404).json({
         message: "User not found.",
       });
     }
+    if (ownerSetting?.ownerUserId?.toString() === user._id.toString()) {
+      return res.status(409).json({
+        message: "Transfer system ownership before deleting the owner account.",
+      });
+    }
     if (user.role === "Admin") {
+      if (ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()) {
+        return res.status(403).json({
+          message: "Only the system owner can delete another Admin account.",
+        });
+      }
       const adminCount = await User.countDocuments({ role: "Admin" });
       if (adminCount <= 1) {
         return res.status(409).json({
@@ -1163,6 +1210,78 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
+app.post("/api/admin/owner-transfer", requireAdmin, async (req, res) => {
+  try {
+    const { targetUserId, password, confirmTransfer } = req.body || {};
+    if (
+      typeof targetUserId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(targetUserId) ||
+      typeof password !== "string" ||
+      !password ||
+      confirmTransfer !== true
+    ) {
+      return res.status(400).json({
+        message: "Choose an Admin, enter your password, and confirm the ownership transfer.",
+      });
+    }
+
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" });
+    if (!ownerSetting) {
+      return res.status(409).json({
+        message: "System ownership is not initialized. Run npm run migrate:owner in Backend first.",
+      });
+    }
+    if (ownerSetting.ownerUserId.toString() !== req.adminUser._id.toString()) {
+      return res.status(403).json({
+        message: "Only the current system owner can transfer ownership.",
+      });
+    }
+    if (targetUserId === req.adminUser._id.toString()) {
+      return res.status(400).json({
+        message: "Choose a different Admin to receive ownership.",
+      });
+    }
+
+    const [currentOwner, targetUser] = await Promise.all([
+      User.findById(req.adminUser._id).select("password"),
+      User.findById(targetUserId).select("_id username role"),
+    ]);
+    if (!currentOwner) {
+      return res.status(409).json({ message: "Current owner account was not found; contact a trusted system operator." });
+    }
+    if (!await bcrypt.compare(password, currentOwner.password)) {
+      return res.status(403).json({ message: "The current password is incorrect." });
+    }
+    if (!targetUser || targetUser.role !== "Admin") {
+      return res.status(400).json({
+        message: "Ownership can only be transferred to another existing Admin account.",
+      });
+    }
+
+    const updatedSetting = await SystemSetting.findOneAndUpdate(
+      { _id: ownerSetting._id, ownerUserId: req.adminUser._id },
+      { $set: { ownerUserId: targetUser._id } },
+      { new: true }
+    );
+    if (!updatedSetting) {
+      return res.status(409).json({
+        message: "Ownership changed during this request. Reload the page and try again.",
+      });
+    }
+
+    res.json({
+      message: `System ownership transferred to "${targetUser.username}".`,
+      owner: {
+        id: targetUser._id,
+        username: targetUser.username,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to transfer system ownership." });
+  }
+});
+
 // Protected profile route
 app.get("/api/profile", async (req, res) => {
   try {
@@ -1176,7 +1295,10 @@ app.get("/api/profile", async (req, res) => {
 
     const token = authHeader.slice("Bearer ".length);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("_id username fullName role");
+    const [user, ownerSetting] = await Promise.all([
+      User.findById(decoded.userId).select("_id username fullName role"),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized.",
@@ -1190,6 +1312,7 @@ app.get("/api/profile", async (req, res) => {
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        isSystemOwner: ownerSetting?.ownerUserId?.toString() === user._id.toString(),
       },
     });
   } catch (error) {

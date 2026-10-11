@@ -28,6 +28,7 @@
 
     <main id="adminSettings" class="admin-settings-content" hidden>
         <p id="statusMessage" role="status" aria-live="polite"></p>
+        <p id="ownershipNotice" role="status" hidden></p>
 
         <section class="account-form-section">
             <h2 id="formHeading">Create Account</h2>
@@ -51,6 +52,22 @@
                 <div class="account-form-actions">
                     <button id="saveAccountButton" class="admin-settings-btn" type="submit">Create Account</button>
                     <button id="cancelEditButton" class="admin-settings-btn" type="button" hidden>Cancel</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="account-form-section" id="ownershipTransferSection" hidden>
+            <h2>Transfer System Ownership</h2>
+            <p>Ownership transfers immediately. You will remain an Admin but lose owner-only privileges.</p>
+            <form id="ownershipTransferForm">
+                <label for="ownershipTarget">New owner (Admin)</label>
+                <select id="ownershipTarget" required></select>
+
+                <label for="ownerPassword">Your current password</label>
+                <input id="ownerPassword" type="password" autocomplete="current-password" required>
+
+                <div class="account-form-actions">
+                    <button class="admin-settings-btn" type="submit">Transfer Ownership</button>
                 </div>
             </form>
         </section>

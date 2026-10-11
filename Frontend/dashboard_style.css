@@ -102,6 +102,24 @@ body {
     font: inherit;
 }
 
+#ownershipTransferForm {
+    display: grid;
+    grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
+    align-items: center;
+    gap: 12px 16px;
+    max-width: 700px;
+}
+
+#ownershipTransferForm input,
+#ownershipTransferForm select {
+    width: 100%;
+    min-height: 38px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    font: inherit;
+}
+
 #accountForm small {
     grid-column: 2;
     margin-top: -8px;
@@ -167,12 +185,14 @@ body {
 }
 
 @media (max-width: 600px) {
-    #accountForm {
+    #accountForm,
+    #ownershipTransferForm {
         grid-template-columns: 1fr;
     }
 
     #accountForm small,
-    .account-form-actions {
+    #ownershipTransferForm .account-form-actions,
+    #accountForm .account-form-actions {
         grid-column: 1;
     }
 }
