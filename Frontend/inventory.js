@@ -20,7 +20,6 @@ let currentRole = null;
 let products = [];
 let categories = [];
 let editingProductId = null;
-let generatedBarcodePreview = "";
 
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
@@ -329,9 +328,8 @@ async function requestGeneratedBarcode() {
     try {
         const { barcode } = await apiRequest("/api/admin/inventory/next-barcode");
         barcodeInput.value = barcode;
-        generatedBarcodePreview = barcode;
         renderBarcodePreview();
-        showMessage("Barcode preview generated. If it is taken before saving, a new barcode will be assigned automatically.");
+        showMessage("Barcode preview generated. Print the label or save the product to use this barcode.");
     } catch (error) {
         showMessage(error.message, true);
     }
@@ -390,7 +388,6 @@ window.onload = function () {
 
 function resetProductForm() {
     editingProductId = null;
-    generatedBarcodePreview = "";
     productForm.reset();
     barcodeInput.readOnly = false;
     generateBarcodeButton.hidden = false;
@@ -505,25 +502,15 @@ categoryForm.addEventListener("submit", async (event) => {
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const barcodeValue = barcodeInput.value.trim();
-    const barcodeWasGenerated = Boolean(
-        generatedBarcodePreview && barcodeValue === generatedBarcodePreview
-    );
     const productBeforeEdit = editingProductId
         ? products.find((product) => product.id === editingProductId)
         : null;
-    const barcodeWillBeGenerated = barcodeWasGenerated || (!barcodeValue &&
-        (!editingProductId || !productBeforeEdit || !productBeforeEdit.barcode));
     const payload = {
+        barcode: barcodeValue,
         productName: productNameInput.value.trim(),
         categoryId: categorySelect.value,
         unitPrice: Number(document.getElementById("unitPrice").value)
     };
-    if (barcodeValue) {
-        payload.barcode = barcodeValue;
-    }
-    if (barcodeWasGenerated) {
-        payload.barcodeGenerated = true;
-    }
     if (!editingProductId) {
         payload.initialQuantity = Number(document.getElementById("initialQuantity").value);
     }
@@ -535,14 +522,9 @@ productForm.addEventListener("submit", async (event) => {
             method: editingProductId ? "PUT" : "POST",
             body: JSON.stringify(payload)
         });
-        const savedProduct = result.product;
         resetProductForm();
         productEditor.hidden = true;
-        showMessage(
-            barcodeWillBeGenerated && savedProduct
-                ? `${result.message} Assigned barcode: ${savedProduct.barcode}`
-                : result.message
-        );
+        showMessage(result.message);
         await Promise.all([loadInventory(), loadMovements()]);
     } catch (error) {
         showMessage(error.message, true);
@@ -561,7 +543,6 @@ document.getElementById("showProductFormButton").addEventListener("click", () =>
 generateBarcodeButton.addEventListener("click", requestGeneratedBarcode);
 printBarcodeButton.addEventListener("click", printBarcodeLabel);
 barcodeInput.addEventListener("input", () => {
-    generatedBarcodePreview = "";
     renderBarcodePreview();
 });
 productNameInput.addEventListener("input", () => {
