@@ -1,0 +1,354 @@
+const inventoryPage = document.getElementById("inventoryPage");
+const inventoryRows = document.getElementById("inventoryRows");
+const movementRows = document.getElementById("movementRows");
+const productForm = document.getElementById("productForm");
+const productEditor = document.getElementById("productEditor");
+const statusMessage = document.getElementById("statusMessage");
+const categoryFilter = document.getElementById("categoryFilter");
+const categorySelect = document.getElementById("categoryId");
+
+let currentRole = null;
+let products = [];
+let categories = [];
+let editingProductId = null;
+
+function showMessage(message, isError = false) {
+    statusMessage.textContent = message;
+    statusMessage.classList.toggle("error-message", isError);
+}
+
+async function apiRequest(url, options = {}) {
+    const token = localStorage.getItem("token");
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            Authorization: `Bearer ${token}`,
+            ...(options.body ? { "Content-Type": "application/json" } : {}),
+            ...options.headers
+        }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+        if (response.status === 401) {
+            localStorage.removeItem("token");
+            window.location.replace("/");
+        }
+        throw new Error(data.message || "Request failed.");
+    }
+    return data;
+}
+
+function addCell(row, value) {
+    const cell = document.createElement("td");
+    cell.textContent = value;
+    row.append(cell);
+    return cell;
+}
+
+function appendEmptyRow(target, colspan, message) {
+    const row = document.createElement("tr");
+    const cell = addCell(row, message);
+    cell.colSpan = colspan;
+    target.replaceChildren(row);
+}
+
+function visibleProducts() {
+    const query = document.getElementById("inventorySearch").value.trim().toLowerCase();
+    const selectedCategory = categoryFilter.value;
+    const selectedStockStatus = document.getElementById("stockStatusFilter").value;
+    const selectedStatus = currentRole === "Admin"
+        ? document.getElementById("statusFilter").value
+        : "active";
+
+    return products.filter((product) => {
+        const matchesSearch = !query ||
+            product.productName.toLowerCase().includes(query) ||
+            product.barcode.toLowerCase().includes(query);
+        const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
+        const matchesStockStatus = selectedStockStatus === "all" ||
+            (selectedStockStatus === "in-stock" && product.stockQuantity > 0) ||
+            (selectedStockStatus === "out-of-stock" && product.stockQuantity === 0);
+        const matchesStatus = selectedStatus === "all" ||
+            (selectedStatus === "active" && product.isActive) ||
+            (selectedStatus === "archived" && !product.isActive);
+        return matchesSearch && matchesCategory && matchesStockStatus && matchesStatus;
+    });
+}
+
+function renderInventory() {
+    const shownProducts = visibleProducts();
+    const admin = currentRole === "Admin";
+    if (shownProducts.length === 0) {
+        appendEmptyRow(inventoryRows, admin ? 7 : 6, "No products match your search.");
+        return;
+    }
+
+    inventoryRows.replaceChildren();
+    for (const product of shownProducts) {
+        const row = document.createElement("tr");
+        addCell(row, product.barcode);
+        addCell(row, product.productName);
+        addCell(row, product.categoryName);
+        addCell(row, `₱${Number(product.unitPrice).toFixed(2)}`);
+        const stockCell = addCell(row, product.stockQuantity === 0
+            ? "0 (Out of stock)"
+            : String(product.stockQuantity));
+        if (product.stockQuantity === 0) {
+            stockCell.className = "out-of-stock";
+        }
+        addCell(row, product.isActive ? "Active" : "Archived");
+
+        if (admin) {
+            const actions = document.createElement("td");
+            actions.className = "admin-actions";
+            const editButton = document.createElement("button");
+            editButton.type = "button";
+            editButton.className = "btn-secondary";
+            editButton.textContent = "Edit";
+            editButton.addEventListener("click", () => startEditing(product));
+            actions.append(editButton);
+
+            const statusButton = document.createElement("button");
+            statusButton.type = "button";
+            statusButton.className = product.isActive ? "btn-stockout" : "btn-stockin";
+            statusButton.textContent = product.isActive ? "Archive" : "Reactivate";
+            statusButton.addEventListener("click", () => updateProductStatus(product));
+            actions.append(statusButton);
+
+            if (product.isActive) {
+                const adjustment = document.createElement("div");
+                adjustment.className = "stock-adjustment";
+                const quantity = document.createElement("input");
+                quantity.type = "number";
+                quantity.min = "1";
+                quantity.step = "1";
+                quantity.placeholder = "Qty";
+                quantity.setAttribute("aria-label", `Quantity to adjust for ${product.productName}`);
+                const reason = document.createElement("input");
+                reason.type = "text";
+                reason.maxLength = 250;
+                reason.placeholder = "Reason (required for stock out)";
+                reason.setAttribute("aria-label", `Reason for stock adjustment to ${product.productName}`);
+                const stockInButton = document.createElement("button");
+                stockInButton.type = "button";
+                stockInButton.className = "btn-stockin";
+                stockInButton.textContent = "Stock In";
+                stockInButton.addEventListener("click", () =>
+                    adjustStock(product, "stock-in", quantity, reason)
+                );
+                const stockOutButton = document.createElement("button");
+                stockOutButton.type = "button";
+                stockOutButton.className = "btn-stockout";
+                stockOutButton.textContent = "Stock Out";
+                stockOutButton.addEventListener("click", () =>
+                    adjustStock(product, "stock-out", quantity, reason)
+                );
+                adjustment.append(quantity, reason, stockInButton, stockOutButton);
+                actions.append(adjustment);
+            }
+            row.append(actions);
+        }
+        inventoryRows.append(row);
+    }
+}
+
+function renderCategories() {
+    categorySelect.replaceChildren();
+    categoryFilter.replaceChildren();
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All categories";
+    categoryFilter.append(allOption);
+
+    for (const category of categories) {
+        const editorOption = document.createElement("option");
+        editorOption.value = category.id;
+        editorOption.textContent = category.categoryName;
+        categorySelect.append(editorOption);
+
+        const filterOption = editorOption.cloneNode(true);
+        categoryFilter.append(filterOption);
+    }
+    categorySelect.disabled = categories.length === 0;
+    document.getElementById("saveProductButton").disabled = categories.length === 0;
+    if (categories.length === 0 && currentRole === "Admin") {
+        showMessage("Add a product category before creating inventory items.", true);
+    }
+}
+
+async function loadInventory() {
+    const data = await apiRequest("/api/inventory");
+    products = data.products;
+    categories = data.categories;
+    renderCategories();
+    renderInventory();
+}
+
+function resetProductForm() {
+    editingProductId = null;
+    productForm.reset();
+    document.getElementById("initialQuantity").value = "0";
+    document.getElementById("initialQuantityGroup").hidden = false;
+    document.getElementById("formHeading").textContent = "Add Product";
+    document.getElementById("saveProductButton").textContent = "Add Product";
+    document.getElementById("cancelEditButton").hidden = true;
+}
+
+function startEditing(product) {
+    editingProductId = product.id;
+    document.getElementById("barcode").value = product.barcode;
+    document.getElementById("productName").value = product.productName;
+    categorySelect.value = product.categoryId || "";
+    document.getElementById("unitPrice").value = product.unitPrice;
+    document.getElementById("initialQuantityGroup").hidden = true;
+    document.getElementById("formHeading").textContent = `Edit Product: ${product.productName}`;
+    document.getElementById("saveProductButton").textContent = "Save Changes";
+    document.getElementById("cancelEditButton").hidden = false;
+    productEditor.hidden = false;
+    productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function updateProductStatus(product) {
+    const isActive = !product.isActive;
+    const action = isActive ? "reactivate" : "archive";
+    if (!window.confirm(`${action[0].toUpperCase()}${action.slice(1)} "${product.productName}"?`)) {
+        return;
+    }
+    try {
+        const result = await apiRequest(
+            `/api/admin/inventory/products/${encodeURIComponent(product.id)}/status`,
+            { method: "PATCH", body: JSON.stringify({ isActive }) }
+        );
+        showMessage(result.message);
+        await loadInventory();
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+}
+
+async function adjustStock(product, direction, quantityInput, reasonInput) {
+    const quantity = Number(quantityInput.value);
+    const reason = reasonInput.value.trim();
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        showMessage("Enter a positive whole-number quantity.", true);
+        quantityInput.focus();
+        return;
+    }
+    if (direction === "stock-out" && !reason) {
+        showMessage("Enter a reason for removing stock.", true);
+        reasonInput.focus();
+        return;
+    }
+
+    try {
+        const result = await apiRequest(
+            `/api/admin/inventory/products/${encodeURIComponent(product.id)}/${direction}`,
+            { method: "POST", body: JSON.stringify({ quantity, reason }) }
+        );
+        showMessage(`${result.message} Current stock: ${result.stockQuantity}.`);
+        await Promise.all([loadInventory(), loadMovements()]);
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+}
+
+async function loadMovements() {
+    if (currentRole !== "Admin") {
+        return;
+    }
+    const { movements } = await apiRequest("/api/admin/inventory/movements");
+    if (movements.length === 0) {
+        appendEmptyRow(movementRows, 6, "No stock movements recorded yet.");
+        return;
+    }
+    movementRows.replaceChildren();
+    for (const movement of movements) {
+        const row = document.createElement("tr");
+        addCell(row, new Date(movement.date).toLocaleString());
+        addCell(row, movement.type);
+        addCell(row, `${movement.productName}${movement.barcode ? ` (${movement.barcode})` : ""}`);
+        addCell(row, String(movement.quantity));
+        addCell(row, movement.reason);
+        addCell(row, movement.user);
+        movementRows.append(row);
+    }
+}
+
+productForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const payload = {
+        barcode: document.getElementById("barcode").value.trim(),
+        productName: document.getElementById("productName").value.trim(),
+        categoryId: categorySelect.value,
+        unitPrice: Number(document.getElementById("unitPrice").value)
+    };
+    if (!editingProductId) {
+        payload.initialQuantity = Number(document.getElementById("initialQuantity").value);
+    }
+    try {
+        const url = editingProductId
+            ? `/api/admin/inventory/products/${encodeURIComponent(editingProductId)}`
+            : "/api/admin/inventory/products";
+        const result = await apiRequest(url, {
+            method: editingProductId ? "PUT" : "POST",
+            body: JSON.stringify(payload)
+        });
+        resetProductForm();
+        productEditor.hidden = true;
+        showMessage(result.message);
+        await Promise.all([loadInventory(), loadMovements()]);
+    } catch (error) {
+        showMessage(error.message, true);
+    }
+});
+
+document.getElementById("cancelEditButton").addEventListener("click", () => {
+    resetProductForm();
+    productEditor.hidden = true;
+});
+document.getElementById("showProductFormButton").addEventListener("click", () => {
+    resetProductForm();
+    productEditor.hidden = false;
+    productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("inventorySearch").addEventListener("input", renderInventory);
+categoryFilter.addEventListener("change", renderInventory);
+document.getElementById("stockStatusFilter").addEventListener("change", renderInventory);
+document.getElementById("statusFilter").addEventListener("change", renderInventory);
+document.getElementById("logoutButton").addEventListener("click", () => {
+    localStorage.removeItem("token");
+    window.location.replace("/");
+});
+
+async function initializeInventory() {
+    if (!localStorage.getItem("token")) {
+        window.location.replace("/");
+        return;
+    }
+    try {
+        const { user } = await apiRequest("/api/profile");
+        currentRole = user.role;
+        document.getElementById("userInfo").textContent = `${user.fullName} (@${user.username})`;
+        document.getElementById("accessDescription").textContent = currentRole === "Admin"
+            ? "Manage products and stock. Stock changes are recorded in the movement history."
+            : "Read-only view of current active inventory.";
+        for (const element of document.querySelectorAll(".admin-only")) {
+            element.hidden = currentRole !== "Admin";
+        }
+        productEditor.hidden = true;
+        document.getElementById("statusFilterGroup").hidden = currentRole !== "Admin";
+        document.getElementById("actionsHeading").hidden = currentRole !== "Admin";
+        document.getElementById("historySection").hidden = currentRole !== "Admin";
+        inventoryPage.hidden = false;
+        await loadInventory();
+        if (currentRole === "Admin") {
+            await loadMovements();
+        }
+    } catch (error) {
+        inventoryPage.hidden = false;
+        showMessage(error.message, true);
+        console.error("Unable to load inventory:", error);
+    }
+}
+
+initializeInventory();

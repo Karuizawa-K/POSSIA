@@ -3,115 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports</title>
+    <title>Inventory</title>
     <link rel="stylesheet" href="inventory_style.css">
 </head>
 
 <body>
-
     <nav class="navbar">
-
         <div class="nav-left">
             <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
         </div>
-        
         <div class="nav-center">
             <h1 class="nav-title">APB merchandising</h1>
-            <span class="nav-subtitle">Inventory • Admin Access</span>
+            <span class="nav-subtitle">Inventory</span>
         </div>
-
         <div class="nav-right">
             <span id="userInfo">Loading user...</span>
             &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout">Logout</button>
-            
+            <button id="logoutButton" class="logout" type="button">Logout</button>
         </div>
     </nav>
-    
-    <main class="inventory-container">
-        <!-- Data Input Section -->
-        <div class="input-section">
-            <h2>Add New Stock Entry</h2>
-            <form class="input-grid" action="#" method="POST">
+
+    <main class="inventory-container" id="inventoryPage" hidden>
+        <p class="page-description" id="accessDescription"></p>
+        <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
+
+        <section class="input-section admin-only" id="productEditor" hidden>
+            <h2 id="formHeading">Add Product</h2>
+            <form class="input-grid" id="productForm">
                 <div class="form-group">
-                    <label for="itemCode">Item Code</label>
-                    <input type="text" id="itemCode" name="itemCode" placeholder="e.g., ITM-001" required>
+                    <label for="barcode">Barcode</label>
+                    <input type="text" id="barcode" name="barcode" maxlength="100" required>
                 </div>
                 <div class="form-group">
-                    <label for="itemName">Item Name</label>
-                    <input type="text" id="itemName" name="itemName" placeholder="Enter product name" required>
+                    <label for="productName">Product Name</label>
+                    <input type="text" id="productName" name="productName" maxlength="200" required>
                 </div>
                 <div class="form-group">
-                    <label for="category">Category</label>
-                    <select id="category" name="category">
-                        <option value="apparel">Apparel</option>
-                        <option value="accessories">Accessories</option>
-                        <option value="equipment">Equipment</option>
+                    <label for="categoryId">Category</label>
+                    <select id="categoryId" name="categoryId" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="unitPrice">Unit Price (₱)</label>
+                    <input type="number" id="unitPrice" name="unitPrice" min="0" step="0.01" required>
+                </div>
+                <div class="form-group" id="initialQuantityGroup">
+                    <label for="initialQuantity">Initial Quantity</label>
+                    <input type="number" id="initialQuantity" name="initialQuantity" min="0" step="1" value="0">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit" id="saveProductButton">Add Product</button>
+                    <button type="button" class="btn-secondary" id="cancelEditButton" hidden>Cancel Edit</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="grid-section">
+            <div class="section-heading">
+                <h2>Current Inventory</h2>
+                <button type="button" class="btn-submit admin-only" id="showProductFormButton" hidden>Add Product</button>
+            </div>
+            <div class="inventory-filters">
+                <div class="form-group">
+                    <label for="inventorySearch">Search</label>
+                    <input type="search" id="inventorySearch" placeholder="Product name or barcode">
+                </div>
+                <div class="form-group">
+                    <label for="categoryFilter">Category</label>
+                    <select id="categoryFilter">
+                        <option value="">All categories</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="quantity">Initial Quantity</label>
-                    <input type="number" id="quantity" name="quantity" min="0" value="0" required>
+                    <label for="stockStatusFilter">Stock Status</label>
+                    <select id="stockStatusFilter">
+                        <option value="all">All stock levels</option>
+                        <option value="in-stock">In stock</option>
+                        <option value="out-of-stock">Out of stock</option>
+                    </select>
                 </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn-submit">Add to Database</button>
+                <div class="form-group admin-only" id="statusFilterGroup" hidden>
+                    <label for="statusFilter">Product Status</label>
+                    <select id="statusFilter">
+                        <option value="active">Active</option>
+                        <option value="archived">Archived</option>
+                        <option value="all">All products</option>
+                    </select>
                 </div>
-            </form>
-        </div>
-
-        <!-- Inventory Grid Section -->
-        <div class="grid-section">
-            <h2>Current Inventory Status</h2>
+            </div>
             <div class="table-responsive">
                 <table class="inventory-table">
                     <thead>
                         <tr>
-                            <th>Item Code</th>
-                            <th>Item Name</th>
+                            <th>Barcode</th>
+                            <th>Product Name</th>
                             <th>Category</th>
+                            <th>Unit Price</th>
                             <th>Current Stock</th>
-                            <th>Actions (Stock In / Out)</th>
+                            <th>Status</th>
+                            <th class="admin-only" id="actionsHeading" hidden>Admin Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Placeholder rows for your MongoDB data -->
-                        <tr>
-                            <td>ITM-001</td>
-                            <td>Basic T-Shirt</td>
-                            <td>Apparel</td>
-                            <td>150</td>
-                            <td class="action-cells">
-                                <input type="number" class="action-input" placeholder="Qty" min="1">
-                                <button class="btn-stockin" type="button">Stock In</button>
-                                <button class="btn-stockout" type="button">Stock Out</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>ITM-002</td>
-                            <td>Canvas Tote Bag</td>
-                            <td>Accessories</td>
-                            <td>45</td>
-                            <td class="action-cells">
-                                <input type="number" class="action-input" placeholder="Qty" min="1">
-                                <button class="btn-stockin" type="button">Stock In</button>
-                                <button class="btn-stockout" type="button">Stock Out</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>ITM-003</td>
-                            <td>Display Rack</td>
-                            <td>Equipment</td>
-                            <td>12</td>
-                            <td class="action-cells">
-                                <input type="number" class="action-input" placeholder="Qty" min="1">
-                                <button class="btn-stockin" type="button">Stock In</button>
-                                <button class="btn-stockout" type="button">Stock Out</button>
-                            </td>
-                        </tr>
+                    <tbody id="inventoryRows">
+                        <tr><td colspan="7">Loading inventory...</td></tr>
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
+
+        <section class="grid-section admin-only" id="historySection" hidden>
+            <h2>Recent Stock Movements</h2>
+            <p class="section-note">Showing the latest 100 stock adjustments.</p>
+            <div class="table-responsive">
+                <table class="inventory-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Product</th>
+                            <th>Quantity</th>
+                            <th>Reason</th>
+                            <th>Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementRows">
+                        <tr><td colspan="6">Loading stock history...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </main>
+    <script src="inventory.js" defer></script>
 </body>
 </html>

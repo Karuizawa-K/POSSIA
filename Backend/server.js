@@ -85,7 +85,7 @@ async function requireAuth(req, res, next) {
 // List products for the point-of-sale catalog
 app.get("/api/products", requireAuth, async (req, res) => {
   try {
-    const products = await Product.find()
+    const products = await Product.find({ isActive: { $ne: false } })
       .select("_id barcode productName unitPrice stockQuantity")
       .sort({ productName: 1 });
 
@@ -102,6 +102,42 @@ app.get("/api/products", requireAuth, async (req, res) => {
     console.error(error);
     res.status(500).json({
       message: "Unable to load products.",
+    });
+  }
+});
+
+// Inventory is viewable by all signed-in users; management remains Admin-only.
+app.get("/api/inventory", requireAuth, async (req, res) => {
+  try {
+    const filter = req.authUser.role === "Admin" ? {} : { isActive: { $ne: false } };
+    const products = await Product.find(filter)
+      .select("_id categoryId barcode productName unitPrice stockQuantity isActive")
+      .populate("categoryId", "categoryName")
+      .sort({ productName: 1 });
+    const categories = await Category.find()
+      .select("_id categoryName")
+      .sort({ categoryName: 1 });
+
+    res.json({
+      products: products.map((product) => ({
+        id: product._id,
+        barcode: product.barcode,
+        productName: product.productName,
+        categoryId: product.categoryId?._id || product.categoryId,
+        categoryName: product.categoryId?.categoryName || "Uncategorized",
+        unitPrice: product.unitPrice,
+        stockQuantity: product.stockQuantity,
+        isActive: product.isActive !== false,
+      })),
+      categories: categories.map((category) => ({
+        id: category._id,
+        categoryName: category.categoryName,
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Unable to load inventory.",
     });
   }
 });
@@ -152,7 +188,7 @@ app.post("/api/sales", requireAuth, async (req, res) => {
       let subtotalCents = 0;
       const saleItems = items.map((item) => {
         const product = productsById.get(item.productId);
-        if (!product) {
+        if (!product || product.isActive === false) {
           throw Object.assign(new Error("An item in this order no longer exists."), { status: 409 });
         }
         if (product.stockQuantity < item.quantity) {
@@ -200,13 +236,21 @@ app.post("/api/sales", requireAuth, async (req, res) => {
 
       for (const { item, product } of saleItems) {
         const update = await Product.updateOne(
-          { _id: product._id, stockQuantity: { $gte: item.quantity } },
+          { _id: product._id, isActive: { $ne: false }, stockQuantity: { $gte: item.quantity } },
           { $inc: { stockQuantity: -item.quantity } },
           { session }
         );
         if (update.modifiedCount !== 1) {
           throw Object.assign(new Error(`${product.productName} stock changed. Refresh items and try again.`), { status: 409 });
         }
+        await StockOut.create([{
+          productId: product._id,
+          productName: product.productName,
+          barcode: product.barcode,
+          userId: req.authUser._id,
+          quantityRemoved: item.quantity,
+          reason: "POS sale",
+        }], { session });
       }
 
       const [payment] = await Payment.create([{
@@ -336,6 +380,262 @@ async function requireAdmin(req, res, next) {
     next();
   });
 }
+
+function isValidInventoryProductInput(input, { partial = false } = {}) {
+  const fields = ["barcode", "productName", "categoryId", "unitPrice"];
+  if (!partial && fields.some((field) => input[field] === undefined)) {
+    return false;
+  }
+  if (partial && fields.every((field) => input[field] === undefined)) {
+    return false;
+  }
+  return (
+    (input.barcode === undefined || (typeof input.barcode === "string" && input.barcode.trim().length > 0)) &&
+    (input.productName === undefined || (typeof input.productName === "string" && input.productName.trim().length > 0)) &&
+    (input.categoryId === undefined || (
+      typeof input.categoryId === "string" && mongoose.Types.ObjectId.isValid(input.categoryId)
+    )) &&
+    (input.unitPrice === undefined || (Number.isFinite(input.unitPrice) && input.unitPrice >= 0))
+  );
+}
+
+function inventoryProductResponse(product, category) {
+  return {
+    id: product._id,
+    barcode: product.barcode,
+    productName: product.productName,
+    categoryId: category?._id || product.categoryId,
+    categoryName: category?.categoryName || "Uncategorized",
+    unitPrice: product.unitPrice,
+    stockQuantity: product.stockQuantity,
+    isActive: product.isActive !== false,
+  };
+}
+
+app.post("/api/admin/inventory/products", requireAdmin, async (req, res) => {
+  const { barcode, productName, categoryId, unitPrice, initialQuantity = 0 } = req.body || {};
+  if (
+    !isValidInventoryProductInput({ barcode, productName, categoryId, unitPrice }) ||
+    !Number.isInteger(initialQuantity) ||
+    initialQuantity < 0
+  ) {
+    return res.status(400).json({ message: "Enter a barcode, product name, category, valid price, and whole-number initial quantity." });
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    let createdProduct;
+    await session.withTransaction(async () => {
+      const category = await Category.findById(categoryId).session(session);
+      if (!category) {
+        throw Object.assign(new Error("Category not found."), { status: 400 });
+      }
+      const [product] = await Product.create([{
+        barcode: barcode.trim(),
+        productName: productName.trim(),
+        categoryId,
+        unitPrice,
+        stockQuantity: initialQuantity,
+      }], { session });
+      if (initialQuantity > 0) {
+        await StockIn.create([{
+          productId: product._id,
+          productName: product.productName,
+          barcode: product.barcode,
+          userId: req.adminUser._id,
+          quantityAdded: initialQuantity,
+          reason: "Initial stock",
+        }], { session });
+      }
+      createdProduct = inventoryProductResponse(product, category);
+    });
+    res.status(201).json({ message: "Product created successfully.", product: createdProduct });
+  } catch (error) {
+    console.error(error);
+    if (error.status) {
+      return res.status(error.status).json({ message: error.message });
+    }
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Barcode is already in use." });
+    }
+    res.status(500).json({ message: "Unable to create product." });
+  } finally {
+    await session.endSession();
+  }
+});
+
+app.put("/api/admin/inventory/products/:productId", requireAdmin, async (req, res) => {
+  const { productId } = req.params;
+  const input = req.body || {};
+  if (!mongoose.Types.ObjectId.isValid(productId) || !isValidInventoryProductInput(input, { partial: true })) {
+    return res.status(400).json({ message: "Provide a valid product ID and at least one valid product field." });
+  }
+
+  try {
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+    if (input.categoryId !== undefined && !(await Category.exists({ _id: input.categoryId }))) {
+      return res.status(400).json({ message: "Category not found." });
+    }
+    for (const field of ["barcode", "productName", "categoryId", "unitPrice"]) {
+      if (input[field] !== undefined) {
+        product[field] = typeof input[field] === "string" ? input[field].trim() : input[field];
+      }
+    }
+    await product.save();
+    const category = await Category.findById(product.categoryId).select("_id categoryName");
+    res.json({ message: "Product updated successfully.", product: inventoryProductResponse(product, category) });
+  } catch (error) {
+    console.error(error);
+    if (error.code === 11000) {
+      return res.status(409).json({ message: "Barcode is already in use." });
+    }
+    res.status(500).json({ message: "Unable to update product." });
+  }
+});
+
+app.patch("/api/admin/inventory/products/:productId/status", requireAdmin, async (req, res) => {
+  const { productId } = req.params;
+  const { isActive } = req.body || {};
+  if (!mongoose.Types.ObjectId.isValid(productId) || typeof isActive !== "boolean") {
+    return res.status(400).json({ message: "Provide a valid product ID and active status." });
+  }
+  try {
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { $set: { isActive } },
+      { new: true, runValidators: true }
+    );
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+    res.json({ message: isActive ? "Product reactivated." : "Product archived." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to update product status." });
+  }
+});
+
+async function adjustInventoryStock(req, res, direction) {
+  const { productId } = req.params;
+  const { quantity, reason = "" } = req.body || {};
+  if (
+    !mongoose.Types.ObjectId.isValid(productId) ||
+    !Number.isInteger(quantity) ||
+    quantity < 1 ||
+    typeof reason !== "string" ||
+    (direction === "out" && !reason.trim())
+  ) {
+    return res.status(400).json({
+      message: direction === "out"
+        ? "Enter a positive whole-number quantity and a reason."
+        : "Enter a positive whole-number quantity.",
+    });
+  }
+
+  const session = await mongoose.startSession();
+  try {
+    let updatedProduct;
+    await session.withTransaction(async () => {
+      const product = await Product.findById(productId).session(session);
+      if (!product || product.isActive === false) {
+        throw Object.assign(new Error("Active product not found."), { status: 404 });
+      }
+      if (direction === "out" && product.stockQuantity < quantity) {
+        throw Object.assign(new Error("Stock removal cannot exceed the current quantity."), { status: 409 });
+      }
+      const update = await Product.updateOne(
+        {
+          _id: product._id,
+          isActive: { $ne: false },
+          ...(direction === "out" ? { stockQuantity: { $gte: quantity } } : {}),
+        },
+        { $inc: { stockQuantity: direction === "in" ? quantity : -quantity } },
+        { session }
+      );
+      if (update.modifiedCount !== 1) {
+        throw Object.assign(new Error("Stock changed; refresh and try again."), { status: 409 });
+      }
+      if (direction === "in") {
+        await StockIn.create([{
+          productId: product._id,
+          productName: product.productName,
+          barcode: product.barcode,
+          userId: req.adminUser._id,
+          quantityAdded: quantity,
+          reason: reason.trim() || "Stock received",
+        }], { session });
+      } else {
+        await StockOut.create([{
+          productId: product._id,
+          productName: product.productName,
+          barcode: product.barcode,
+          userId: req.adminUser._id,
+          quantityRemoved: quantity,
+          reason: reason.trim(),
+        }], { session });
+      }
+      updatedProduct = await Product.findById(product._id).session(session);
+    });
+    res.json({
+      message: direction === "in" ? "Stock received successfully." : "Stock removed successfully.",
+      stockQuantity: updatedProduct.stockQuantity,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(error.status || 500).json({
+      message: error.status ? error.message : "Unable to adjust stock.",
+    });
+  } finally {
+    await session.endSession();
+  }
+}
+
+app.post("/api/admin/inventory/products/:productId/stock-in", requireAdmin, (req, res) =>
+  adjustInventoryStock(req, res, "in")
+);
+app.post("/api/admin/inventory/products/:productId/stock-out", requireAdmin, (req, res) =>
+  adjustInventoryStock(req, res, "out")
+);
+
+app.get("/api/admin/inventory/movements", requireAdmin, async (req, res) => {
+  try {
+    const [stockIns, stockOuts] = await Promise.all([
+      StockIn.find().sort({ dateReceived: -1 }).limit(100)
+        .populate("productId", "productName barcode")
+        .populate("userId", "fullName username"),
+      StockOut.find().sort({ dateRemoved: -1 }).limit(100)
+        .populate("productId", "productName barcode")
+        .populate("userId", "fullName username"),
+    ]);
+    const movements = [
+      ...stockIns.map((entry) => ({
+        type: "Stock in",
+        productName: entry.productName || entry.productId?.productName || "Unknown product",
+        barcode: entry.barcode || entry.productId?.barcode || "",
+        quantity: entry.quantityAdded,
+        reason: entry.reason || "Stock received",
+        user: entry.userId?.fullName || entry.userId?.username || "Unknown user",
+        date: entry.dateReceived,
+      })),
+      ...stockOuts.map((entry) => ({
+        type: "Stock out",
+        productName: entry.productName || entry.productId?.productName || "Unknown product",
+        barcode: entry.barcode || entry.productId?.barcode || "",
+        quantity: entry.quantityRemoved,
+        reason: entry.reason,
+        user: entry.userId?.fullName || entry.userId?.username || "Unknown user",
+        date: entry.dateRemoved,
+      })),
+    ].sort((left, right) => new Date(right.date) - new Date(left.date)).slice(0, 100);
+    res.json({ movements });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to load stock history." });
+  }
+});
 
 // List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {

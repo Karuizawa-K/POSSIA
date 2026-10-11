@@ -33,6 +33,11 @@ const productSchema = new mongoose.Schema(
                 validator: Number.isInteger,
                 message: "Stock quantity must be a whole number."
             }
+        },
+        isActive: {
+            type: Boolean,
+            required: true,
+            default: true
         }
     },
     {

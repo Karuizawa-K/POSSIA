@@ -47,7 +47,7 @@ async function loadSession() {
                 }
 
                 const page = button.dataset.page;
-                const restrictedPages = ["inventory.html", "reports.html"];
+                const restrictedPages = ["reports.html"];
 
                 if (
                     role.toLowerCase() === "staff" &&

@@ -215,6 +215,11 @@
     background-color: #f8f9fa;
 }
 
+.inventory-table td.out-of-stock {
+    color: #c62828;
+    font-weight: 700;
+}
+
 /* Actions styling */
 .action-cells {
     display: flex;
@@ -257,4 +262,151 @@
 
 .btn-stockout:hover {
     background-color: #ffcdd2;
+}
+
+.inventory-container[hidden],
+.admin-only[hidden],
+[hidden] {
+    display: none !important;
+}
+
+.page-description,
+.section-note {
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+.status-message {
+    min-height: 1.4em;
+    margin-bottom: 12px;
+    color: #2e7d32;
+}
+
+.status-message.error-message {
+    color: #c62828;
+}
+
+.section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+}
+
+.section-heading h2 {
+    flex: 1;
+}
+
+.inventory-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin: 8px 0 18px;
+}
+
+.inventory-filters .form-group {
+    gap: 6px;
+}
+
+.inventory-filters label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+}
+
+.inventory-filters input,
+.inventory-filters select {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.grid-section + .grid-section {
+    margin-top: 24px;
+}
+
+.inventory-table th,
+.inventory-table td {
+    white-space: nowrap;
+}
+
+.inventory-table td.admin-actions {
+    min-width: 310px;
+    white-space: normal;
+}
+
+.admin-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.stock-adjustment {
+    display: grid;
+    grid-template-columns: minmax(60px, 75px) minmax(145px, 1fr);
+    gap: 6px;
+    width: 100%;
+}
+
+.stock-adjustment input {
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn-secondary {
+    color: #173d72;
+    background: #eef3f9;
+    border: 1px solid #d5dfeb;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: #dfe9f5;
+}
+
+.btn-submit:disabled,
+.btn-secondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-center {
+        order: -1;
+        flex-basis: 100%;
+        margin: 0;
+    }
+
+    .nav-left,
+    .nav-right {
+        font-size: 13px;
+    }
+
+    .inventory-container {
+        padding: 16px;
+    }
+
+    .input-section,
+    .grid-section {
+        padding: 16px;
+    }
+
+    .section-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }

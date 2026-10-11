@@ -8,6 +8,14 @@ const stockOutSchema = new mongoose.Schema(
             ref: "Product",
             required: true
         },
+        productName: {
+            type: String,
+            trim: true
+        },
+        barcode: {
+            type: String,
+            trim: true
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",

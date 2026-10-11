@@ -8,6 +8,14 @@ const stockInSchema = new mongoose.Schema(
             ref: "Product",
             required: true
         },
+        productName: {
+            type: String,
+            trim: true
+        },
+        barcode: {
+            type: String,
+            trim: true
+        },
         userId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
@@ -21,6 +29,11 @@ const stockInSchema = new mongoose.Schema(
                 validator: Number.isInteger,
                 message: "Quantity added must be a whole number."
             }
+        },
+        reason: {
+            type: String,
+            trim: true,
+            default: "Stock received"
         },
         dateReceived: {
             type: Date,
