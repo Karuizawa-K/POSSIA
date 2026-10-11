@@ -20,7 +20,13 @@ NEED HELP?
 Contact your trusted system operator if:
 - Owner-only actions are unavailable in Admin Settings.
 - The owner cannot sign in or the owner account is unavailable.
-- You need to recover or change ownership.
+- The owner is unavailable and another Admin needs to recover ownership.
+
+For emergency ownership recovery, a signed-in Admin performs the recovery,
+enters their own Admin password and the one-time recovery code, then selects
+which existing Admin will become the owner. The signed-in Admin may select
+themselves or another Admin. The selected Admin becomes the owner; ownership
+is not assigned automatically.
 
 Never share your password. Only provide a recovery code to the person
 authorized by your organization to handle system recovery.
