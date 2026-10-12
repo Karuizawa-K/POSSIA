@@ -28,7 +28,6 @@
 
     <main id="adminSettings" class="admin-settings-content" hidden>
         <p id="statusMessage" role="status" aria-live="polite"></p>
-        <p id="ownershipNotice" role="status" hidden></p>
 
         <section class="account-form-section">
             <h2 id="formHeading">Create Account</h2>
@@ -39,6 +38,10 @@
                 <label for="fullName">Full name</label>
                 <input id="fullName" name="fullName" autocomplete="name" required>
 
+                <label for="email">Bound email</label>
+                <input id="email" name="email" type="email" autocomplete="email" required>
+                <small id="emailHelp">Used to send password reset codes.</small>
+
                 <label for="password">Password</label>
                 <div class="admin-password-field">
                     <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required>
@@ -47,65 +50,15 @@
                 </div>
                 <small id="passwordHelp">At least 6 characters.</small>
 
-                <label for="role">Role</label>
-                <select id="role" name="role" required>
-                    <option value="Staff">Staff</option>
-                    <option value="Admin">Admin</option>
-                </select>
+                <p id="roleNotice" class="field-note">
+                    New accounts are created as Staff. Only one Admin account is allowed and it is
+                    created by your system operator.
+                </p>
+                <input type="hidden" id="role" name="role" value="Staff">
 
                 <div class="account-form-actions">
                     <button id="saveAccountButton" class="admin-settings-btn" type="submit">Create Account</button>
                     <button id="cancelEditButton" class="admin-settings-btn" type="button" hidden>Cancel</button>
-                </div>
-            </form>
-        </section>
-
-        <section class="account-form-section" id="ownershipTransferSection" hidden>
-            <h2>Transfer System Ownership</h2>
-            <p>Ownership transfers immediately. You will remain an Admin but lose owner-only privileges.</p>
-            <form id="ownershipTransferForm">
-                <label for="ownershipTarget">New owner (Admin)</label>
-                <select id="ownershipTarget" required></select>
-
-                <label for="ownerPassword">Your current password</label>
-                <div class="admin-password-field">
-                    <input id="ownerPassword" type="password" autocomplete="current-password" required>
-                    <button type="button" class="admin-password-toggle" data-password-toggle="ownerPassword"
-                        aria-controls="ownerPassword" aria-pressed="false">Show</button>
-                </div>
-
-                <div class="account-form-actions">
-                    <button class="admin-settings-btn" type="submit">Transfer Ownership</button>
-                </div>
-            </form>
-        </section>
-
-        <section class="account-form-section" id="ownershipRecoverySection" hidden>
-            <h2>Recover System Ownership</h2>
-            <p>
-                Use this only when normal ownership transfer is unavailable or a trusted operator
-                has authorized recovery. Recovery immediately replaces the current owner.
-            </p>
-            <form id="ownershipRecoveryForm">
-                <label for="recoveryTarget">New owner (Admin)</label>
-                <select id="recoveryTarget" required></select>
-
-                <label for="recoveryAdminPassword">Your current password</label>
-                <div class="admin-password-field">
-                    <input id="recoveryAdminPassword" type="password" autocomplete="current-password" required>
-                    <button type="button" class="admin-password-toggle" data-password-toggle="recoveryAdminPassword"
-                        aria-controls="recoveryAdminPassword" aria-pressed="false">Show</button>
-                </div>
-
-                <label for="ownerRecoveryCode">One-time recovery code</label>
-                <div class="admin-password-field">
-                    <input id="ownerRecoveryCode" type="password" autocomplete="off" required>
-                    <button type="button" class="admin-password-toggle" data-password-toggle="ownerRecoveryCode"
-                        aria-controls="ownerRecoveryCode" aria-pressed="false">Show</button>
-                </div>
-
-                <div class="account-form-actions">
-                    <button class="admin-settings-btn" type="submit">Recover Ownership</button>
                 </div>
             </form>
         </section>
@@ -118,13 +71,14 @@
                         <tr>
                             <th data-sort-type="text">Username</th>
                             <th data-sort-type="text">Full name</th>
+                            <th data-sort-type="text">Email</th>
                             <th data-sort-type="text">Role</th>
                             <th data-sort-type="date">Created</th>
                             <th data-sortable="false">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="accountsList">
-                        <tr><td colspan="5">Loading accounts...</td></tr>
+                        <tr><td colspan="6">Loading accounts...</td></tr>
                     </tbody>
                 </table>
             </div>

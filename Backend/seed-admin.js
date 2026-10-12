@@ -5,7 +5,8 @@ const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const User = require("./models/users");
-const SystemSetting = require("./models/system_settings");
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function prompt(label, maskInput = false) {
   return new Promise((resolve, reject) => {
@@ -62,7 +63,7 @@ async function main() {
   await mongoose.connect(process.env.MONGODB_URI);
 
   if (await User.exists({ role: "Admin" })) {
-    console.log("An Admin account already exists; no account was created.");
+    console.log("An Admin account already exists; only one Admin is allowed. No account was created.");
     return;
   }
 
@@ -72,11 +73,15 @@ async function main() {
   try {
     const username = (await prompt("Admin username: ")).trim();
     const fullName = (await prompt("Admin full name: ")).trim();
+    const email = (await prompt("Admin bound email: ")).trim().toLowerCase();
     const password = await prompt("Admin password (input hidden): ", true);
     const passwordConfirmation = await prompt("Confirm password (input hidden): ", true);
 
     if (!username || !fullName) {
       throw new Error("Username and full name are required.");
+    }
+    if (!EMAIL_PATTERN.test(email)) {
+      throw new Error("A valid bound email address is required.");
     }
     if (password.length < 6) {
       throw new Error("Password must be at least 6 characters.");
@@ -84,20 +89,20 @@ async function main() {
     if (password !== passwordConfirmation) {
       throw new Error("Passwords do not match.");
     }
+    if (await User.exists({ $or: [{ username }, { email }] })) {
+      throw new Error("That username or email is already registered.");
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const admin = await User.create({
+    await User.create({
       username,
       fullName,
+      email,
       password: hashedPassword,
       role: "Admin",
     });
-    await SystemSetting.create({
-      key: "owner",
-      ownerUserId: admin._id,
-    });
 
-    console.log(`Admin account "${username}" created successfully and designated as system owner.`);
+    console.log(`Admin account "${username}" created successfully for ${email}.`);
   } finally {
     process.stdin.setRawMode(false);
   }

@@ -4,12 +4,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
-const { randomBytes, createHash, timingSafeEqual } = require("crypto");
+const { randomBytes, createHash, randomInt, timingSafeEqual } = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import DB models
 const User = require("./models/users");
-const SystemSetting = require("./models/system_settings");
 const Category = require("./models/categories");
 const Product = require("./models/products");
 const Sale = require("./models/sales");
@@ -20,6 +19,14 @@ const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
 const { generateUniqueBarcode } = require("./utils/barcode");
 const { getReportPeriod } = require("./utils/report-period");
+const { isMailConfigured, sendPasswordResetCode } = require("./utils/mailer");
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_RESET_OTP_MINUTES = Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10;
+const PASSWORD_RESET_OTP_MAX_ATTEMPTS = 5;
+const PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const GENERIC_RESET_MESSAGE =
+  "If that email is registered, a one-time code has been sent to it.";
 
 const app = express();
 const frontendOrigins = process.env.FRONTEND_URL
@@ -382,110 +389,150 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-app.post("/api/owner/password-recovery", async (req, res) => {
-  const { username, recoveryCode, newPassword, confirmPassword } = req.body || {};
+function normalizeEmail(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function hashOtp(code) {
+  return createHash("sha256").update(String(code)).digest("hex");
+}
+
+// Step 1: request a one-time code for the email bound to an account.
+app.post("/api/password/forgot", async (req, res) => {
+  const email = normalizeEmail((req.body || {}).email);
+  if (!EMAIL_PATTERN.test(email)) {
+    return res.status(400).json({
+      message: "Enter the email address bound to your account.",
+    });
+  }
+  if (!isMailConfigured()) {
+    return res.status(503).json({
+      message: "Password reset is not configured. Contact your system operator.",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ message: GENERIC_RESET_MESSAGE });
+    }
+
+    const now = Date.now();
+    if (user.passwordResetOtpExpiresAt) {
+      const issuedAt =
+        user.passwordResetOtpExpiresAt.getTime() - PASSWORD_RESET_OTP_MINUTES * 60 * 1000;
+      if (now - issuedAt < PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS) {
+        return res.json({ message: GENERIC_RESET_MESSAGE });
+      }
+    }
+
+    const code = String(randomInt(0, 1000000)).padStart(6, "0");
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          passwordResetOtpHash: hashOtp(code),
+          passwordResetOtpExpiresAt: new Date(now + PASSWORD_RESET_OTP_MINUTES * 60 * 1000),
+          passwordResetAttempts: 0,
+        },
+      }
+    );
+
+    await sendPasswordResetCode({ to: user.email, fullName: user.fullName, code });
+
+    res.json({ message: GENERIC_RESET_MESSAGE });
+  } catch (error) {
+    console.error("Password reset code delivery failed:", error);
+    res.json({ message: GENERIC_RESET_MESSAGE });
+  }
+});
+
+// Step 2: verify the emailed code and set the new password.
+app.post("/api/password/reset", async (req, res) => {
+  const { code, newPassword, confirmPassword } = req.body || {};
+  const email = normalizeEmail((req.body || {}).email);
+
   if (
-    typeof username !== "string" ||
-    typeof recoveryCode !== "string" ||
+    !EMAIL_PATTERN.test(email) ||
+    typeof code !== "string" ||
+    !/^\d{6}$/.test(code.trim()) ||
     typeof newPassword !== "string" ||
     typeof confirmPassword !== "string" ||
-    !username.trim() ||
-    !recoveryCode ||
-    recoveryCode.length > 256 ||
     newPassword.length < 6 ||
     newPassword !== confirmPassword
   ) {
     return res.status(400).json({
-      message: "Enter the owner username and recovery code, and provide matching passwords of at least 6 characters.",
+      message: "Enter your email, the 6-digit code, and matching new passwords of at least 6 characters.",
     });
   }
 
-  const configuredCode = process.env.OWNER_PASSWORD_RECOVERY_CODE;
-  if (typeof configuredCode !== "string" || configuredCode.length < 32) {
-    return res.status(503).json({
-      message: "Owner password recovery is not configured. Contact a trusted operator.",
-    });
-  }
-
-  const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
-  const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
-  const codeMatches = suppliedCodeBuffer.length === configuredCodeBuffer.length &&
-    timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer);
-  const recoveryCodeHash = createHash("sha256")
-    .update(configuredCodeBuffer)
-    .digest("hex");
-
-  let session;
   try {
-    const ownerSetting = await SystemSetting.findOne({ key: "owner" })
-      .select("ownerUserId usedOwnerPasswordRecoveryCodeHashes");
-    const owner = ownerSetting
-      ? await User.findOne({
-          _id: ownerSetting.ownerUserId,
-          username: username.trim(),
-          role: "Admin",
-        }).select("_id")
-      : null;
+    const user = await User.findOne({ email })
+      .select("+passwordResetOtpHash +passwordResetOtpExpiresAt +passwordResetAttempts");
     if (
-      !codeMatches ||
-      !owner ||
-      ownerSetting.usedOwnerPasswordRecoveryCodeHashes.includes(recoveryCodeHash)
+      !user ||
+      !user.passwordResetOtpHash ||
+      !user.passwordResetOtpExpiresAt ||
+      user.passwordResetOtpExpiresAt.getTime() <= Date.now()
     ) {
       return res.status(400).json({
-        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
+        message: "That code is invalid or expired. Request a new code and try again.",
+      });
+    }
+
+    if (user.passwordResetAttempts >= PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
+      await User.updateOne(
+        { _id: user._id },
+        { $unset: { passwordResetOtpHash: "", passwordResetOtpExpiresAt: "" } }
+      );
+      return res.status(429).json({
+        message: "Too many incorrect attempts. Request a new code and try again.",
+      });
+    }
+
+    const suppliedHash = Buffer.from(hashOtp(code.trim()), "utf8");
+    const storedHash = Buffer.from(user.passwordResetOtpHash, "utf8");
+    const codeMatches =
+      suppliedHash.length === storedHash.length && timingSafeEqual(suppliedHash, storedHash);
+
+    if (!codeMatches) {
+      const attemptsLeft = PASSWORD_RESET_OTP_MAX_ATTEMPTS - user.passwordResetAttempts - 1;
+      await User.updateOne({ _id: user._id }, { $inc: { passwordResetAttempts: 1 } });
+      return res.status(400).json({
+        message:
+          attemptsLeft > 0
+            ? `That code is incorrect. ${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} remaining.`
+            : "That code is incorrect. Request a new code and try again.",
       });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    session = await mongoose.startSession();
-    let recoveryApplied = false;
-    await session.withTransaction(async () => {
-      recoveryApplied = false;
-      const updatedSetting = await SystemSetting.findOneAndUpdate(
-        {
-          _id: ownerSetting._id,
-          ownerUserId: owner._id,
-          usedOwnerPasswordRecoveryCodeHashes: { $ne: recoveryCodeHash },
+    const result = await User.updateOne(
+      { _id: user._id, passwordResetOtpHash: user.passwordResetOtpHash },
+      {
+        $set: { password: hashedPassword },
+        $inc: { tokenVersion: 1 },
+        $unset: {
+          passwordResetOtpHash: "",
+          passwordResetOtpExpiresAt: "",
+          passwordResetAttempts: "",
         },
-        { $addToSet: { usedOwnerPasswordRecoveryCodeHashes: recoveryCodeHash } },
-        { new: true, session }
-      );
-      if (!updatedSetting) {
-        return;
       }
-
-      const passwordUpdate = await User.updateOne(
-        { _id: owner._id, role: "Admin" },
-        {
-          $set: { password: hashedPassword },
-          $inc: { tokenVersion: 1 },
-        },
-        { session }
-      );
-      if (passwordUpdate.matchedCount !== 1) {
-        throw new Error("Owner account changed during password recovery.");
-      }
-      recoveryApplied = true;
-    });
-
-    if (!recoveryApplied) {
+    );
+    if (result.modifiedCount !== 1) {
       return res.status(400).json({
-        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
+        message: "That code is invalid or expired. Request a new code and try again.",
       });
     }
 
     res.json({
-      message: "Owner password reset successfully. Sign in using your new password. Configure a new recovery code before another reset.",
+      message: "Password reset successfully. Sign in using your new password.",
     });
   } catch (error) {
-    console.error("Owner password recovery failed:", error);
+    console.error("Password reset failed:", error);
     res.status(500).json({
-      message: "Unable to reset the owner password. Contact a trusted operator if the problem continues.",
+      message: "Unable to reset the password. Contact your system operator.",
     });
-  } finally {
-    if (session) {
-      await session.endSession();
-    }
   }
 });
 
@@ -1030,30 +1077,18 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
 // List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const [users, ownerSetting] = await Promise.all([
-      User.find()
-        .select("_id username fullName role createdAt")
-        .sort({ username: 1 }),
-      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
-    ]);
-    const ownerUserId = ownerSetting?.ownerUserId?.toString() || null;
-    const ownerIsValid = users.some((user) =>
-      user._id.toString() === ownerUserId && user.role === "Admin"
-    );
+    const users = await User.find()
+      .select("_id username email fullName role createdAt")
+      .sort({ username: 1 });
 
     res.json({
-      ownerConfigured: ownerIsValid,
-      ownerConfigurationInvalid: Boolean(ownerSetting) && !ownerIsValid,
-      currentUserIsOwner: ownerUserId === req.adminUser._id.toString(),
-      recoveryCodeConfigured: typeof process.env.OWNER_RECOVERY_CODE === "string" &&
-        process.env.OWNER_RECOVERY_CODE.length >= 32,
       users: users.map((user) => ({
         id: user._id,
         username: user.username,
+        email: user.email,
         fullName: user.fullName,
         role: user.role,
         createdAt: user.createdAt,
-        isOwner: user._id.toString() === ownerUserId,
       })),
     });
   } catch (error) {
@@ -1064,21 +1099,33 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Create an account (Admin only)
+// Create an account (Admin only). The single Admin is created by the operator,
+// so accounts created here are always Staff.
 app.post("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const { username, fullName, password, role } = req.body || {};
+    const { username, fullName, email, password, role } = req.body || {};
     if (
       typeof username !== "string" ||
       typeof fullName !== "string" ||
       typeof password !== "string" ||
       !username.trim() ||
       !fullName.trim() ||
-      !password ||
-      !["Admin", "Staff"].includes(role)
+      !password
     ) {
       return res.status(400).json({
-        message: "Username, full name, password, and a valid role are required.",
+        message: "Username, full name, bound email, and password are required.",
+      });
+    }
+
+    const normalizedEmail = normalizeEmail(email);
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      return res.status(400).json({
+        message: "Enter a valid bound email address.",
+      });
+    }
+    if (role !== undefined && role !== "Staff") {
+      return res.status(409).json({
+        message: "Only one Admin account is allowed and it is created by your system operator. New accounts must be Staff.",
       });
     }
 
@@ -1089,10 +1136,15 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     }
 
     const normalizedUsername = username.trim();
-    const existingUser = await User.findOne({ username: normalizedUsername });
+    const existingUser = await User.findOne({
+      $or: [{ username: normalizedUsername }, { email: normalizedEmail }],
+    });
     if (existingUser) {
       return res.status(409).json({
-        message: "Username is already registered.",
+        message:
+          existingUser.username === normalizedUsername
+            ? "Username is already registered."
+            : "Email is already registered.",
       });
     }
 
@@ -1100,8 +1152,9 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     const user = await User.create({
       username: normalizedUsername,
       fullName: fullName.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
-      role,
+      role: "Staff",
     });
 
     return res.status(201).json({
@@ -1109,6 +1162,7 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
+        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1117,7 +1171,7 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username is already registered.",
+        message: "Username or email is already registered.",
       });
     }
     res.status(500).json({
@@ -1136,13 +1190,19 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const { username, fullName, password, role } = req.body || {};
+    const { username, fullName, email, password, role } = req.body || {};
+    const normalizedEmail = email === undefined ? undefined : normalizeEmail(email);
     if (
       (username !== undefined && (typeof username !== "string" || !username.trim())) ||
       (fullName !== undefined && (typeof fullName !== "string" || !fullName.trim())) ||
+      (normalizedEmail !== undefined && !EMAIL_PATTERN.test(normalizedEmail)) ||
       (password !== undefined && typeof password !== "string") ||
       (role !== undefined && !["Admin", "Staff"].includes(role)) ||
-      (username === undefined && fullName === undefined && password === undefined && role === undefined)
+      (username === undefined &&
+        fullName === undefined &&
+        normalizedEmail === undefined &&
+        password === undefined &&
+        role === undefined)
     ) {
       return res.status(400).json({
         message: "Provide valid account fields to update.",
@@ -1161,33 +1221,18 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const ownerSetting = await SystemSetting.findOne({ key: "owner" }).select("ownerUserId");
-    const isOwner = ownerSetting?.ownerUserId?.toString() === user._id.toString();
-    if (isOwner && req.adminUser._id.toString() !== user._id.toString()) {
-      return res.status(403).json({
-        message: "Only the system owner can edit their own account.",
-      });
-    }
-    if (isOwner && role !== undefined && role !== "Admin") {
+    const isSoleAdmin = user.role === "Admin";
+    if (role !== undefined && role === "Admin" && !isSoleAdmin) {
       return res.status(409).json({
-        message: "Transfer system ownership before changing the owner's role.",
+        message: "Only one Admin account is allowed and it is created by your system operator.",
       });
     }
-    if (
-      user.role === "Admin" &&
-      role === "Staff" &&
-      ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()
-    ) {
-      return res.status(403).json({
-        message: "Only the system owner can change another Admin account to Staff.",
+    if (isSoleAdmin && role !== undefined && role !== "Admin") {
+      return res.status(409).json({
+        message: "The Admin account cannot be changed to Staff. Ask your system operator to replace it.",
       });
     }
-
-    if (
-      user._id.toString() === req.adminUser._id.toString() &&
-      role !== undefined &&
-      role !== user.role
-    ) {
+    if (user._id.toString() === req.adminUser._id.toString() && role !== undefined) {
       return res.status(400).json({
         message: "You cannot change your own role.",
       });
@@ -1199,19 +1244,12 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     if (fullName !== undefined) {
       user.fullName = fullName.trim();
     }
+    if (normalizedEmail !== undefined) {
+      user.email = normalizedEmail;
+    }
     if (password) {
       user.password = await bcrypt.hash(password, 10);
-    }
-    if (role !== undefined && user.role === "Admin" && role !== "Admin") {
-      const adminCount = await User.countDocuments({ role: "Admin" });
-      if (adminCount <= 1) {
-        return res.status(409).json({
-          message: "The last Admin account cannot be changed to Staff.",
-        });
-      }
-    }
-    if (role !== undefined) {
-      user.role = role;
+      user.tokenVersion = (user.tokenVersion || 0) + 1;
     }
 
     await user.save();
@@ -1220,6 +1258,7 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
+        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1228,7 +1267,7 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username is already registered.",
+        message: "Username or email is already registered.",
       });
     }
     res.status(500).json({
@@ -1252,32 +1291,16 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const [user, ownerSetting] = await Promise.all([
-      User.findById(userId).select("_id role"),
-      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
-    ]);
+    const user = await User.findById(userId).select("_id role");
     if (!user) {
       return res.status(404).json({
         message: "User not found.",
       });
     }
-    if (ownerSetting?.ownerUserId?.toString() === user._id.toString()) {
-      return res.status(409).json({
-        message: "Transfer system ownership before deleting the owner account.",
-      });
-    }
     if (user.role === "Admin") {
-      if (ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()) {
-        return res.status(403).json({
-          message: "Only the system owner can delete another Admin account.",
-        });
-      }
-      const adminCount = await User.countDocuments({ role: "Admin" });
-      if (adminCount <= 1) {
-        return res.status(409).json({
-          message: "The last Admin account cannot be deleted.",
-        });
-      }
+      return res.status(409).json({
+        message: "The Admin account cannot be deleted. Ask your system operator to replace it.",
+      });
     }
 
     await user.deleteOne();
@@ -1292,167 +1315,6 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
-app.post("/api/admin/owner-transfer", requireAdmin, async (req, res) => {
-  try {
-    const { targetUserId, password, confirmTransfer } = req.body || {};
-    if (
-      typeof targetUserId !== "string" ||
-      !mongoose.Types.ObjectId.isValid(targetUserId) ||
-      typeof password !== "string" ||
-      !password ||
-      confirmTransfer !== true
-    ) {
-      return res.status(400).json({
-        message: "Choose an Admin, enter your password, and confirm the ownership transfer.",
-      });
-    }
-
-    const ownerSetting = await SystemSetting.findOne({ key: "owner" });
-    if (!ownerSetting) {
-      return res.status(409).json({
-        message: "System ownership is not initialized. Run npm run migrate:owner in Backend first.",
-      });
-    }
-    if (ownerSetting.ownerUserId.toString() !== req.adminUser._id.toString()) {
-      return res.status(403).json({
-        message: "Only the current system owner can transfer ownership.",
-      });
-    }
-    if (targetUserId === req.adminUser._id.toString()) {
-      return res.status(400).json({
-        message: "Choose a different Admin to receive ownership.",
-      });
-    }
-
-    const [currentOwner, targetUser] = await Promise.all([
-      User.findById(req.adminUser._id).select("password"),
-      User.findById(targetUserId).select("_id username role"),
-    ]);
-    if (!currentOwner) {
-      return res.status(409).json({ message: "Current owner account was not found; contact a trusted system operator." });
-    }
-    if (!await bcrypt.compare(password, currentOwner.password)) {
-      return res.status(403).json({ message: "The current password is incorrect." });
-    }
-    if (!targetUser || targetUser.role !== "Admin") {
-      return res.status(400).json({
-        message: "Ownership can only be transferred to another existing Admin account.",
-      });
-    }
-
-    const updatedSetting = await SystemSetting.findOneAndUpdate(
-      { _id: ownerSetting._id, ownerUserId: req.adminUser._id },
-      { $set: { ownerUserId: targetUser._id } },
-      { new: true }
-    );
-    if (!updatedSetting) {
-      return res.status(409).json({
-        message: "Ownership changed during this request. Reload the page and try again.",
-      });
-    }
-
-    res.json({
-      message: `System ownership transferred to "${targetUser.username}".`,
-      owner: {
-        id: targetUser._id,
-        username: targetUser.username,
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Unable to transfer system ownership." });
-  }
-});
-
-app.post("/api/admin/owner-recovery", requireAdmin, async (req, res) => {
-  try {
-    const { targetUserId, password, recoveryCode, confirmRecovery } = req.body || {};
-    if (
-      typeof targetUserId !== "string" ||
-      !mongoose.Types.ObjectId.isValid(targetUserId) ||
-      typeof password !== "string" ||
-      !password ||
-      typeof recoveryCode !== "string" ||
-      !recoveryCode ||
-      recoveryCode.length > 256 ||
-      confirmRecovery !== true
-    ) {
-      return res.status(400).json({
-        message: "Choose an Admin, enter your password and recovery code, and confirm recovery.",
-      });
-    }
-
-    const configuredCode = process.env.OWNER_RECOVERY_CODE;
-    if (typeof configuredCode !== "string" || configuredCode.length < 32) {
-      return res.status(503).json({
-        message: "Owner recovery is not configured. Ask a trusted operator to configure OWNER_RECOVERY_CODE.",
-      });
-    }
-
-    const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
-    const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
-    if (
-      suppliedCodeBuffer.length !== configuredCodeBuffer.length ||
-      !timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer)
-    ) {
-      return res.status(403).json({ message: "The recovery code is incorrect." });
-    }
-
-    const [requestingAdmin, targetUser] = await Promise.all([
-      User.findById(req.adminUser._id).select("password"),
-      User.findById(targetUserId).select("_id username role"),
-    ]);
-    if (!requestingAdmin || !await bcrypt.compare(password, requestingAdmin.password)) {
-      return res.status(403).json({ message: "The current password is incorrect." });
-    }
-    if (!targetUser || targetUser.role !== "Admin") {
-      return res.status(400).json({
-        message: "Ownership can only be recovered to an existing Admin account.",
-      });
-    }
-
-    const recoveryCodeHash = createHash("sha256")
-      .update(configuredCodeBuffer)
-      .digest("hex");
-    const recoveredSetting = await SystemSetting.findOneAndUpdate(
-      {
-        key: "owner",
-        usedRecoveryCodeHashes: { $ne: recoveryCodeHash },
-      },
-      {
-        $set: { ownerUserId: targetUser._id },
-        $setOnInsert: { key: "owner" },
-        $addToSet: { usedRecoveryCodeHashes: recoveryCodeHash },
-      },
-      {
-        upsert: true,
-        new: true,
-        runValidators: true,
-      }
-    );
-    if (!recoveredSetting) {
-      return res.status(409).json({
-        message: "Ownership changed during recovery. Reload the page and try again.",
-      });
-    }
-
-    res.json({
-      message: `Ownership recovered and transferred to "${targetUser.username}". Configure a new recovery code before another recovery.`,
-      owner: {
-        id: targetUser._id,
-        username: targetUser.username,
-      },
-    });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(409).json({
-        message: "This recovery code has already been used. A trusted operator must configure a new code.",
-      });
-    }
-    console.error(error);
-    res.status(500).json({ message: "Unable to recover system ownership." });
-  }
-});
 
 // Protected profile route
 app.get("/api/profile", async (req, res) => {
@@ -1467,10 +1329,7 @@ app.get("/api/profile", async (req, res) => {
 
     const token = authHeader.slice("Bearer ".length);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const [user, ownerSetting] = await Promise.all([
-      User.findById(decoded.userId).select("_id username fullName role"),
-      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
-    ]);
+    const user = await User.findById(decoded.userId).select("_id username email fullName role");
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized.",
@@ -1482,9 +1341,9 @@ app.get("/api/profile", async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
+        email: user.email,
         fullName: user.fullName,
         role: user.role,
-        isSystemOwner: ownerSetting?.ownerUserId?.toString() === user._id.toString(),
       },
     });
   } catch (error) {

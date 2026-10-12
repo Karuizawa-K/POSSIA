@@ -92,7 +92,7 @@ body {
     max-width: 700px;
 }
 
-#accountForm input,
+#accountForm input:not([type="hidden"]),
 #accountForm select {
     width: 100%;
     min-height: 38px;
@@ -130,41 +130,12 @@ body {
     border-radius: 3px;
 }
 
-#ownershipTransferForm {
-    display: grid;
-    grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
-    align-items: center;
-    gap: 12px 16px;
-    max-width: 700px;
-}
-
-#ownershipRecoveryForm {
-    display: grid;
-    grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
-    align-items: center;
-    gap: 12px 16px;
-    max-width: 700px;
-}
-
-#ownershipTransferForm input,
-#ownershipTransferForm select,
-#ownershipRecoveryForm input,
-#ownershipRecoveryForm select {
-    width: 100%;
-    min-height: 38px;
-    padding: 8px 10px;
-    border: 1px solid #cbd5e1;
-    border-radius: 4px;
-    font: inherit;
-}
-
-#accountForm .admin-password-field,
-#ownershipTransferForm .admin-password-field,
-#ownershipRecoveryForm .admin-password-field {
+#accountForm .admin-password-field {
     grid-column: 2;
 }
 
-#accountForm small {
+#accountForm small,
+#accountForm .field-note {
     grid-column: 2;
     margin-top: -8px;
     color: #64748b;
@@ -229,19 +200,14 @@ body {
 }
 
 @media (max-width: 600px) {
-    #accountForm,
-    #ownershipTransferForm,
-    #ownershipRecoveryForm {
+    #accountForm {
         grid-template-columns: 1fr;
     }
 
     #accountForm small,
+    #accountForm .field-note,
     #accountForm .admin-password-field,
-    #ownershipTransferForm .admin-password-field,
-    #ownershipRecoveryForm .admin-password-field,
-    #ownershipTransferForm .account-form-actions,
-    #accountForm .account-form-actions,
-    #ownershipRecoveryForm .account-form-actions {
+    #accountForm .account-form-actions {
         grid-column: 1;
     }
 }
