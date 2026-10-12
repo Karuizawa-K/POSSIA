@@ -1,3 +1,4 @@
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -7,14 +8,6 @@ const userSchema = new mongoose.Schema(
             required: true,
             trim: true,
             unique: true
-        },
-        email: {
-            type: String,
-            required: true,
-            trim: true,
-            lowercase: true,
-            unique: true,
-            match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
         },
         password: {
             type: String,
@@ -29,21 +22,6 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true,
             enum: ["Admin", "Staff"]
-        },
-        passwordResetOtpHash: {
-            type: String,
-            default: null,
-            select: false
-        },
-        passwordResetOtpExpiresAt: {
-            type: Date,
-            default: null,
-            select: false
-        },
-        passwordResetAttempts: {
-            type: Number,
-            default: 0,
-            select: false
         },
         tokenVersion: {
             type: Number,
