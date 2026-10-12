@@ -1,5 +1,9 @@
 const nodemailer = require("nodemailer");
 
+const CONNECTION_TIMEOUT_MS = Number(process.env.SMTP_CONNECTION_TIMEOUT_MS) || 10000;
+const GREETING_TIMEOUT_MS = Number(process.env.SMTP_GREETING_TIMEOUT_MS) || 10000;
+const SOCKET_TIMEOUT_MS = Number(process.env.SMTP_SOCKET_TIMEOUT_MS) || 20000;
+
 let cachedTransport;
 
 function isMailConfigured() {
@@ -26,7 +30,13 @@ function getTransport() {
         secure: process.env.SMTP_SECURE
             ? process.env.SMTP_SECURE.toLowerCase() === "true"
             : Number(process.env.SMTP_PORT) === 465,
-        auth
+        auth,
+        pool: true,
+        maxConnections: 3,
+        maxMessages: 100,
+        connectionTimeout: CONNECTION_TIMEOUT_MS,
+        greetingTimeout: GREETING_TIMEOUT_MS,
+        socketTimeout: SOCKET_TIMEOUT_MS
     });
 
     return cachedTransport;
@@ -64,4 +74,19 @@ async function sendPasswordResetCode({ to, fullName, code }) {
     return info;
 }
 
-module.exports = { isMailConfigured, sendPasswordResetCode };
+// Confirms credentials and reachability once at boot instead of waiting for
+// the first password reset to fail.
+async function verifyMailConnection() {
+    if (!isMailConfigured()) {
+        return { ok: false, reason: "not-configured" };
+    }
+
+    try {
+        await getTransport().verify();
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, reason: error.message };
+    }
+}
+
+module.exports = { isMailConfigured, sendPasswordResetCode, verifyMailConnection };

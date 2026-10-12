@@ -19,7 +19,7 @@ const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
 const { generateUniqueBarcode } = require("./utils/barcode");
 const { getReportPeriod } = require("./utils/report-period");
-const { isMailConfigured, sendPasswordResetCode } = require("./utils/mailer");
+const { isMailConfigured, sendPasswordResetCode, verifyMailConnection } = require("./utils/mailer");
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RESET_OTP_MINUTES = Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10;
@@ -414,6 +414,7 @@ app.post("/api/password/forgot", async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
+      console.warn(`[password-reset] No account is bound to the requested address.`);
       return res.json({ message: GENERIC_RESET_MESSAGE });
     }
 
@@ -422,6 +423,7 @@ app.post("/api/password/forgot", async (req, res) => {
       const issuedAt =
         user.passwordResetOtpExpiresAt.getTime() - PASSWORD_RESET_OTP_MINUTES * 60 * 1000;
       if (now - issuedAt < PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS) {
+        console.log(`[password-reset] Code request for ${user.email} ignored (resend cooldown).`);
         return res.json({ message: GENERIC_RESET_MESSAGE });
       }
     }
@@ -438,11 +440,19 @@ app.post("/api/password/forgot", async (req, res) => {
       }
     );
 
-    await sendPasswordResetCode({ to: user.email, fullName: user.fullName, code });
-
     res.json({ message: GENERIC_RESET_MESSAGE });
+
+    // Delivery happens after the response so a slow or unreachable mail
+    // server never blocks the login page.
+    sendPasswordResetCode({ to: user.email, fullName: user.fullName, code })
+      .then(() => {
+        console.log(`[password-reset] Code sent to ${user.email}.`);
+      })
+      .catch((error) => {
+        console.error(`[password-reset] Delivery to ${user.email} failed:`, error.message);
+      });
   } catch (error) {
-    console.error("Password reset code delivery failed:", error);
+    console.error("Password reset request failed:", error);
     res.json({ message: GENERIC_RESET_MESSAGE });
   }
 });
@@ -1365,6 +1375,18 @@ async function startServer() {
 
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected.");
+
+  const mailStatus = await verifyMailConnection();
+  if (mailStatus.ok) {
+    console.log("SMTP ready: password reset email is available.");
+  } else if (mailStatus.reason === "not-configured") {
+    console.warn(
+      "SMTP not configured: set SMTP_HOST and MAIL_FROM to enable password reset email."
+    );
+  } else {
+    console.warn(`SMTP connection failed: ${mailStatus.reason}`);
+    console.warn("Password reset email will not be delivered until this is fixed.");
+  }
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
