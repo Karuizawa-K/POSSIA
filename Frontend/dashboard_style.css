@@ -76,6 +76,7 @@ body {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #ffffff;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .account-form-section h2,
