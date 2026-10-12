@@ -87,21 +87,47 @@
             <h2>My Recovery Codes</h2>
             <p id="recoveryCodesStatus" class="field-note">Loading...</p>
             <div class="account-form-actions">
+                <button id="viewCodesButton" class="admin-settings-btn" type="button">
+                    Show Active Codes
+                </button>
                 <button id="regenerateCodesButton" class="admin-settings-btn" type="button">
                     Generate New Codes
                 </button>
                 <button id="copyCodesButton" class="admin-settings-btn" type="button" hidden>
                     Copy Codes
                 </button>
+                <button id="downloadCodesButton" class="admin-settings-btn" type="button" hidden>
+                    Download .txt
+                </button>
             </div>
+
+            <div class="account-form-actions">
+                <input type="file" id="importCodesFile" accept=".txt,text/plain"
+                    class="field-note">
+                <button id="importCodesButton" class="admin-settings-btn" type="button" hidden>
+                    Import from file
+                </button>
+            </div>
+            <p class="field-note">
+                Import format: a plain .txt file with one code per line
+                (for example ABCD-EFGH-JKLM). Up to 20 codes. Importing replaces
+                your current set.
+            </p>
+
             <div id="recoveryCodesDisplay" hidden>
-                <label>New recovery codes - save them now, they are not shown again</label>
+                <div class="account-form-actions">
+                    <button id="toggleCodesVisibilityButton" class="admin-settings-btn"
+                        type="button" aria-pressed="false">Reveal Codes</button>
+                </div>
                 <ul id="recoveryCodesList"></ul>
                 <p class="field-note">
-                    Each code works once. Store them offline (printed, sealed).
-                    Generating new codes immediately invalidates the previous set.
+                    Each code works once. Store them offline (printed, sealed) and
+                    delete the downloaded file. Generating or importing new codes
+                    immediately invalidates the previous set.
                 </p>
             </div>
+
+            <ul id="importErrorsList" hidden></ul>
         </section>
     </main>
 

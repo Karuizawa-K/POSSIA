@@ -8,6 +8,7 @@ const User = require("./models/users");
 const {
   generateRecoveryCodes,
   hashRecoveryCode,
+  sealCodes,
 } = require("./utils/recovery-codes");
 
 // Operator-only recovery for the single Admin account: sets a new password and
@@ -77,6 +78,9 @@ async function main() {
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI must be configured in Backend/.env.");
   }
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET must be configured in Backend/.env.");
+  }
 
   await mongoose.connect(process.env.MONGODB_URI);
 
@@ -115,6 +119,7 @@ async function main() {
         $set: {
           password: hashedPassword,
           adminRecoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
+          adminRecoveryCodeBox: sealCodes(recoveryCodes, process.env.JWT_SECRET),
         },
         // Signs the Admin out of every existing session.
         $inc: { tokenVersion: 1 },

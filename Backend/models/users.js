@@ -37,6 +37,14 @@ const userSchema = new mongoose.Schema(
             default: [],
             select: false
         },
+        // Encrypted copy of the active codes so a logged-in Admin can read them
+        // back. Sealed with a key derived from JWT_SECRET; hashes above remain
+        // the verification source of truth.
+        adminRecoveryCodeBox: {
+            type: String,
+            default: null,
+            select: false
+        },
         tokenVersion: {
             type: Number,
             default: 0
