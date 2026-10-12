@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
-const { randomBytes, createHash, randomInt, timingSafeEqual } = require("crypto");
+const { randomBytes, timingSafeEqual } = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import DB models
@@ -19,14 +19,18 @@ const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
 const { generateUniqueBarcode } = require("./utils/barcode");
 const { getReportPeriod } = require("./utils/report-period");
-const { isMailConfigured, sendPasswordResetCode, verifyMailConnection } = require("./utils/mailer");
+const {
+  PATTERN: ADMIN_RECOVERY_CODE_PATTERN,
+  generateRecoveryCodes,
+  hashRecoveryCode,
+  normalizeRecoveryCode,
+} = require("./utils/recovery-codes");
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_RESET_OTP_MINUTES = Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10;
-const PASSWORD_RESET_OTP_MAX_ATTEMPTS = 5;
-const PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
+const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
+const ADMIN_RECOVERY_CODE_COUNT = Number(process.env.ADMIN_RECOVERY_CODE_COUNT) || 8;
+const ADMIN_RECOVERY_CODE_LOW_WARNING = 2;
 const GENERIC_RESET_MESSAGE =
-  "If that email is registered, a one-time code has been sent to it.";
+  "That recovery code or username is not valid.";
 
 const app = express();
 const frontendOrigins = process.env.FRONTEND_URL
@@ -372,6 +376,12 @@ app.post("/api/login", async (req, res) => {
       }
     );
 
+    let recoveryCodes = {};
+    if (user.role === "Admin") {
+      const admin = await User.findById(user._id).select("+adminRecoveryCodeHashes");
+      recoveryCodes = recoveryCodesStatus(admin?.adminRecoveryCodeHashes);
+    }
+
     res.json({
       message: "Login successful.",
       token,
@@ -379,6 +389,7 @@ app.post("/api/login", async (req, res) => {
         username: user.username,
         fullName: user.fullName,
         role: user.role,
+        ...recoveryCodes,
       },
     });
   } catch (error) {
@@ -389,159 +400,117 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-function normalizeEmail(value) {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
+function normalizeUsername(value) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function hashOtp(code) {
-  return createHash("sha256").update(String(code)).digest("hex");
+function findMatchingRecoveryCode(hashes, code) {
+  if (!Array.isArray(hashes) || hashes.length === 0) {
+    return null;
+  }
+  const suppliedHash = Buffer.from(hashRecoveryCode(code), "utf8");
+  for (const storedHash of hashes) {
+    const candidate = Buffer.from(String(storedHash), "utf8");
+    if (candidate.length === suppliedHash.length && timingSafeEqual(suppliedHash, candidate)) {
+      return String(storedHash);
+    }
+  }
+  return null;
 }
 
-// Step 1: request a one-time code for the email bound to an account.
-app.post("/api/password/forgot", async (req, res) => {
-  const email = normalizeEmail((req.body || {}).email);
-  if (!EMAIL_PATTERN.test(email)) {
-    return res.status(400).json({
-      message: "Enter the email address bound to your account.",
-    });
-  }
-  if (!isMailConfigured()) {
-    return res.status(503).json({
-      message: "Password reset is not configured. Contact your system operator.",
-    });
-  }
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.warn(`[password-reset] No account is bound to the requested address.`);
-      return res.json({ message: GENERIC_RESET_MESSAGE });
-    }
-
-    const now = Date.now();
-    if (user.passwordResetOtpExpiresAt) {
-      const issuedAt =
-        user.passwordResetOtpExpiresAt.getTime() - PASSWORD_RESET_OTP_MINUTES * 60 * 1000;
-      if (now - issuedAt < PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS) {
-        console.log(`[password-reset] Code request for ${user.email} ignored (resend cooldown).`);
-        return res.json({ message: GENERIC_RESET_MESSAGE });
-      }
-    }
-
-    const code = String(randomInt(0, 1000000)).padStart(6, "0");
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          passwordResetOtpHash: hashOtp(code),
-          passwordResetOtpExpiresAt: new Date(now + PASSWORD_RESET_OTP_MINUTES * 60 * 1000),
-          passwordResetAttempts: 0,
-        },
-      }
-    );
-
-    res.json({ message: GENERIC_RESET_MESSAGE });
-
-    // Delivery happens after the response so a slow or unreachable mail
-    // server never blocks the login page.
-    sendPasswordResetCode({ to: user.email, fullName: user.fullName, code })
-      .then(() => {
-        console.log(`[password-reset] Code sent to ${user.email}.`);
-      })
-      .catch((error) => {
-        console.error(`[password-reset] Delivery to ${user.email} failed:`, error.message);
-      });
-  } catch (error) {
-    console.error("Password reset request failed:", error);
-    res.json({ message: GENERIC_RESET_MESSAGE });
-  }
-});
-
-// Step 2: verify the emailed code and set the new password.
+// Admin-only self-service: the forgot-password form for the single Admin account.
 app.post("/api/password/reset", async (req, res) => {
   const { code, newPassword, confirmPassword } = req.body || {};
-  const email = normalizeEmail((req.body || {}).email);
+  const username = normalizeUsername((req.body || {}).username);
+  const recoveryCode = normalizeRecoveryCode(code);
 
   if (
-    !EMAIL_PATTERN.test(email) ||
-    typeof code !== "string" ||
-    !/^\d{6}$/.test(code.trim()) ||
+    !USERNAME_PATTERN.test(username) ||
+    !ADMIN_RECOVERY_CODE_PATTERN.test(recoveryCode) ||
     typeof newPassword !== "string" ||
     typeof confirmPassword !== "string" ||
     newPassword.length < 6 ||
     newPassword !== confirmPassword
   ) {
     return res.status(400).json({
-      message: "Enter your email, the 6-digit code, and matching new passwords of at least 6 characters.",
+      message:
+        "Enter your username, a recovery code (XXXX-XXXX-XXXX), and matching new passwords of at least 6 characters.",
     });
   }
 
   try {
-    const user = await User.findOne({ email })
-      .select("+passwordResetOtpHash +passwordResetOtpExpiresAt +passwordResetAttempts");
-    if (
-      !user ||
-      !user.passwordResetOtpHash ||
-      !user.passwordResetOtpExpiresAt ||
-      user.passwordResetOtpExpiresAt.getTime() <= Date.now()
-    ) {
-      return res.status(400).json({
-        message: "That code is invalid or expired. Request a new code and try again.",
-      });
-    }
+    const user = await User.findOne({ username }).select("+adminRecoveryCodeHashes");
+    const matchedHash =
+      user && user.role === "Admin"
+        ? findMatchingRecoveryCode(user.adminRecoveryCodeHashes, recoveryCode)
+        : null;
 
-    if (user.passwordResetAttempts >= PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
-      await User.updateOne(
-        { _id: user._id },
-        { $unset: { passwordResetOtpHash: "", passwordResetOtpExpiresAt: "" } }
-      );
-      return res.status(429).json({
-        message: "Too many incorrect attempts. Request a new code and try again.",
-      });
-    }
-
-    const suppliedHash = Buffer.from(hashOtp(code.trim()), "utf8");
-    const storedHash = Buffer.from(user.passwordResetOtpHash, "utf8");
-    const codeMatches =
-      suppliedHash.length === storedHash.length && timingSafeEqual(suppliedHash, storedHash);
-
-    if (!codeMatches) {
-      const attemptsLeft = PASSWORD_RESET_OTP_MAX_ATTEMPTS - user.passwordResetAttempts - 1;
-      await User.updateOne({ _id: user._id }, { $inc: { passwordResetAttempts: 1 } });
-      return res.status(400).json({
-        message:
-          attemptsLeft > 0
-            ? `That code is incorrect. ${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} remaining.`
-            : "That code is incorrect. Request a new code and try again.",
-      });
+    if (!matchedHash) {
+      console.warn("[admin-recovery] Invalid recovery code attempt.");
+      return res.status(400).json({ message: GENERIC_RESET_MESSAGE });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     const result = await User.updateOne(
-      { _id: user._id, passwordResetOtpHash: user.passwordResetOtpHash },
+      { _id: user._id, adminRecoveryCodeHashes: matchedHash },
       {
         $set: { password: hashedPassword },
         $inc: { tokenVersion: 1 },
-        $unset: {
-          passwordResetOtpHash: "",
-          passwordResetOtpExpiresAt: "",
-          passwordResetAttempts: "",
-        },
+        $pull: { adminRecoveryCodeHashes: matchedHash },
       }
     );
     if (result.modifiedCount !== 1) {
-      return res.status(400).json({
-        message: "That code is invalid or expired. Request a new code and try again.",
-      });
+      return res.status(400).json({ message: GENERIC_RESET_MESSAGE });
     }
+
+    const remaining = await User.findById(user._id).select("+adminRecoveryCodeHashes");
+    console.log(
+      `[admin-recovery] Password reset for @${user.username}; ${remaining.adminRecoveryCodeHashes.length} recovery code(s) left.`
+    );
 
     res.json({
       message: "Password reset successfully. Sign in using your new password.",
+      recoveryCodesRemaining: remaining.adminRecoveryCodeHashes.length,
     });
   } catch (error) {
-    console.error("Password reset failed:", error);
+    console.error("Admin recovery failed:", error);
     res.status(500).json({
       message: "Unable to reset the password. Contact your system operator.",
+    });
+  }
+});
+
+function recoveryCodesStatus(hashes) {
+  const total = Array.isArray(hashes) ? hashes.length : 0;
+  return {
+    recoveryCodesRemaining: total,
+    recoveryCodesTotal: ADMIN_RECOVERY_CODE_COUNT,
+    recoveryCodesLow: total > 0 && total <= ADMIN_RECOVERY_CODE_LOW_WARNING,
+  };
+}
+
+// Admin Settings lets the Admin mint a fresh set while still logged in.
+app.post("/api/admin/recovery-codes/regenerate", requireAdmin, async (req, res) => {
+  try {
+    const codes = generateRecoveryCodes();
+    await User.updateOne(
+      { _id: req.adminUser._id, role: "Admin" },
+      { $set: { adminRecoveryCodeHashes: codes.map(hashRecoveryCode) } }
+    );
+
+    console.log(
+      `[admin-recovery] New recovery codes issued to @${req.adminUser.username}.`
+    );
+    res.json({
+      message:
+        "New recovery codes generated. Save them now - they are not shown again.",
+      codes,
+      ...recoveryCodesStatus(codes),
+    });
+  } catch (error) {
+    console.error("Recovery code regeneration failed:", error);
+    res.status(500).json({
+      message: "Unable to generate recovery codes. Try again.",
     });
   }
 });
@@ -1088,14 +1057,13 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
     const users = await User.find()
-      .select("_id username email fullName role createdAt")
+      .select("_id username fullName role createdAt")
       .sort({ username: 1 });
 
     res.json({
       users: users.map((user) => ({
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
         createdAt: user.createdAt,
@@ -1113,7 +1081,7 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 // so accounts created here are always Staff.
 app.post("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const { username, fullName, email, password, role } = req.body || {};
+    const { username, fullName, password, role } = req.body || {};
     if (
       typeof username !== "string" ||
       typeof fullName !== "string" ||
@@ -1123,14 +1091,15 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
       !password
     ) {
       return res.status(400).json({
-        message: "Username, full name, bound email, and password are required.",
+        message: "Username, full name, and password are required.",
       });
     }
 
-    const normalizedEmail = normalizeEmail(email);
-    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+    const normalizedUsername = username.trim();
+    if (!USERNAME_PATTERN.test(normalizedUsername)) {
       return res.status(400).json({
-        message: "Enter a valid bound email address.",
+        message:
+          "Username must be 3-32 characters and may use letters, numbers, dot, underscore, or hyphen.",
       });
     }
     if (role !== undefined && role !== "Staff") {
@@ -1145,16 +1114,9 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
       });
     }
 
-    const normalizedUsername = username.trim();
-    const existingUser = await User.findOne({
-      $or: [{ username: normalizedUsername }, { email: normalizedEmail }],
-    });
-    if (existingUser) {
+    if (await User.exists({ username: normalizedUsername })) {
       return res.status(409).json({
-        message:
-          existingUser.username === normalizedUsername
-            ? "Username is already registered."
-            : "Email is already registered.",
+        message: "Username is already registered.",
       });
     }
 
@@ -1162,7 +1124,6 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     const user = await User.create({
       username: normalizedUsername,
       fullName: fullName.trim(),
-      email: normalizedEmail,
       password: hashedPassword,
       role: "Staff",
     });
@@ -1172,7 +1133,6 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1181,7 +1141,7 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username or email is already registered.",
+        message: "Username is already registered.",
       });
     }
     res.status(500).json({
@@ -1200,17 +1160,14 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const { username, fullName, email, password, role } = req.body || {};
-    const normalizedEmail = email === undefined ? undefined : normalizeEmail(email);
+    const { username, fullName, password, role } = req.body || {};
     if (
-      (username !== undefined && (typeof username !== "string" || !username.trim())) ||
+      (username !== undefined && !USERNAME_PATTERN.test(username.trim())) ||
       (fullName !== undefined && (typeof fullName !== "string" || !fullName.trim())) ||
-      (normalizedEmail !== undefined && !EMAIL_PATTERN.test(normalizedEmail)) ||
       (password !== undefined && typeof password !== "string") ||
       (role !== undefined && !["Admin", "Staff"].includes(role)) ||
       (username === undefined &&
         fullName === undefined &&
-        normalizedEmail === undefined &&
         password === undefined &&
         role === undefined)
     ) {
@@ -1249,13 +1206,16 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     }
 
     if (username !== undefined) {
+      const clash = await User.findOne({ username: username.trim() });
+      if (clash && clash._id.toString() !== user._id.toString()) {
+        return res.status(409).json({
+          message: "Username is already registered.",
+        });
+      }
       user.username = username.trim();
     }
     if (fullName !== undefined) {
       user.fullName = fullName.trim();
-    }
-    if (normalizedEmail !== undefined) {
-      user.email = normalizedEmail;
     }
     if (password) {
       user.password = await bcrypt.hash(password, 10);
@@ -1268,7 +1228,6 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1277,7 +1236,7 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username or email is already registered.",
+        message: "Username is already registered.",
       });
     }
     res.status(500).json({
@@ -1339,11 +1298,17 @@ app.get("/api/profile", async (req, res) => {
 
     const token = authHeader.slice("Bearer ".length);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("_id username email fullName role");
+    const user = await User.findById(decoded.userId).select("_id username fullName role");
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized.",
       });
+    }
+
+    let recoveryCodes = {};
+    if (user.role === "Admin") {
+      const admin = await User.findById(user._id).select("+adminRecoveryCodeHashes");
+      recoveryCodes = recoveryCodesStatus(admin?.adminRecoveryCodeHashes);
     }
 
     res.json({
@@ -1351,9 +1316,9 @@ app.get("/api/profile", async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
+        ...recoveryCodes,
       },
     });
   } catch (error) {
@@ -1375,27 +1340,6 @@ async function startServer() {
 
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected.");
-
-  const mailStatus = await verifyMailConnection();
-  if (mailStatus.ok && mailStatus.provider === "sendgrid") {
-    console.log(
-      "Email API (SendGrid) configured: password reset email will be sent over HTTPS."
-    );
-  } else if (mailStatus.ok) {
-    console.log("SMTP ready: password reset email is available.");
-  } else if (mailStatus.reason === "not-configured") {
-    console.warn(
-      "Email delivery not configured: set SENDGRID_API_KEY and MAIL_FROM (or SMTP_HOST and MAIL_FROM)."
-    );
-  } else if (mailStatus.provider === "sendgrid") {
-    console.warn(`SendGrid configuration problem: ${mailStatus.reason}`);
-    console.warn("Password reset email will not be delivered until this is fixed.");
-  } else {
-    console.warn(`SMTP connection failed: ${mailStatus.reason}`);
-    console.warn(
-      "If this host blocks outbound SMTP, set SENDGRID_API_KEY and MAIL_FROM to send over HTTPS instead."
-    );
-  }
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

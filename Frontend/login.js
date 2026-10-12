@@ -6,25 +6,11 @@ const loginForm = document.getElementById("loginForm");
 const passwordInput = document.getElementById("password");
 const togglePasswordButton = document.getElementById("togglePassword");
 const recoveryForm = document.getElementById("recoveryForm");
-const recoveryEmailInput = document.getElementById("recoveryEmail");
+const recoveryUsernameInput = document.getElementById("recoveryUsername");
 const recoveryCodeInput = document.getElementById("recoveryCode");
 const newPasswordInput = document.getElementById("newPassword");
-const resetCodeSection = document.getElementById("resetCodeSection");
 const confirmNewPasswordInput = document.getElementById("confirmNewPassword");
-const sendCodeButton = document.getElementById("sendCodeButton");
 const resetPasswordButton = document.getElementById("resetPasswordButton");
-const resetStepInputs = [
-    recoveryCodeInput,
-    newPasswordInput,
-    confirmNewPasswordInput
-];
-
-function setResetSectionVisible(isVisible) {
-    resetCodeSection.hidden = !isVisible;
-    for (const input of resetStepInputs) {
-        input.required = isVisible;
-    }
-}
 
 function wirePasswordToggle(input, button) {
     button.addEventListener("click", () => {
@@ -47,15 +33,13 @@ document.getElementById("showRecoveryForm").addEventListener("click", () => {
     loginForm.classList.add("hidden");
     document.getElementById("showRecoveryForm").classList.add("hidden");
     recoveryForm.classList.remove("hidden");
-    setResetSectionVisible(false);
     document.getElementById("recoveryMessage").textContent = "";
-    recoveryEmailInput.focus();
+    recoveryUsernameInput.focus();
 });
 
 document.getElementById("cancelRecovery").addEventListener("click", () => {
     recoveryForm.reset();
     document.getElementById("recoveryMessage").textContent = "";
-    setResetSectionVisible(false);
     recoveryForm.classList.add("hidden");
     loginForm.classList.remove("hidden");
     document.getElementById("showRecoveryForm").classList.remove("hidden");
@@ -102,34 +86,7 @@ loginForm.addEventListener("submit", async (event) => {
 recoveryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const message = document.getElementById("recoveryMessage");
-    const email = recoveryEmailInput.value.trim();
-
-    if (resetCodeSection.hidden) {
-        sendCodeButton.disabled = true;
-        message.textContent = "";
-        try {
-            const response = await fetch("/api/password/forgot", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ email })
-            });
-            const data = await response.json();
-            message.textContent = data.message;
-            if (response.ok) {
-                setResetSectionVisible(true);
-                sendCodeButton.textContent = "Resend code";
-                recoveryCodeInput.focus();
-            }
-        } catch (error) {
-            message.textContent = "Unable to connect to the server.";
-            console.error(error);
-        } finally {
-            sendCodeButton.disabled = false;
-        }
-        return;
-    }
+    const username = recoveryUsernameInput.value.trim();
 
     if (newPasswordInput.value !== confirmNewPasswordInput.value) {
         message.textContent = "The new passwords do not match.";
@@ -144,7 +101,7 @@ recoveryForm.addEventListener("submit", async (event) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                email,
+                username,
                 code: recoveryCodeInput.value.trim(),
                 newPassword: newPasswordInput.value,
                 confirmPassword: confirmNewPasswordInput.value

@@ -2,7 +2,6 @@ const accountForm = document.getElementById("accountForm");
 const accountsList = document.getElementById("accountsList");
 const statusMessage = document.getElementById("statusMessage");
 const passwordInput = document.getElementById("password");
-const emailInput = document.getElementById("email");
 const formHeading = document.getElementById("formHeading");
 const saveAccountButton = document.getElementById("saveAccountButton");
 const cancelEditButton = document.getElementById("cancelEditButton");
@@ -19,6 +18,7 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
 
 let currentUserId;
 let editingUserId = null;
+let issuedRecoveryCodes = [];
 
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
@@ -53,7 +53,6 @@ function resetAccountForm() {
     passwordInput.required = true;
     passwordInput.placeholder = "";
     document.getElementById("passwordHelp").textContent = "At least 6 characters.";
-    emailInput.required = true;
     formHeading.textContent = "Create Account";
     saveAccountButton.textContent = "Create Account";
     cancelEditButton.hidden = true;
@@ -65,7 +64,7 @@ function renderAccounts(users) {
     if (users.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 6;
+        cell.colSpan = 5;
         cell.textContent = "No accounts found.";
         row.append(cell);
         accountsList.append(row);
@@ -75,7 +74,7 @@ function renderAccounts(users) {
 
     for (const user of users) {
         const row = document.createElement("tr");
-        for (const value of [user.username, user.fullName, user.email || "—", user.role]) {
+        for (const value of [user.username, user.fullName, user.role]) {
             const cell = document.createElement("td");
             cell.textContent = value;
             row.append(cell);
@@ -121,13 +120,11 @@ function startEditing(user) {
     editingUserId = user.id;
     document.getElementById("username").value = user.username;
     document.getElementById("fullName").value = user.fullName;
-    emailInput.value = user.email || "";
     passwordInput.value = "";
     passwordInput.required = false;
     passwordInput.placeholder = "Leave blank to keep current password";
     document.getElementById("passwordHelp").textContent =
         "Leave blank to keep the current password, or enter at least 6 characters.";
-    emailInput.required = true;
     formHeading.textContent = `Edit Account: ${user.username}`;
     saveAccountButton.textContent = "Save Changes";
     cancelEditButton.hidden = false;
@@ -160,8 +157,7 @@ accountForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const payload = {
         username: document.getElementById("username").value.trim(),
-        fullName: document.getElementById("fullName").value.trim(),
-        email: emailInput.value.trim()
+        fullName: document.getElementById("fullName").value.trim()
     };
     const password = passwordInput.value;
     if (password) {
@@ -186,6 +182,77 @@ accountForm.addEventListener("submit", async (event) => {
 
 cancelEditButton.addEventListener("click", resetAccountForm);
 
+const recoveryCodesStatus = document.getElementById("recoveryCodesStatus");
+const regenerateCodesButton = document.getElementById("regenerateCodesButton");
+const copyCodesButton = document.getElementById("copyCodesButton");
+const recoveryCodesDisplay = document.getElementById("recoveryCodesDisplay");
+const recoveryCodesList = document.getElementById("recoveryCodesList");
+
+function renderRecoveryCodesStatus(user) {
+    const remaining = user.recoveryCodesRemaining;
+    const total = user.recoveryCodesTotal;
+    if (typeof remaining !== "number") {
+        recoveryCodesStatus.textContent = "Recovery codes are unavailable.";
+        return;
+    }
+    if (remaining === 0) {
+        recoveryCodesStatus.textContent =
+            "You have no recovery codes left. Generate a new set, otherwise you cannot recover this account if you forget your password.";
+        return;
+    }
+    recoveryCodesStatus.textContent = `${remaining} of ${total} recovery codes remaining.` +
+        (user.recoveryCodesLow ? " Running low - generate a new set soon." : "");
+}
+
+function hideIssuedCodes() {
+    recoveryCodesDisplay.hidden = true;
+    recoveryCodesList.replaceChildren();
+    copyCodesButton.hidden = true;
+    issuedRecoveryCodes = [];
+}
+
+async function regenerateRecoveryCodes() {
+    if (!window.confirm(
+        "Generate new recovery codes? Your current codes will stop working immediately."
+    )) {
+        return;
+    }
+
+    regenerateCodesButton.disabled = true;
+    try {
+        const data = await apiRequest("/api/admin/recovery-codes/regenerate", {
+            method: "POST"
+        });
+        issuedRecoveryCodes = data.codes;
+        recoveryCodesList.replaceChildren();
+        for (const code of data.codes) {
+            const item = document.createElement("li");
+            item.textContent = code;
+            recoveryCodesList.append(item);
+        }
+        recoveryCodesDisplay.hidden = false;
+        copyCodesButton.hidden = false;
+        recoveryCodesStatus.textContent =
+            `${data.recoveryCodesRemaining} of ${data.recoveryCodesTotal} recovery codes remaining.`;
+        showMessage(data.message);
+    } catch (error) {
+        showMessage(error.message, true);
+    } finally {
+        regenerateCodesButton.disabled = false;
+    }
+}
+
+copyCodesButton.addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText(issuedRecoveryCodes.join("\n"));
+        showMessage("Recovery codes copied to the clipboard.");
+    } catch {
+        showMessage("Copy failed. Select the codes and copy them manually.", true);
+    }
+});
+
+regenerateCodesButton.addEventListener("click", regenerateRecoveryCodes);
+
 async function authorizeAdminSettings() {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -204,6 +271,7 @@ async function authorizeAdminSettings() {
         document.getElementById("userInfo").textContent =
             `${user.fullName} (@${user.username})`;
         document.getElementById("adminSettings").hidden = false;
+        renderRecoveryCodesStatus(user);
         await loadAccounts();
     } catch (error) {
         showMessage(error.message, true);

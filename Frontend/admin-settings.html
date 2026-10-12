@@ -34,13 +34,10 @@
             <form id="accountForm">
                 <label for="username">Username</label>
                 <input id="username" name="username" autocomplete="username" required>
+                <small id="usernameHelp">3-32 characters. Letters, numbers, dot, underscore, hyphen.</small>
 
                 <label for="fullName">Full name</label>
                 <input id="fullName" name="fullName" autocomplete="name" required>
-
-                <label for="email">Bound email</label>
-                <input id="email" name="email" type="email" autocomplete="email" required>
-                <small id="emailHelp">Used to send password reset codes.</small>
 
                 <label for="password">Password</label>
                 <div class="admin-password-field">
@@ -71,16 +68,39 @@
                         <tr>
                             <th data-sort-type="text">Username</th>
                             <th data-sort-type="text">Full name</th>
-                            <th data-sort-type="text">Email</th>
                             <th data-sort-type="text">Role</th>
                             <th data-sort-type="date">Created</th>
                             <th data-sortable="false">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="accountsList">
-                        <tr><td colspan="6">Loading accounts...</td></tr>
+                        <tr><td colspan="5">Loading accounts...</td></tr>
                     </tbody>
                 </table>
+            </div>
+            <p class="field-note">
+                Staff who forget their password ask you to set a new one here.
+            </p>
+        </section>
+
+        <section class="accounts-section">
+            <h2>My Recovery Codes</h2>
+            <p id="recoveryCodesStatus" class="field-note">Loading...</p>
+            <div class="account-form-actions">
+                <button id="regenerateCodesButton" class="admin-settings-btn" type="button">
+                    Generate New Codes
+                </button>
+                <button id="copyCodesButton" class="admin-settings-btn" type="button" hidden>
+                    Copy Codes
+                </button>
+            </div>
+            <div id="recoveryCodesDisplay" hidden>
+                <label>New recovery codes - save them now, they are not shown again</label>
+                <ul id="recoveryCodesList"></ul>
+                <p class="field-note">
+                    Each code works once. Store them offline (printed, sealed).
+                    Generating new codes immediately invalidates the previous set.
+                </p>
             </div>
         </section>
     </main>

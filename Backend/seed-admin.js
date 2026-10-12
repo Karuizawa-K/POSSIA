@@ -5,9 +5,12 @@ const bcrypt = require("bcryptjs");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const User = require("./models/users");
+const {
+  generateRecoveryCodes,
+  hashRecoveryCode,
+} = require("./utils/recovery-codes");
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
 function prompt(label, maskInput = false) {
   return new Promise((resolve, reject) => {
     let value = "";
@@ -73,15 +76,16 @@ async function main() {
   try {
     const username = (await prompt("Admin username: ")).trim();
     const fullName = (await prompt("Admin full name: ")).trim();
-    const email = (await prompt("Admin bound email: ")).trim().toLowerCase();
     const password = await prompt("Admin password (input hidden): ", true);
     const passwordConfirmation = await prompt("Confirm password (input hidden): ", true);
 
-    if (!username || !fullName) {
-      throw new Error("Username and full name are required.");
+    if (!USERNAME_PATTERN.test(username)) {
+      throw new Error(
+        "Username must be 3-32 characters using letters, numbers, dot, underscore, or hyphen."
+      );
     }
-    if (!EMAIL_PATTERN.test(email)) {
-      throw new Error("A valid bound email address is required.");
+    if (!fullName) {
+      throw new Error("Full name is required.");
     }
     if (password.length < 6) {
       throw new Error("Password must be at least 6 characters.");
@@ -89,23 +93,42 @@ async function main() {
     if (password !== passwordConfirmation) {
       throw new Error("Passwords do not match.");
     }
-    if (await User.exists({ $or: [{ username }, { email }] })) {
-      throw new Error("That username or email is already registered.");
+    if (await User.exists({ username })) {
+      throw new Error("That username is already registered.");
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const recoveryCodes = generateRecoveryCodes();
     await User.create({
       username,
       fullName,
-      email,
       password: hashedPassword,
       role: "Admin",
+      adminRecoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
     });
 
-    console.log(`Admin account "${username}" created successfully for ${email}.`);
+    console.log(`Admin account "${username}" created successfully.`);
+    printRecoveryCodes(recoveryCodes);
   } finally {
     process.stdin.setRawMode(false);
   }
+}
+
+function printRecoveryCodes(codes) {
+  console.log("");
+  console.log("=".repeat(62));
+  console.log("ADMIN RECOVERY CODES - SHOWN ONCE, SAVE THEM NOW");
+  console.log("=".repeat(62));
+  for (const code of codes) {
+    console.log(`   ${code}`);
+  }
+  console.log("-".repeat(62));
+  console.log("Each code works once and cannot be recovered later.");
+  console.log("Store them offline (printed, sealed). Anyone holding a code");
+  console.log("can reset the Admin password.");
+  console.log("Lost them? Run: npm run reset:admin");
+  console.log("=".repeat(62));
+  console.log("");
 }
 
 main()

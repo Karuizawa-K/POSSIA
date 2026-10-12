@@ -10,11 +10,11 @@ const userSchema = new mongoose.Schema(
         },
         email: {
             type: String,
-            required: true,
+            // Left unset on every account; kept only so existing documents can
+            // be cleaned up by migrate:remove-email. New writes never set it.
+            required: false,
             trim: true,
-            lowercase: true,
-            unique: true,
-            match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+            lowercase: true
         },
         password: {
             type: String,
@@ -30,19 +30,11 @@ const userSchema = new mongoose.Schema(
             required: true,
             enum: ["Admin", "Staff"]
         },
-        passwordResetOtpHash: {
-            type: String,
-            default: null,
-            select: false
-        },
-        passwordResetOtpExpiresAt: {
-            type: Date,
-            default: null,
-            select: false
-        },
-        passwordResetAttempts: {
-            type: Number,
-            default: 0,
+        // Single-use codes that let the Admin recover the account without email.
+        // Only hashes are stored; plaintext is shown once at issue time.
+        adminRecoveryCodeHashes: {
+            type: [String],
+            default: [],
             select: false
         },
         tokenVersion: {
