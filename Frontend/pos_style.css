@@ -131,17 +131,17 @@ body {
 
 .search-input {
     padding: 12px 20px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid #00000073;
     border-radius: 30px;
     width: 300px;
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
     background: #f9fafb;
     transition: border-color 0.2s;
 }
 
 .search-input:focus {
-    border-color: #0f2046;
+    border-color: #1f4391;
 }
 
 .scan-barcode-btn {
@@ -176,7 +176,7 @@ body {
 .data-grid th,
 .data-grid td {
     padding: 14px 16px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 2px solid #11182761;
     white-space: nowrap;
 }
 
@@ -185,8 +185,8 @@ body {
     top: 0;
     z-index: 1;
     background: #f9fafb;
-    color: #6b7280;
-    font-weight: 600;
+    color: #000000;
+    font-weight: 700;
 }
 
 .data-grid tbody tr:hover {
