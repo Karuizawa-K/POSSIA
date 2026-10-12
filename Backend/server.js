@@ -1377,15 +1377,24 @@ async function startServer() {
   console.log("MongoDB connected.");
 
   const mailStatus = await verifyMailConnection();
-  if (mailStatus.ok) {
+  if (mailStatus.ok && mailStatus.provider === "sendgrid") {
+    console.log(
+      "Email API (SendGrid) configured: password reset email will be sent over HTTPS."
+    );
+  } else if (mailStatus.ok) {
     console.log("SMTP ready: password reset email is available.");
   } else if (mailStatus.reason === "not-configured") {
     console.warn(
-      "SMTP not configured: set SMTP_HOST and MAIL_FROM to enable password reset email."
+      "Email delivery not configured: set SENDGRID_API_KEY and MAIL_FROM (or SMTP_HOST and MAIL_FROM)."
     );
+  } else if (mailStatus.provider === "sendgrid") {
+    console.warn(`SendGrid configuration problem: ${mailStatus.reason}`);
+    console.warn("Password reset email will not be delivered until this is fixed.");
   } else {
     console.warn(`SMTP connection failed: ${mailStatus.reason}`);
-    console.warn("Password reset email will not be delivered until this is fixed.");
+    console.warn(
+      "If this host blocks outbound SMTP, set SENDGRID_API_KEY and MAIL_FROM to send over HTTPS instead."
+    );
   }
 
   app.listen(PORT, () => {
