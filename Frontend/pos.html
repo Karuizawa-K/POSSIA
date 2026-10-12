@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Point of Sale</title>
-    <link rel="stylesheet" href="pos_style.css"> 
+    <link rel="stylesheet" href="pos_style.css">
+    <link rel="stylesheet" href="navigation.css">
+    <link rel="stylesheet" href="table-sort.css">
 </head>
 
 <body>
@@ -15,14 +17,16 @@
         </div>
         
         <div class="nav-center">
-            <h1 class="nav-title">Apb merchandising</h1>
-            <span class="nav-subtitle">Point of Sale • Admin Access</span>
+            <h1 class="nav-title">APB Merchandising</h1>
+            <span class="nav-subtitle">Point of Sale</span>
         </div>
 
         <div class="nav-right">
-            <span id="userInfo">Loading user...</span>
-            &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout">Logout</button>
+            <div class="nav-user-row">
+                <span id="userInfo">Loading user...</span>
+                <span aria-hidden="true">|</span>
+                <button id="logoutButton" class="logout" type="button">Logout</button>
+            </div>
         </div>
     </nav>
 
@@ -32,12 +36,28 @@
         <!-- LEFT: Product Catalog -->
         <div class="catalog-section">
             <header class="catalog-header">
-                <!-- Search bar pushed to the right, brand title removed since it's in the navbar -->
-                <input type="text" class="search-input" placeholder="Search products...">
+                <label class="search-label" for="product-search">Search items</label>
+                <input type="search" class="search-input" id="product-search" placeholder="Name or barcode...">
+                <button class="scan-barcode-btn" id="scan-barcode-btn" type="button">
+                    Scan barcode
+                </button>
             </header>
 
-            <div class="product-grid" id="product-grid">
-                <!-- Products will be injected here by JavaScript -->
+            <div class="data-grid-wrapper">
+                <table class="data-grid">
+                    <thead>
+                        <tr>
+                            <th data-sort-type="text">Item</th>
+                            <th data-sort-type="text">Barcode</th>
+                            <th data-sort-type="number">Price</th>
+                            <th data-sort-type="number">In stock</th>
+                            <th data-sortable="false"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-grid">
+                        <tr><td colspan="5">Loading items...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -48,9 +68,20 @@
                 <button class="clear-text-btn" id="clear-btn">Clear</button>
             </div>
 
-            <div class="cart-items" id="cart-items">
-                <!-- Cart items injected here -->
-                <div class="empty-cart-msg">Cart is empty</div>
+            <div class="cart-items data-grid-wrapper">
+                <table class="data-grid selected-grid">
+                    <thead>
+                        <tr>
+                            <th data-sort-type="text">Selected item</th>
+                            <th data-sort-type="number">Price</th>
+                            <th data-sort-type="number">Qty</th>
+                            <th data-sort-type="number">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items">
+                        <tr><td colspan="4" class="empty-cart-msg">No items selected.</td></tr>
+                    </tbody>
+                </table>
             </div>
 
             <div class="cart-footer">
@@ -70,9 +101,9 @@
                 </div>
 
                 <div class="payment-methods" id="payment-methods">
-                    <button class="pay-btn bg-white">Discount</button>
-                    <button class="pay-btn">Cash</button>
-                    <button class="pay-btn">GCash</button>
+                    <button class="pay-btn bg-white" id="discount-btn" type="button">Discount</button>
+                    <button class="pay-btn" id="cash-btn" type="button" data-method="Cash">Cash</button>
+                    <button class="pay-btn" id="gcash-btn" type="button" data-method="GCash">GCash</button>
                 </div>
 
                 <button class="checkout-btn" id="checkout-btn" disabled>Checkout • ₱0.00</button>
@@ -81,7 +112,99 @@
 
     </section>
 
-    <script src="pos.js"></script>
+    <dialog class="pos-dialog" id="discount-dialog">
+        <form id="discount-form" method="dialog">
+            <h2>Apply Discount</h2>
+            <label for="discount-amount">Discount amount (₱)</label>
+            <input id="discount-amount" type="number" min="0" step="0.01" required>
+            <p class="dialog-error" id="discount-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="apply">Apply Discount</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pos-dialog" id="payment-dialog">
+        <form id="payment-form" method="dialog">
+            <h2 id="payment-dialog-title">Payment</h2>
+            <label id="payment-input-label" for="payment-input"></label>
+            <input id="payment-input" type="number" min="0" step="0.01" required>
+            <p class="dialog-error" id="payment-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="confirm">Confirm Payment</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="pos-dialog scanner-dialog" id="scanner-dialog" aria-labelledby="scanner-title">
+        <div class="scanner-content">
+            <h2 id="scanner-title">Scan barcode</h2>
+            <p id="scanner-status" role="status">Position the barcode inside the camera view.</p>
+            <video id="barcode-video" playsinline muted></video>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" id="close-scanner-btn" type="button">Close</button>
+                <button class="dialog-confirm" id="start-scanner-btn" type="button">Start Camera</button>
+            </div>
+        </div>
+    </dialog>
+
+    <dialog class="pos-dialog" id="scan-quantity-dialog" aria-labelledby="scan-quantity-title">
+        <form id="scan-quantity-form" method="dialog">
+            <h2 id="scan-quantity-title">Add scanned item</h2>
+            <p id="scanned-product-name"></p>
+            <label for="scan-quantity">Quantity</label>
+            <input id="scan-quantity" type="number" min="1" step="1" value="1" required>
+            <p class="dialog-error" id="scan-quantity-error" role="alert"></p>
+            <div class="dialog-actions">
+                <button class="dialog-cancel" type="submit" value="cancel">Cancel</button>
+                <button class="dialog-confirm" type="submit" value="add">Add to Order</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog class="receipt-dialog" id="receipt-dialog" aria-labelledby="receipt-title">
+        <article class="receipt-content" id="receipt-content">
+            <header class="receipt-header">
+                <h2 id="receipt-title">APB Merchandising</h2>
+                <p>Sales Receipt</p>
+            </header>
+            <dl class="receipt-meta">
+                <div><dt>Receipt</dt><dd id="receipt-number"></dd></div>
+                <div><dt>Date</dt><dd id="receipt-date"></dd></div>
+                <div><dt>Cashier</dt><dd id="receipt-cashier"></dd></div>
+            </dl>
+            <table class="receipt-items">
+                <thead>
+                    <tr>
+                        <th data-sort-type="text">Item</th>
+                        <th data-sort-type="number">Qty</th>
+                        <th data-sort-type="number">Price</th>
+                        <th data-sort-type="number">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="receipt-item-list"></tbody>
+            </table>
+            <dl class="receipt-totals">
+                <div><dt>Subtotal</dt><dd id="receipt-subtotal"></dd></div>
+                <div><dt>Discount</dt><dd id="receipt-discount"></dd></div>
+                <div class="receipt-grand-total"><dt>Total</dt><dd id="receipt-total"></dd></div>
+                <div><dt id="receipt-payment-label">Payment</dt><dd id="receipt-payment"></dd></div>
+                <div id="receipt-reference-row" hidden><dt>Reference</dt><dd id="receipt-reference"></dd></div>
+                <div id="receipt-change-row"><dt>Change</dt><dd id="receipt-change"></dd></div>
+            </dl>
+            <p class="receipt-thanks">Thank you for your purchase!</p>
+            <div class="receipt-actions" id="receipt-actions">
+                <button class="dialog-cancel" id="close-receipt-btn" type="button">Close</button>
+                <button class="dialog-confirm" id="print-receipt-btn" type="button">Print / Save as PDF</button>
+            </div>
+        </article>
+    </dialog>
+
+    <script src="/vendor/zxing/zxing-browser.min.js" defer></script>
+    <script src="table-sort.js" defer></script>
+    <script src="pos.js" defer></script>
     
 </body>
 </html>

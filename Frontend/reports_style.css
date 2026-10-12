@@ -143,7 +143,9 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
 
-.filter-section h2, .data-section h2 {
+.filter-section h2,
+.data-section h2,
+.report-results h2 {
     font-size: 16px;
     font-weight: 600;
     color: #173d72;
@@ -204,6 +206,12 @@
     flex: 1;
     text-align: center;
     transition: all 0.2s ease;
+}
+
+.btn-generate:disabled,
+.btn-export:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .btn-generate {
@@ -279,4 +287,104 @@
 .status-out {
     background-color: #fce8e6;
     color: #d93025;
+}
+
+.reports-container[hidden],
+[hidden] {
+    display: none !important;
+}
+
+.report-message {
+    min-height: 1.4em;
+    margin-bottom: 12px;
+    color: #166534;
+}
+
+.report-message:empty {
+    display: none;
+}
+
+.report-message.error-message {
+    color: #b91c1c;
+}
+
+.report-results {
+    margin-bottom: 30px;
+}
+
+.report-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.report-heading h2 {
+    margin-bottom: 6px;
+}
+
+.report-heading p {
+    color: #64748b;
+}
+
+.report-results .summary-section {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.report-results .data-section {
+    margin-bottom: 0;
+}
+
+.report-table td {
+    white-space: pre-line;
+}
+
+.report-table td:last-child {
+    min-width: 220px;
+}
+
+@media (max-width: 700px) {
+    .navbar {
+        padding: 10px 12px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .nav-center {
+        order: -1;
+        flex-basis: 100%;
+        margin: 0;
+    }
+
+    .reports-container {
+        padding: 16px;
+    }
+
+    .filter-section,
+    .data-section {
+        padding: 16px;
+    }
+
+    .form-actions,
+    .report-heading {
+        flex-wrap: wrap;
+    }
+}
+
+@media print {
+    body {
+        background: #fff;
+    }
+
+    .navbar,
+    .filter-section,
+    .report-message {
+        display: none !important;
+    }
+
+    .reports-container {
+        max-width: none;
+        padding: 0;
+    }
 }

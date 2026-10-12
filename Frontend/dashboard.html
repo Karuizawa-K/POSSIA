@@ -5,25 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APB Dashboard</title>
     <link rel="stylesheet" href="dashboard_style.css">
+    <link rel="stylesheet" href="navigation.css">
 </head>
 <body>
 
     <nav class="navbar">
-        <div>
+        <div class="nav-left">
             <img src="pictures\logo.png" alt="APB Logo" class="login-logo">
         </div>
 
+        <div class="nav-center">
+            <h1 class="nav-title">APB Merchandising</h1>
+            <span class="nav-subtitle">Workspace</span>
+        </div>
+
         <div class="nav-right">
-            <span id="userInfo">Loading user...</span>
-            &nbsp;|&nbsp;
-            <button id="logoutButton" class="logout">Logout</button>
+            <div class="nav-user-row">
+                <span id="userInfo">Loading user...</span>
+                <span aria-hidden="true">|</span>
+                <button id="logoutButton" class="logout">Logout</button>
+            </div>
+            <button id="adminSettingsButton" class="admin-settings-btn" hidden>
+                Admin Settings
+            </button>
         </div>
     </nav>
 
     <main class="main-content">
         <section class="welcome-section">
-            <h1>Admin Dashboard</h1>
-            <p>Welcome to APB merchandising. Choose a workspace to get started.</p>
+            <h1 id="dashboardTitle">Dashboard</h1>
+            <p>Welcome to APB Merchandising. Choose a workspace to get started.</p>
         </section>
 
         <section>          
@@ -45,7 +56,7 @@
                 </button>
 
                 <!-- Reports Button -->
-                <button class="Btn" data-page="reports.html">
+                <button class="Btn" id="reportsButton" data-page="reports.html" hidden>
                     <div class="card-text">
                         <h2>Reports</h2>
                         <p>Print/View Reports</p>

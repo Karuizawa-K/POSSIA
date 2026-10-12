@@ -1,24 +1,43 @@
 // Loads the signed in user and fetches user role
 async function loadSession() {
-        try {
-            const response = await fetch("/api/session");
-
-            if (!response.ok) {
-                window.location.replace("/");
-                return;
-            }
-
-            const data = await response.json();
-
-            document.getElementById("userInfo").textContent =
-                `${data.user.email} (${data.user.role})`;
-            return data.user.role;
-
-        } catch (error) {
+    try {
+        const token = localStorage.getItem("token");
+        if (!token) {
             window.location.replace("/");
             return null;
         }
+
+        const response = await fetch("/api/profile", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            localStorage.removeItem("token");
+            window.location.replace("/");
+            return null;
+        }
+
+        const data = await response.json();
+
+        document.getElementById("userInfo").textContent =
+            `${data.user.fullName} (@${data.user.username})`;
+        const isAdmin = data.user.role === "Admin";
+        document.getElementById("dashboardTitle").textContent =
+            isAdmin ? "Admin Dashboard" : "Dashboard";
+        document.getElementById("reportsButton").hidden = !isAdmin;
+        document.querySelector(".cards-wrapper").classList.toggle("staff-view", !isAdmin);
+        if (isAdmin) {
+            document.getElementById("adminSettingsButton").hidden = false;
+        }
+        return data.user.role;
+    } catch (error) {
+        console.error("Unable to load user session:", error);
+        window.location.replace("/");
+        return null;
     }
+}
     //========================
 
     const sessionPromise = loadSession();
@@ -33,7 +52,7 @@ async function loadSession() {
                 }
 
                 const page = button.dataset.page;
-                const restrictedPages = ["inventory.html", "reports.html"];
+                const restrictedPages = ["reports.html"];
 
                 if (
                     role.toLowerCase() === "staff" &&
@@ -48,19 +67,16 @@ async function loadSession() {
         });
     //========================
 
+    document.getElementById("adminSettingsButton")
+        .addEventListener("click", () => {
+            window.location.href = "admin-settings.html";
+        });
+    //========================
+
     // Logout button logic
     document.getElementById("logoutButton")
-        .addEventListener("click", async () => {
-            try {
-                const response = await fetch("/api/logout", {
-                    method: "POST"
-                });
-
-                if (response.ok) {
-                    window.location.replace("/");
-                }
-            } catch (error) {
-                alert("Unable to log out. Please try again.");
-            }
+        .addEventListener("click", () => {
+            localStorage.removeItem("token");
+            window.location.replace("/");
         });
     //========================
