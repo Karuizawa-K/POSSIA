@@ -87,9 +87,7 @@
     transform: translateY(-5px);
 }
 
-/* =========================================
-   NEW INVENTORY UI STYLES
-   ========================================= */
+/* INVENTORY UI  */
 
 .inventory-container {
     padding: 30px;
@@ -102,7 +100,7 @@
     font-size: 18px;
     margin-bottom: 20px;
     color: #173d72;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 2px solid #bdbdbd;
     padding-bottom: 10px;
 }
 
@@ -313,14 +311,14 @@
 .inventory-table td {
     padding: 14px 15px;
     text-align: left;
-    border-bottom: 1px solid #e9ecef;
+    border-bottom: 2px solid #d4cfcf;
 }
 
 .inventory-table th {
     background-color: #f8f9fa;
-    font-size: 13px;
-    font-weight: 600;
-    color: #555;
+    font-size: 15px;
+    font-weight: 700;
+    color: #000000;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -459,9 +457,9 @@
 }
 
 .inventory-filters label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    color: #555;
+    color: #0d0c0ca3;
 }
 
 .inventory-filters input,
@@ -474,6 +472,12 @@
 
 .grid-section + .grid-section {
     margin-top: 24px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.grid-section {
+    margin-top: 24px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .inventory-table th,
