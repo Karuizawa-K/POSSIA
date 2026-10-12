@@ -315,6 +315,8 @@ async function loadInventory() {
     renderInventory();
 }
 
+
+// barcode functions
 function barcodeFormatFor(value) {
     return /^\d{13}$/.test(value) ? "EAN13" : "CODE128";
 }

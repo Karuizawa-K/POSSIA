@@ -7,14 +7,13 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "seed:admin": "node seed-admin.js",
-    "migrate:emails": "node migrate-emails.js"
+    "migrate:owner": "node migrate-owner.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@sendgrid/mail": "^8.1.6",
     "@zxing/browser": "^0.2.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
@@ -23,7 +22,6 @@
     "express-session": "^1.19.0",
     "jsbarcode": "^3.11.6",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.11.1",
-    "nodemailer": "^10.1.0"
+    "mongoose": "^9.11.1"
   }
 }

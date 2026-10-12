@@ -4,11 +4,12 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const path = require("path");
-const { randomBytes, createHash, randomInt, timingSafeEqual } = require("crypto");
+const { randomBytes, createHash, timingSafeEqual } = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 // Import DB models
 const User = require("./models/users");
+const SystemSetting = require("./models/system_settings");
 const Category = require("./models/categories");
 const Product = require("./models/products");
 const Sale = require("./models/sales");
@@ -19,14 +20,6 @@ const StockIn = require("./models/stock_in");
 const StockOut = require("./models/stock_out");
 const { generateUniqueBarcode } = require("./utils/barcode");
 const { getReportPeriod } = require("./utils/report-period");
-const { isMailConfigured, sendPasswordResetCode, verifyMailConnection } = require("./utils/mailer");
-
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PASSWORD_RESET_OTP_MINUTES = Number(process.env.PASSWORD_RESET_OTP_MINUTES) || 10;
-const PASSWORD_RESET_OTP_MAX_ATTEMPTS = 5;
-const PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS = 60 * 1000;
-const GENERIC_RESET_MESSAGE =
-  "If that email is registered, a one-time code has been sent to it.";
 
 const app = express();
 const frontendOrigins = process.env.FRONTEND_URL
@@ -339,6 +332,19 @@ app.post("/api/login", async (req, res) => {
       });
     }
 
+    // Temp env accounts to be replaced with a database user query later.
+    const validEmail = process.env.DEMO_EMAIL?.trim();
+    const validPassword = process.env.DEMO_PASSWORD;
+    const configuredRole = (process.env.DEMO_ROLE ?? process.env.ROLE)?.trim();
+    const role = ["Admin", "Staff"].find(
+        (allowedRole) =>
+            allowedRole.toLowerCase() === configuredRole?.toLowerCase()
+    );
+    const staffEmail = (process.env.DEMO_STAFF_EMAIL ?? process.env.STAFF_EMAIL)?.trim();
+    const staffPassword = process.env.DEMO_STAFF_PASSWORD ?? process.env.STAFF_PASSWORD;
+    const hasStaffEmail = Boolean(staffEmail);
+    const hasStaffPassword = Boolean(staffPassword);
+
     const user = await User.findOne({ username: username.trim() });
 
     if (!user) {
@@ -389,160 +395,110 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-function normalizeEmail(value) {
-  return typeof value === "string" ? value.trim().toLowerCase() : "";
-}
-
-function hashOtp(code) {
-  return createHash("sha256").update(String(code)).digest("hex");
-}
-
-// Step 1: request a one-time code for the email bound to an account.
-app.post("/api/password/forgot", async (req, res) => {
-  const email = normalizeEmail((req.body || {}).email);
-  if (!EMAIL_PATTERN.test(email)) {
-    return res.status(400).json({
-      message: "Enter the email address bound to your account.",
-    });
-  }
-  if (!isMailConfigured()) {
-    return res.status(503).json({
-      message: "Password reset is not configured. Contact your system operator.",
-    });
-  }
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.warn(`[password-reset] No account is bound to the requested address.`);
-      return res.json({ message: GENERIC_RESET_MESSAGE });
-    }
-
-    const now = Date.now();
-    if (user.passwordResetOtpExpiresAt) {
-      const issuedAt =
-        user.passwordResetOtpExpiresAt.getTime() - PASSWORD_RESET_OTP_MINUTES * 60 * 1000;
-      if (now - issuedAt < PASSWORD_RESET_OTP_RESEND_COOLDOWN_MS) {
-        console.log(`[password-reset] Code request for ${user.email} ignored (resend cooldown).`);
-        return res.json({ message: GENERIC_RESET_MESSAGE });
-      }
-    }
-
-    const code = String(randomInt(0, 1000000)).padStart(6, "0");
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          passwordResetOtpHash: hashOtp(code),
-          passwordResetOtpExpiresAt: new Date(now + PASSWORD_RESET_OTP_MINUTES * 60 * 1000),
-          passwordResetAttempts: 0,
-        },
-      }
-    );
-
-    res.json({ message: GENERIC_RESET_MESSAGE });
-
-    // Delivery happens after the response so a slow or unreachable mail
-    // server never blocks the login page.
-    sendPasswordResetCode({ to: user.email, fullName: user.fullName, code })
-      .then(() => {
-        console.log(`[password-reset] Code sent to ${user.email}.`);
-      })
-      .catch((error) => {
-        console.error(`[password-reset] Delivery to ${user.email} failed:`, error.message);
-      });
-  } catch (error) {
-    console.error("Password reset request failed:", error);
-    res.json({ message: GENERIC_RESET_MESSAGE });
-  }
-});
-
-// Step 2: verify the emailed code and set the new password.
-app.post("/api/password/reset", async (req, res) => {
-  const { code, newPassword, confirmPassword } = req.body || {};
-  const email = normalizeEmail((req.body || {}).email);
-
+app.post("/api/owner/password-recovery", async (req, res) => {
+  const { username, recoveryCode, newPassword, confirmPassword } = req.body || {};
   if (
-    !EMAIL_PATTERN.test(email) ||
-    typeof code !== "string" ||
-    !/^\d{6}$/.test(code.trim()) ||
+    typeof username !== "string" ||
+    typeof recoveryCode !== "string" ||
     typeof newPassword !== "string" ||
     typeof confirmPassword !== "string" ||
+    !username.trim() ||
+    !recoveryCode ||
+    recoveryCode.length > 256 ||
     newPassword.length < 6 ||
     newPassword !== confirmPassword
   ) {
     return res.status(400).json({
-      message: "Enter your email, the 6-digit code, and matching new passwords of at least 6 characters.",
+      message: "Enter the owner username and recovery code, and provide matching passwords of at least 6 characters.",
     });
   }
 
+  const configuredCode = process.env.OWNER_PASSWORD_RECOVERY_CODE;
+  if (typeof configuredCode !== "string" || configuredCode.length < 32) {
+    return res.status(503).json({
+      message: "Owner password recovery is not configured. Contact a trusted operator.",
+    });
+  }
+
+  const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
+  const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
+  const codeMatches = suppliedCodeBuffer.length === configuredCodeBuffer.length &&
+    timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer);
+  const recoveryCodeHash = createHash("sha256")
+    .update(configuredCodeBuffer)
+    .digest("hex");
+
+  let session;
   try {
-    const user = await User.findOne({ email })
-      .select("+passwordResetOtpHash +passwordResetOtpExpiresAt +passwordResetAttempts");
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" })
+      .select("ownerUserId usedOwnerPasswordRecoveryCodeHashes");
+    const owner = ownerSetting
+      ? await User.findOne({
+          _id: ownerSetting.ownerUserId,
+          username: username.trim(),
+          role: "Admin",
+        }).select("_id")
+      : null;
     if (
-      !user ||
-      !user.passwordResetOtpHash ||
-      !user.passwordResetOtpExpiresAt ||
-      user.passwordResetOtpExpiresAt.getTime() <= Date.now()
+      !codeMatches ||
+      !owner ||
+      ownerSetting.usedOwnerPasswordRecoveryCodeHashes.includes(recoveryCodeHash)
     ) {
       return res.status(400).json({
-        message: "That code is invalid or expired. Request a new code and try again.",
-      });
-    }
-
-    if (user.passwordResetAttempts >= PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
-      await User.updateOne(
-        { _id: user._id },
-        { $unset: { passwordResetOtpHash: "", passwordResetOtpExpiresAt: "" } }
-      );
-      return res.status(429).json({
-        message: "Too many incorrect attempts. Request a new code and try again.",
-      });
-    }
-
-    const suppliedHash = Buffer.from(hashOtp(code.trim()), "utf8");
-    const storedHash = Buffer.from(user.passwordResetOtpHash, "utf8");
-    const codeMatches =
-      suppliedHash.length === storedHash.length && timingSafeEqual(suppliedHash, storedHash);
-
-    if (!codeMatches) {
-      const attemptsLeft = PASSWORD_RESET_OTP_MAX_ATTEMPTS - user.passwordResetAttempts - 1;
-      await User.updateOne({ _id: user._id }, { $inc: { passwordResetAttempts: 1 } });
-      return res.status(400).json({
-        message:
-          attemptsLeft > 0
-            ? `That code is incorrect. ${attemptsLeft} attempt${attemptsLeft === 1 ? "" : "s"} remaining.`
-            : "That code is incorrect. Request a new code and try again.",
+        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
       });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    const result = await User.updateOne(
-      { _id: user._id, passwordResetOtpHash: user.passwordResetOtpHash },
-      {
-        $set: { password: hashedPassword },
-        $inc: { tokenVersion: 1 },
-        $unset: {
-          passwordResetOtpHash: "",
-          passwordResetOtpExpiresAt: "",
-          passwordResetAttempts: "",
+    session = await mongoose.startSession();
+    let recoveryApplied = false;
+    await session.withTransaction(async () => {
+      recoveryApplied = false;
+      const updatedSetting = await SystemSetting.findOneAndUpdate(
+        {
+          _id: ownerSetting._id,
+          ownerUserId: owner._id,
+          usedOwnerPasswordRecoveryCodeHashes: { $ne: recoveryCodeHash },
         },
+        { $addToSet: { usedOwnerPasswordRecoveryCodeHashes: recoveryCodeHash } },
+        { new: true, session }
+      );
+      if (!updatedSetting) {
+        return;
       }
-    );
-    if (result.modifiedCount !== 1) {
+
+      const passwordUpdate = await User.updateOne(
+        { _id: owner._id, role: "Admin" },
+        {
+          $set: { password: hashedPassword },
+          $inc: { tokenVersion: 1 },
+        },
+        { session }
+      );
+      if (passwordUpdate.matchedCount !== 1) {
+        throw new Error("Owner account changed during password recovery.");
+      }
+      recoveryApplied = true;
+    });
+
+    if (!recoveryApplied) {
       return res.status(400).json({
-        message: "That code is invalid or expired. Request a new code and try again.",
+        message: "Unable to reset the owner password. Verify the owner username and recovery code, or contact a trusted operator.",
       });
     }
 
     res.json({
-      message: "Password reset successfully. Sign in using your new password.",
+      message: "Owner password reset successfully. Sign in using your new password. Configure a new recovery code before another reset.",
     });
   } catch (error) {
-    console.error("Password reset failed:", error);
+    console.error("Owner password recovery failed:", error);
     res.status(500).json({
-      message: "Unable to reset the password. Contact your system operator.",
+      message: "Unable to reset the owner password. Contact a trusted operator if the problem continues.",
     });
+  } finally {
+    if (session) {
+      await session.endSession();
+    }
   }
 });
 
@@ -1087,18 +1043,30 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
 // List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const users = await User.find()
-      .select("_id username email fullName role createdAt")
-      .sort({ username: 1 });
+    const [users, ownerSetting] = await Promise.all([
+      User.find()
+        .select("_id username fullName role createdAt")
+        .sort({ username: 1 }),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
+    const ownerUserId = ownerSetting?.ownerUserId?.toString() || null;
+    const ownerIsValid = users.some((user) =>
+      user._id.toString() === ownerUserId && user.role === "Admin"
+    );
 
     res.json({
+      ownerConfigured: ownerIsValid,
+      ownerConfigurationInvalid: Boolean(ownerSetting) && !ownerIsValid,
+      currentUserIsOwner: ownerUserId === req.adminUser._id.toString(),
+      recoveryCodeConfigured: typeof process.env.OWNER_RECOVERY_CODE === "string" &&
+        process.env.OWNER_RECOVERY_CODE.length >= 32,
       users: users.map((user) => ({
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
         createdAt: user.createdAt,
+        isOwner: user._id.toString() === ownerUserId,
       })),
     });
   } catch (error) {
@@ -1109,33 +1077,21 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Create an account (Admin only). The single Admin is created by the operator,
-// so accounts created here are always Staff.
+// Create an account (Admin only)
 app.post("/api/admin/users", requireAdmin, async (req, res) => {
   try {
-    const { username, fullName, email, password, role } = req.body || {};
+    const { username, fullName, password, role } = req.body || {};
     if (
       typeof username !== "string" ||
       typeof fullName !== "string" ||
       typeof password !== "string" ||
       !username.trim() ||
       !fullName.trim() ||
-      !password
+      !password ||
+      !["Admin", "Staff"].includes(role)
     ) {
       return res.status(400).json({
-        message: "Username, full name, bound email, and password are required.",
-      });
-    }
-
-    const normalizedEmail = normalizeEmail(email);
-    if (!EMAIL_PATTERN.test(normalizedEmail)) {
-      return res.status(400).json({
-        message: "Enter a valid bound email address.",
-      });
-    }
-    if (role !== undefined && role !== "Staff") {
-      return res.status(409).json({
-        message: "Only one Admin account is allowed and it is created by your system operator. New accounts must be Staff.",
+        message: "Username, full name, password, and a valid role are required.",
       });
     }
 
@@ -1146,15 +1102,10 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     }
 
     const normalizedUsername = username.trim();
-    const existingUser = await User.findOne({
-      $or: [{ username: normalizedUsername }, { email: normalizedEmail }],
-    });
+    const existingUser = await User.findOne({ username: normalizedUsername });
     if (existingUser) {
       return res.status(409).json({
-        message:
-          existingUser.username === normalizedUsername
-            ? "Username is already registered."
-            : "Email is already registered.",
+        message: "Username is already registered.",
       });
     }
 
@@ -1162,9 +1113,8 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     const user = await User.create({
       username: normalizedUsername,
       fullName: fullName.trim(),
-      email: normalizedEmail,
       password: hashedPassword,
-      role: "Staff",
+      role,
     });
 
     return res.status(201).json({
@@ -1172,7 +1122,6 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1181,7 +1130,7 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username or email is already registered.",
+        message: "Username is already registered.",
       });
     }
     res.status(500).json({
@@ -1200,19 +1149,13 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const { username, fullName, email, password, role } = req.body || {};
-    const normalizedEmail = email === undefined ? undefined : normalizeEmail(email);
+    const { username, fullName, password, role } = req.body || {};
     if (
       (username !== undefined && (typeof username !== "string" || !username.trim())) ||
       (fullName !== undefined && (typeof fullName !== "string" || !fullName.trim())) ||
-      (normalizedEmail !== undefined && !EMAIL_PATTERN.test(normalizedEmail)) ||
       (password !== undefined && typeof password !== "string") ||
       (role !== undefined && !["Admin", "Staff"].includes(role)) ||
-      (username === undefined &&
-        fullName === undefined &&
-        normalizedEmail === undefined &&
-        password === undefined &&
-        role === undefined)
+      (username === undefined && fullName === undefined && password === undefined && role === undefined)
     ) {
       return res.status(400).json({
         message: "Provide valid account fields to update.",
@@ -1231,18 +1174,33 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const isSoleAdmin = user.role === "Admin";
-    if (role !== undefined && role === "Admin" && !isSoleAdmin) {
-      return res.status(409).json({
-        message: "Only one Admin account is allowed and it is created by your system operator.",
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" }).select("ownerUserId");
+    const isOwner = ownerSetting?.ownerUserId?.toString() === user._id.toString();
+    if (isOwner && req.adminUser._id.toString() !== user._id.toString()) {
+      return res.status(403).json({
+        message: "Only the system owner can edit their own account.",
       });
     }
-    if (isSoleAdmin && role !== undefined && role !== "Admin") {
+    if (isOwner && role !== undefined && role !== "Admin") {
       return res.status(409).json({
-        message: "The Admin account cannot be changed to Staff. Ask your system operator to replace it.",
+        message: "Transfer system ownership before changing the owner's role.",
       });
     }
-    if (user._id.toString() === req.adminUser._id.toString() && role !== undefined) {
+    if (
+      user.role === "Admin" &&
+      role === "Staff" &&
+      ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()
+    ) {
+      return res.status(403).json({
+        message: "Only the system owner can change another Admin account to Staff.",
+      });
+    }
+
+    if (
+      user._id.toString() === req.adminUser._id.toString() &&
+      role !== undefined &&
+      role !== user.role
+    ) {
       return res.status(400).json({
         message: "You cannot change your own role.",
       });
@@ -1254,12 +1212,19 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     if (fullName !== undefined) {
       user.fullName = fullName.trim();
     }
-    if (normalizedEmail !== undefined) {
-      user.email = normalizedEmail;
-    }
     if (password) {
       user.password = await bcrypt.hash(password, 10);
-      user.tokenVersion = (user.tokenVersion || 0) + 1;
+    }
+    if (role !== undefined && user.role === "Admin" && role !== "Admin") {
+      const adminCount = await User.countDocuments({ role: "Admin" });
+      if (adminCount <= 1) {
+        return res.status(409).json({
+          message: "The last Admin account cannot be changed to Staff.",
+        });
+      }
+    }
+    if (role !== undefined) {
+      user.role = role;
     }
 
     await user.save();
@@ -1268,7 +1233,6 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
       },
@@ -1277,7 +1241,7 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
     console.error(error);
     if (error.code === 11000) {
       return res.status(409).json({
-        message: "Username or email is already registered.",
+        message: "Username is already registered.",
       });
     }
     res.status(500).json({
@@ -1301,16 +1265,32 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId).select("_id role");
+    const [user, ownerSetting] = await Promise.all([
+      User.findById(userId).select("_id role"),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
     if (!user) {
       return res.status(404).json({
         message: "User not found.",
       });
     }
-    if (user.role === "Admin") {
+    if (ownerSetting?.ownerUserId?.toString() === user._id.toString()) {
       return res.status(409).json({
-        message: "The Admin account cannot be deleted. Ask your system operator to replace it.",
+        message: "Transfer system ownership before deleting the owner account.",
       });
+    }
+    if (user.role === "Admin") {
+      if (ownerSetting?.ownerUserId?.toString() !== req.adminUser._id.toString()) {
+        return res.status(403).json({
+          message: "Only the system owner can delete another Admin account.",
+        });
+      }
+      const adminCount = await User.countDocuments({ role: "Admin" });
+      if (adminCount <= 1) {
+        return res.status(409).json({
+          message: "The last Admin account cannot be deleted.",
+        });
+      }
     }
 
     await user.deleteOne();
@@ -1325,6 +1305,167 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
+app.post("/api/admin/owner-transfer", requireAdmin, async (req, res) => {
+  try {
+    const { targetUserId, password, confirmTransfer } = req.body || {};
+    if (
+      typeof targetUserId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(targetUserId) ||
+      typeof password !== "string" ||
+      !password ||
+      confirmTransfer !== true
+    ) {
+      return res.status(400).json({
+        message: "Choose an Admin, enter your password, and confirm the ownership transfer.",
+      });
+    }
+
+    const ownerSetting = await SystemSetting.findOne({ key: "owner" });
+    if (!ownerSetting) {
+      return res.status(409).json({
+        message: "System ownership is not initialized. Run npm run migrate:owner in Backend first.",
+      });
+    }
+    if (ownerSetting.ownerUserId.toString() !== req.adminUser._id.toString()) {
+      return res.status(403).json({
+        message: "Only the current system owner can transfer ownership.",
+      });
+    }
+    if (targetUserId === req.adminUser._id.toString()) {
+      return res.status(400).json({
+        message: "Choose a different Admin to receive ownership.",
+      });
+    }
+
+    const [currentOwner, targetUser] = await Promise.all([
+      User.findById(req.adminUser._id).select("password"),
+      User.findById(targetUserId).select("_id username role"),
+    ]);
+    if (!currentOwner) {
+      return res.status(409).json({ message: "Current owner account was not found; contact a trusted system operator." });
+    }
+    if (!await bcrypt.compare(password, currentOwner.password)) {
+      return res.status(403).json({ message: "The current password is incorrect." });
+    }
+    if (!targetUser || targetUser.role !== "Admin") {
+      return res.status(400).json({
+        message: "Ownership can only be transferred to another existing Admin account.",
+      });
+    }
+
+    const updatedSetting = await SystemSetting.findOneAndUpdate(
+      { _id: ownerSetting._id, ownerUserId: req.adminUser._id },
+      { $set: { ownerUserId: targetUser._id } },
+      { new: true }
+    );
+    if (!updatedSetting) {
+      return res.status(409).json({
+        message: "Ownership changed during this request. Reload the page and try again.",
+      });
+    }
+
+    res.json({
+      message: `System ownership transferred to "${targetUser.username}".`,
+      owner: {
+        id: targetUser._id,
+        username: targetUser.username,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Unable to transfer system ownership." });
+  }
+});
+
+app.post("/api/admin/owner-recovery", requireAdmin, async (req, res) => {
+  try {
+    const { targetUserId, password, recoveryCode, confirmRecovery } = req.body || {};
+    if (
+      typeof targetUserId !== "string" ||
+      !mongoose.Types.ObjectId.isValid(targetUserId) ||
+      typeof password !== "string" ||
+      !password ||
+      typeof recoveryCode !== "string" ||
+      !recoveryCode ||
+      recoveryCode.length > 256 ||
+      confirmRecovery !== true
+    ) {
+      return res.status(400).json({
+        message: "Choose an Admin, enter your password and recovery code, and confirm recovery.",
+      });
+    }
+
+    const configuredCode = process.env.OWNER_RECOVERY_CODE;
+    if (typeof configuredCode !== "string" || configuredCode.length < 32) {
+      return res.status(503).json({
+        message: "Owner recovery is not configured. Ask a trusted operator to configure OWNER_RECOVERY_CODE.",
+      });
+    }
+
+    const suppliedCodeBuffer = Buffer.from(recoveryCode, "utf8");
+    const configuredCodeBuffer = Buffer.from(configuredCode, "utf8");
+    if (
+      suppliedCodeBuffer.length !== configuredCodeBuffer.length ||
+      !timingSafeEqual(suppliedCodeBuffer, configuredCodeBuffer)
+    ) {
+      return res.status(403).json({ message: "The recovery code is incorrect." });
+    }
+
+    const [requestingAdmin, targetUser] = await Promise.all([
+      User.findById(req.adminUser._id).select("password"),
+      User.findById(targetUserId).select("_id username role"),
+    ]);
+    if (!requestingAdmin || !await bcrypt.compare(password, requestingAdmin.password)) {
+      return res.status(403).json({ message: "The current password is incorrect." });
+    }
+    if (!targetUser || targetUser.role !== "Admin") {
+      return res.status(400).json({
+        message: "Ownership can only be recovered to an existing Admin account.",
+      });
+    }
+
+    const recoveryCodeHash = createHash("sha256")
+      .update(configuredCodeBuffer)
+      .digest("hex");
+    const recoveredSetting = await SystemSetting.findOneAndUpdate(
+      {
+        key: "owner",
+        usedRecoveryCodeHashes: { $ne: recoveryCodeHash },
+      },
+      {
+        $set: { ownerUserId: targetUser._id },
+        $setOnInsert: { key: "owner" },
+        $addToSet: { usedRecoveryCodeHashes: recoveryCodeHash },
+      },
+      {
+        upsert: true,
+        new: true,
+        runValidators: true,
+      }
+    );
+    if (!recoveredSetting) {
+      return res.status(409).json({
+        message: "Ownership changed during recovery. Reload the page and try again.",
+      });
+    }
+
+    res.json({
+      message: `Ownership recovered and transferred to "${targetUser.username}". Configure a new recovery code before another recovery.`,
+      owner: {
+        id: targetUser._id,
+        username: targetUser.username,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "This recovery code has already been used. A trusted operator must configure a new code.",
+      });
+    }
+    console.error(error);
+    res.status(500).json({ message: "Unable to recover system ownership." });
+  }
+});
 
 // Protected profile route
 app.get("/api/profile", async (req, res) => {
@@ -1339,7 +1480,10 @@ app.get("/api/profile", async (req, res) => {
 
     const token = authHeader.slice("Bearer ".length);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("_id username email fullName role");
+    const [user, ownerSetting] = await Promise.all([
+      User.findById(decoded.userId).select("_id username fullName role"),
+      SystemSetting.findOne({ key: "owner" }).select("ownerUserId"),
+    ]);
     if (!user) {
       return res.status(401).json({
         message: "Unauthorized.",
@@ -1351,9 +1495,9 @@ app.get("/api/profile", async (req, res) => {
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
         fullName: user.fullName,
         role: user.role,
+        isSystemOwner: ownerSetting?.ownerUserId?.toString() === user._id.toString(),
       },
     });
   } catch (error) {
@@ -1375,27 +1519,6 @@ async function startServer() {
 
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected.");
-
-  const mailStatus = await verifyMailConnection();
-  if (mailStatus.ok && mailStatus.provider === "sendgrid") {
-    console.log(
-      "Email API (SendGrid) configured: password reset email will be sent over HTTPS."
-    );
-  } else if (mailStatus.ok) {
-    console.log("SMTP ready: password reset email is available.");
-  } else if (mailStatus.reason === "not-configured") {
-    console.warn(
-      "Email delivery not configured: set SENDGRID_API_KEY and MAIL_FROM (or SMTP_HOST and MAIL_FROM)."
-    );
-  } else if (mailStatus.provider === "sendgrid") {
-    console.warn(`SendGrid configuration problem: ${mailStatus.reason}`);
-    console.warn("Password reset email will not be delivered until this is fixed.");
-  } else {
-    console.warn(`SMTP connection failed: ${mailStatus.reason}`);
-    console.warn(
-      "If this host blocks outbound SMTP, set SENDGRID_API_KEY and MAIL_FROM to send over HTTPS instead."
-    );
-  }
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
