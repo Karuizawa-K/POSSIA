@@ -443,6 +443,7 @@ function resetProductForm() {
     document.getElementById("initialQuantityGroup").hidden = false;
     document.getElementById("formHeading").textContent = "Add Product";
     document.getElementById("saveProductButton").textContent = "Add Product";
+    document.getElementById("cancelEditButton").textContent = "Cancel";
     document.getElementById("cancelEditButton").hidden = true;
     barcodePreviewSection.hidden = true;
     barcodePreviewSvg.replaceChildren();
@@ -461,6 +462,7 @@ function startEditing(product) {
     document.getElementById("initialQuantityGroup").hidden = true;
     document.getElementById("formHeading").textContent = `Edit Product: ${product.productName}`;
     document.getElementById("saveProductButton").textContent = "Save Changes";
+    document.getElementById("cancelEditButton").textContent = "Cancel Edit";
     document.getElementById("cancelEditButton").hidden = false;
     renderBarcodePreview();
     productEditor.hidden = false;
@@ -593,6 +595,8 @@ showProductFormButton.addEventListener("click", () => {
     resetProductForm();
     productEditor.hidden = false;
     showProductFormButton.hidden = true;
+    // Cancel stays available while adding, not only while editing.
+    document.getElementById("cancelEditButton").hidden = false;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 generateBarcodeButton.addEventListener("click", requestGeneratedBarcode);

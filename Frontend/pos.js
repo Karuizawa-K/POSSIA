@@ -404,6 +404,13 @@ document.getElementById("discount-btn").addEventListener("click", () => {
     discountInput.focus();
 });
 
+// Cancel is a plain button, not a submit: the dialog inputs are required, so a
+// submit would be blocked by native validation and the dialog would stay open.
+document.getElementById("cancel-discount-btn").addEventListener("click", () => {
+    document.getElementById("discount-error").textContent = "";
+    document.getElementById("discount-dialog").close();
+});
+
 document.getElementById("discount-form").addEventListener("submit", (event) => {
     if (event.submitter.value !== "apply") {
         return;
@@ -494,6 +501,11 @@ document.getElementById("payment-input").addEventListener("input", (event) => {
                 : "Enter exactly 13 digits from the GCash transaction receipt."
         );
     }
+});
+
+document.getElementById("cancel-payment-btn").addEventListener("click", () => {
+    document.getElementById("payment-error").textContent = "";
+    document.getElementById("payment-dialog").close();
 });
 
 document.getElementById("payment-form").addEventListener("submit", async (event) => {
@@ -597,6 +609,11 @@ document.getElementById("close-scanner-btn").addEventListener("click", () => {
 });
 document.getElementById("scanner-dialog").addEventListener("close", stopBarcodeScanner);
 
+document.getElementById("cancel-scan-quantity-btn").addEventListener("click", () => {
+    document.getElementById("scan-quantity-error").textContent = "";
+    document.getElementById("scan-quantity-dialog").close();
+});
+
 document.getElementById("scan-quantity-form").addEventListener("submit", (event) => {
     if (event.submitter.value !== "add") {
         scannedProduct = null;
@@ -633,6 +650,36 @@ document.getElementById("print-receipt-btn").addEventListener("click", () => {
 
 document.getElementById("close-receipt-btn").addEventListener("click", () => {
     document.getElementById("receipt-dialog").close();
+});
+
+// Clicking the backdrop outside the dialog content dismisses it, matching the
+// inventory barcode dialog.
+for (const dialogId of [
+    "discount-dialog",
+    "payment-dialog",
+    "scanner-dialog",
+    "scan-quantity-dialog",
+    "receipt-dialog",
+]) {
+    const dialog = document.getElementById(dialogId);
+    dialog.addEventListener("click", (event) => {
+        if (event.target === dialog) {
+            dialog.close();
+        }
+    });
+}
+
+document.getElementById("refreshButton").addEventListener("click", () => {
+    // A reload empties the cart, so ask first when there is an order in progress.
+    if (cart.size > 0) {
+        const confirmed = window.confirm(
+            "Refreshing clears the current order. Continue?"
+        );
+        if (!confirmed) {
+            return;
+        }
+    }
+    window.location.reload();
 });
 
 document.getElementById("logoutButton").addEventListener("click", () => {

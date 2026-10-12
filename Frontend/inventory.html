@@ -22,6 +22,8 @@
             <div class="nav-user-row">
                 <span id="userInfo">Loading user...</span>
                 <span aria-hidden="true">|</span>
+                <button class="dashboard" type="button" onclick="window.location.reload()">⟳ Refresh</button>
+                <span aria-hidden="true">|</span>
                 <button id="logoutButton" class="logout" type="button">Logout</button>
             </div>
         </div>
@@ -61,7 +63,7 @@
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-submit" id="saveProductButton">Save Product</button>
-                    <button type="button" class="btn-secondary" id="cancelEditButton" hidden>Cancel Edit</button>
+                    <button type="button" class="btn-secondary" id="cancelEditButton" hidden>Cancel</button>
                 </div>
             </form>
             <div class="barcode-preview" id="barcodePreviewSection" hidden>
