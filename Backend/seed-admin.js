@@ -8,7 +8,6 @@ const User = require("./models/users");
 const {
   generateRecoveryCodes,
   hashRecoveryCode,
-  sealCodes,
 } = require("./utils/recovery-codes");
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
@@ -63,9 +62,6 @@ async function main() {
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI must be configured in Backend/.env.");
   }
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET must be configured in Backend/.env.");
-  }
 
   await mongoose.connect(process.env.MONGODB_URI);
 
@@ -109,7 +105,6 @@ async function main() {
       password: hashedPassword,
       role: "Admin",
       adminRecoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
-      adminRecoveryCodeBox: sealCodes(recoveryCodes, process.env.JWT_SECRET),
     });
 
     console.log(`Admin account "${username}" created successfully.`);

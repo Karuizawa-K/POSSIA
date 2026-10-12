@@ -31,18 +31,11 @@ const userSchema = new mongoose.Schema(
             enum: ["Admin", "Staff"]
         },
         // Single-use codes that let the Admin recover the account without email.
-        // Only hashes are stored; plaintext is shown once at issue time.
+        // Only hashes are stored; plaintext is shown once at issue time and is
+        // never retrievable from the system afterwards.
         adminRecoveryCodeHashes: {
             type: [String],
             default: [],
-            select: false
-        },
-        // Encrypted copy of the active codes so a logged-in Admin can read them
-        // back. Sealed with a key derived from JWT_SECRET; hashes above remain
-        // the verification source of truth.
-        adminRecoveryCodeBox: {
-            type: String,
-            default: null,
             select: false
         },
         tokenVersion: {

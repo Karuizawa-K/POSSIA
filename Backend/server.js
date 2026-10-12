@@ -24,9 +24,6 @@ const {
   generateRecoveryCodes,
   hashRecoveryCode,
   normalizeRecoveryCode,
-  parseImportedCodes,
-  sealCodes,
-  unsealCodes,
 } = require("./utils/recovery-codes");
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
@@ -454,29 +451,13 @@ app.post("/api/password/reset", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    // Keep the readable vault in step with the burn so a used code stops
-    // appearing in Admin Settings.
-    const storedBox = await User.findById(user._id).select("+adminRecoveryCodeBox");
-    const storedCodes = unsealCodes(storedBox?.adminRecoveryCodeBox, process.env.JWT_SECRET);
-    const usedCode = storedCodes?.find((code) => hashRecoveryCode(code) === matchedHash);
-    const remainingCodes = storedCodes
-      ? storedCodes.filter((code) => hashRecoveryCode(code) !== matchedHash)
-      : null;
-
-    const update = {
-      $set: { password: hashedPassword },
-      $inc: { tokenVersion: 1 },
-      $pull: { adminRecoveryCodeHashes: matchedHash },
-    };
-    if (remainingCodes) {
-      update.$set.adminRecoveryCodeBox =
-        remainingCodes.length > 0 ? sealCodes(remainingCodes, process.env.JWT_SECRET) : null;
-    }
-
     const result = await User.updateOne(
       { _id: user._id, adminRecoveryCodeHashes: matchedHash },
-      update
+      {
+        $set: { password: hashedPassword },
+        $inc: { tokenVersion: 1 },
+        $pull: { adminRecoveryCodeHashes: matchedHash },
+      }
     );
     if (result.modifiedCount !== 1) {
       return res.status(400).json({ message: GENERIC_RESET_MESSAGE });
@@ -484,8 +465,7 @@ app.post("/api/password/reset", async (req, res) => {
 
     const remaining = await User.findById(user._id).select("+adminRecoveryCodeHashes");
     console.log(
-      `[admin-recovery] Password reset for @${user.username}; ${remaining.adminRecoveryCodeHashes.length} recovery code(s) left.` +
-        (usedCode ? "" : " (no readable vault entry for the used code)")
+      `[admin-recovery] Password reset for @${user.username}; ${remaining.adminRecoveryCodeHashes.length} recovery code(s) left.`
     );
 
     res.json({
@@ -515,12 +495,7 @@ app.post("/api/admin/recovery-codes/regenerate", requireAdmin, async (req, res) 
     const codes = generateRecoveryCodes();
     await User.updateOne(
       { _id: req.adminUser._id, role: "Admin" },
-      {
-        $set: {
-          adminRecoveryCodeHashes: codes.map(hashRecoveryCode),
-          adminRecoveryCodeBox: sealCodes(codes, process.env.JWT_SECRET),
-        },
-      }
+      { $set: { adminRecoveryCodeHashes: codes.map(hashRecoveryCode) } }
     );
 
     console.log(
@@ -537,66 +512,6 @@ app.post("/api/admin/recovery-codes/regenerate", requireAdmin, async (req, res) 
     res.status(500).json({
       message: "Unable to generate recovery codes. Try again.",
     });
-  }
-});
-
-// Reads back the active codes. Returns viewable:false when no readable vault
-// exists (older code sets, or after JWT_SECRET was rotated).
-app.get("/api/admin/recovery-codes", requireAdmin, async (req, res) => {
-  try {
-    const admin = await User.findById(req.adminUser._id).select(
-      "+adminRecoveryCodeHashes +adminRecoveryCodeBox"
-    );
-    const remaining = admin?.adminRecoveryCodeHashes?.length ?? 0;
-    const codes = unsealCodes(admin?.adminRecoveryCodeBox, process.env.JWT_SECRET);
-
-    if (!codes) {
-      return res.json({
-        viewable: false,
-        ...recoveryCodesStatus(admin?.adminRecoveryCodeHashes),
-      });
-    }
-
-    console.log(`[admin-recovery] @${req.adminUser.username} viewed active recovery codes.`);
-    res.json({ viewable: true, codes, ...recoveryCodesStatus(admin.adminRecoveryCodeHashes) });
-  } catch (error) {
-    console.error("Reading recovery codes failed:", error);
-    res.status(500).json({ message: "Unable to read recovery codes." });
-  }
-});
-
-// Replaces the active set with codes from a .txt file read by the browser.
-app.post("/api/admin/recovery-codes/import", requireAdmin, async (req, res) => {
-  try {
-    const { codes, errors } = parseImportedCodes((req.body || {}).codes);
-    if (errors.length > 0) {
-      return res.status(400).json({
-        message: "No codes were imported. Fix the listed lines and try again.",
-        errors,
-      });
-    }
-
-    await User.updateOne(
-      { _id: req.adminUser._id, role: "Admin" },
-      {
-        $set: {
-          adminRecoveryCodeHashes: codes.map(hashRecoveryCode),
-          adminRecoveryCodeBox: sealCodes(codes, process.env.JWT_SECRET),
-        },
-      }
-    );
-
-    console.log(
-      `[admin-recovery] @${req.adminUser.username} imported ${codes.length} recovery code(s); previous set invalidated.`
-    );
-    res.json({
-      message: `Imported ${codes.length} recovery code(s). Your previous set no longer works.`,
-      codes,
-      ...recoveryCodesStatus(codes),
-    });
-  } catch (error) {
-    console.error("Recovery code import failed:", error);
-    res.status(500).json({ message: "Unable to import recovery codes." });
   }
 });
 

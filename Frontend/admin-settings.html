@@ -87,9 +87,6 @@
             <h2>My Recovery Codes</h2>
             <p id="recoveryCodesStatus" class="field-note">Loading...</p>
             <div class="account-form-actions">
-                <button id="viewCodesButton" class="admin-settings-btn" type="button">
-                    Show Active Codes
-                </button>
                 <button id="regenerateCodesButton" class="admin-settings-btn" type="button">
                     Generate New Codes
                 </button>
@@ -101,33 +98,20 @@
                 </button>
             </div>
 
-            <div class="account-form-actions">
-                <input type="file" id="importCodesFile" accept=".txt,text/plain"
-                    class="field-note">
-                <button id="importCodesButton" class="admin-settings-btn" type="button" hidden>
-                    Import from file
-                </button>
-            </div>
             <p class="field-note">
-                Import format: a plain .txt file with one code per line
-                (for example ABCD-EFGH-JKLM). Up to 20 codes. Importing replaces
-                your current set.
+                Codes cannot be displayed again later - only hashes are stored.
+                Generate a new set to see the codes here. Keep the downloaded file
+                or write them down.
             </p>
 
             <div id="recoveryCodesDisplay" hidden>
-                <div class="account-form-actions">
-                    <button id="toggleCodesVisibilityButton" class="admin-settings-btn"
-                        type="button" aria-pressed="false">Reveal Codes</button>
-                </div>
                 <ul id="recoveryCodesList"></ul>
                 <p class="field-note">
-                    Each code works once. Store them offline (printed, sealed) and
-                    delete the downloaded file. Generating or importing new codes
-                    immediately invalidates the previous set.
+                    Each code works once. Save them now - download the file or
+                    write them down, then delete the file. Generating new codes
+                    immediately invalidates this set.
                 </p>
             </div>
-
-            <ul id="importErrorsList" hidden></ul>
         </section>
     </main>
 
