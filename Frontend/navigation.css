@@ -115,6 +115,8 @@
 
 .navbar .logout {
     padding: 8px 10px;
+    /* Keep the last item in the row off the window edge. */
+    margin-right: 10px;
     color: #334155;
     font-size: 14px;
     text-decoration: none;

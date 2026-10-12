@@ -14,42 +14,15 @@ body {
   
 }
 
-.navbar {  
-    background-color: #f3f3f3;    
-    border-bottom: solid 1px #e9ecef; 
-    color: rgb(1, 1, 1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 30px;
-}
-
 .login-logo {
   max-width: 200px;
   width: 60%;
-  margin-top: -10px;
-}
-
-.nav-right {
-    font-size: 15px;
-    opacity: 0.9;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-    margin-right: 5px;
 }
 
 .nav-user-row {
     display: flex;
     align-items: center;
     gap: 8px;
-}
-
-/* Keep the last item in the row off the window edge. Specificity is raised so
-   this wins over navigation.css, which is loaded after this file. */
-.navbar .nav-right .nav-user-row #logoutButton {
-    margin-right: 10px;
 }
 
 .admin-settings-btn {
