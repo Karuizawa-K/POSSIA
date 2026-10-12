@@ -50,8 +50,7 @@
                 <small id="passwordHelp">At least 6 characters.</small>
 
                 <p id="roleNotice" class="field-note">
-                    New accounts are created as Staff. Only one Admin account is allowed and it is
-                    created by your system operator.
+                    New accounts are created with the Staff role. Only 1 Admin account is allowed at a time.
                 </p>
                 <input type="hidden" id="role" name="role" value="Staff">
 
@@ -80,9 +79,6 @@
                     </tbody>
                 </table>
             </div>
-            <p class="field-note">
-                Staff who forget their password ask you to set a new one here.
-            </p>
         </section>
 
         <section class="accounts-section">
@@ -100,17 +96,15 @@
                 </button>
             </div>
 
-            <p class="field-note">
-                Codes cannot be displayed again later - only hashes are stored.
-                Generate a new set to see the codes here. Keep the downloaded file
-                or write them down.
+            <p class="field-note">        
+                Generate a new set to see the codes here. You can only view them once generated.
             </p>
 
             <div id="recoveryCodesDisplay" hidden>
                 <ul id="recoveryCodesList"></ul>
                 <p class="field-note">
-                    Each code works once. Save them now - download the file or
-                    write them down, then delete the file. Generating new codes
+                    Each code only works once. Download the file or
+                    write them down. Generating new codes
                     immediately invalidates this set.
                 </p>
             </div>

@@ -252,6 +252,9 @@ async function loadPos() {
         ]);
         document.getElementById("userInfo").textContent =
             `${profileData.user.fullName} (@${profileData.user.username})`;
+        // Staff use the POS too, so only the Admin sees the access marker.
+        document.getElementById("pageSubtitle").textContent =
+            profileData.user.role === "Admin" ? "Point of Sale • Admin Access" : "Point of Sale";
         products = productsData.products;
         renderProducts();
         renderCart();

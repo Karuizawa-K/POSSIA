@@ -651,6 +651,9 @@ async function initializeInventory() {
         document.getElementById("accessDescription").textContent = currentRole === "Admin"
             ? "Manage products and stock. Stock changes are recorded in the movement history."
             : "Active inventory of APB Merchandising.";
+        // Staff can open this page, so only the Admin sees the access marker.
+        document.getElementById("pageSubtitle").textContent =
+            currentRole === "Admin" ? "Inventory • Admin Access" : "Inventory";
         for (const element of document.querySelectorAll(".admin-only")) {
             element.hidden = currentRole !== "Admin";
         }

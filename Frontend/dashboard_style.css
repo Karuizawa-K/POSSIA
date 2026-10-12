@@ -46,6 +46,12 @@ body {
     gap: 8px;
 }
 
+/* Keep the last item in the row off the window edge. Specificity is raised so
+   this wins over navigation.css, which is loaded after this file. */
+.navbar .nav-right .nav-user-row #logoutButton {
+    margin-right: 10px;
+}
+
 .admin-settings-btn {
     padding: 6px 12px;
     border: 1px solid #cbd5e1;
