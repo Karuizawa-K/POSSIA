@@ -927,8 +927,7 @@ async function authorizeReports() {
             window.location.replace("dashboard.html");
             return;
         }
-        document.getElementById("userInfo").textContent =
-            `${user.fullName} (@${user.username})`;
+        document.getElementById("userInfo").textContent = user.fullName;
         // Default view: today's full sales report, so the page is useful
         // before Generate is ever pressed.
         reportCategory.value = "sales";

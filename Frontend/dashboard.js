@@ -23,8 +23,7 @@ async function loadSession() {
 
         const data = await response.json();
 
-        document.getElementById("userInfo").textContent =
-            `${data.user.fullName} (@${data.user.username})`;
+        document.getElementById("userInfo").textContent = data.user.fullName;
         const isAdmin = data.user.role === "Admin";
         document.getElementById("dashboardTitle").textContent =
             isAdmin ? "Admin Dashboard" : "Dashboard";

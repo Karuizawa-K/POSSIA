@@ -316,8 +316,7 @@ async function authorizeAdminSettings() {
         }
 
         currentUserId = user.id;
-        document.getElementById("userInfo").textContent =
-            `${user.fullName} (@${user.username})`;
+        document.getElementById("userInfo").textContent = user.fullName;
         document.getElementById("adminSettings").hidden = false;
         renderRecoveryCodesStatus(user);
         await loadAccounts();

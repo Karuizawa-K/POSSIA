@@ -1,3 +1,16 @@
+/* Page-width cordon.
+   Any element wider than the viewport makes the whole page scroll sideways,
+   and the navbar (width:100% of the layout viewport) then stops short of the
+   right edge, leaving a white strip - most obvious when zoomed out. `clip`
+   keeps position:sticky working, unlike `hidden` in older engines, which is
+   kept as the fallback. Data tables keep their own internal scrolling, so no
+   reachable content is masked. */
+html,
+body {
+    overflow-x: hidden;
+    overflow-x: clip;
+}
+
 .navbar {
     display: flex;
     align-items: center;
@@ -50,6 +63,9 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    /* Under width pressure the row takes a second line instead of squeezing
+       the name down to a single character. */
+    flex-wrap: wrap;
     gap: 8px;
     min-width: 0;
 }
@@ -57,6 +73,10 @@
 .navbar #userInfo {
     display: inline-block;
     max-width: min(32vw, 320px);
+    /* The name must never absorb the row's shrink pressure: overflow:hidden
+       zeroes its flex minimum, so it would otherwise be the only item that
+       could collapse. The row wraps before that happens. */
+    flex-shrink: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -144,6 +164,16 @@
     transform: none;
     color: #173d72;
     background: #e8eef5;
+}
+
+/* The separator only appears when the Admin Settings link is visible, so
+   Staff never see a dangling pipe. */
+.navbar .admin-settings-separator {
+    display: none;
+}
+
+.navbar .nav-user-row:has(#adminSettingsButton:not([hidden])) .admin-settings-separator {
+    display: inline;
 }
 
 @media (max-width: 700px) {

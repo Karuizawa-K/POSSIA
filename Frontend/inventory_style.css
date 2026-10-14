@@ -421,6 +421,14 @@
     margin: 8px 0 18px;
 }
 
+/* Let grid children shrink below their content width so long product names
+   cannot force the page wider than the viewport. */
+.inventory-filters > *,
+.input-grid > *,
+.category-form > * {
+    min-width: 0;
+}
+
 .category-form {
     display: grid;
     grid-template-columns: minmax(200px, 1fr) auto;

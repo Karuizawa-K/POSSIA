@@ -160,6 +160,16 @@
     align-items: end;
 }
 
+/* Grid and flex children default to min-width:auto, which lets long values
+   (receipt numbers, generated timestamps) force a track wider than the
+   viewport. Letting tracks shrink is what keeps the page from scrolling
+   sideways. */
+.filter-grid > *,
+.summary-section > *,
+.report-view .table-wrapper {
+    min-width: 0;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;

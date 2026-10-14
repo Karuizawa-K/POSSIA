@@ -689,7 +689,7 @@ async function initializeInventory() {
     try {
         const { user } = await apiRequest("/api/profile");
         currentRole = user.role;
-        document.getElementById("userInfo").textContent = `${user.fullName} (@${user.username})`;
+        document.getElementById("userInfo").textContent = user.fullName;
         document.getElementById("accessDescription").textContent = currentRole === "Admin"
             ? "Manage products and stock. Stock changes are recorded in the movement history."
             : "Active inventory of APB Merchandising.";

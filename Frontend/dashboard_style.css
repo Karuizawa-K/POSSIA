@@ -19,13 +19,8 @@ body {
   width: 60%;
 }
 
-/* The Admin Settings button stays on its own row under the user row. Specificity
-   is raised so this wins over navigation.css, which loads after this file. */
-.navbar .nav-right {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 8px;
-}
+/* Admin Settings sits inline with the other navbar items, so the shared
+   navbar layout from navigation.css applies here unchanged. */
 
 .nav-user-row {
     display: flex;
