@@ -11,6 +11,7 @@
 </head>
 
 <body>
+    <!-- Navigation bar -->
     <nav class="navbar">
         <div class="nav-left">
             <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
@@ -43,6 +44,7 @@
         <p class="page-description" id="accessDescription"></p>
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
 
+        <!-- Product editor section -->
         <section class="input-section admin-only" id="productEditor" hidden>
             <h2 id="formHeading">Add Product</h2>
             <form class="input-grid" id="productForm">
@@ -86,6 +88,7 @@
             </div>
         </section>
 
+        <!-- Inventory grid section -->
         <section class="grid-section" id="inventorySection">
             <div class="section-heading">
                 <h2>Current Inventory</h2>
@@ -139,6 +142,7 @@
             </div>
         </section>
 
+        <!-- Categories section -->
         <section class="grid-section admin-only" id="categorySection" hidden>
             <h2>Manage Categories</h2>
             <form class="category-form" id="categoryForm">
@@ -160,6 +164,7 @@
             </div>
         </section>
 
+        <!-- Stock history section -->
         <section class="grid-section admin-only" id="historySection" hidden>
             <h2>Recent Stock Movements</h2>
             <p class="section-note">Showing the latest 100 stock adjustments.</p>
@@ -184,6 +189,7 @@
     </main>
         </div>
     </div>
+    <!-- Barcode dialog -->
     <dialog class="barcode-dialog" id="inventoryBarcodeDialog" aria-labelledby="inventoryBarcodeTitle">
         <div class="barcode-dialog-content">
             <h2 id="inventoryBarcodeTitle"></h2>

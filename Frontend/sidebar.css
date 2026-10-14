@@ -1,5 +1,4 @@
-/* Shared in-page section sidebar (pos, inventory, reports, admin-settings).
-   Desktop: sticky left column. Narrow screens: horizontal strip above content. */
+/* Page layout */
 .page-layout {
     display: flex;
     align-items: stretch;
@@ -7,7 +6,7 @@
     min-height: 0;
     min-width: 0;
 }
-
+/* Page sidebar */
 .page-sidebar {
     width: 210px;
     flex-shrink: 0;
@@ -25,7 +24,6 @@
     max-height: calc(100vh - 120px);
     overflow-y: auto;
 }
-
 .page-sidebar-title {
     margin: 0 0 8px;
     padding: 0 8px;
@@ -35,7 +33,6 @@
     letter-spacing: 0.5px;
     text-transform: uppercase;
 }
-
 .page-sidebar a {
     padding: 8px 10px;
     border-radius: 6px;
@@ -45,21 +42,18 @@
     text-decoration: none;
     white-space: nowrap;
 }
-
 .page-sidebar a:hover {
     color: #173d72;
     background: #e8eef5;
 }
-
 .page-sidebar a.active {
     color: #173d72;
     background: #e8eef5;
 }
-
 .page-sidebar a[hidden] {
     display: none;
 }
-
+/* Page main content */
 .page-main {
     flex: 1;
     min-width: 0;
@@ -67,33 +61,21 @@
     display: flex;
     flex-direction: column;
 }
-
-/* Flex items are sized by their content, so an auto margin on a column flex
-   item shrink-wraps it to that content. With the results area empty (first
-   load, or between clearing and re-rendering) these containers collapsed to
-   the width of the form and the whole page flashed to a narrow layout.
-   Forcing full width keeps every state identical; the existing max-width and
-   auto margins still center them once the content is wider. */
 .page-main > main.reports-container,
 .page-main > main.inventory-container {
     width: 100%;
 }
-
 html.sidebar-smooth {
     scroll-behavior: smooth;
 }
-
 .page-main [id] {
     scroll-margin-top: 12px;
 }
-
+/* Tablet layout adjustments */
 @media (max-width: 900px) {
     .page-layout {
         flex-direction: column;
     }
-
-    /* Horizontal strip stays reachable while scrolling the long stacked
-       results, so links do not require scrolling back to the top. */
     .page-sidebar {
         position: sticky;
         top: 0;
@@ -109,28 +91,23 @@ html.sidebar-smooth {
         border-width: 0 0 1px;
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
-
     .page-sidebar-title {
         margin: 0 4px 0 0;
     }
-
-    /* Keep jumped-to sections clear of the sticky strip. */
     .page-main [id] {
         scroll-margin-top: 76px;
     }
 }
-
+/* Mobile layout adjustments */
 @media (max-width: 480px) {
     .page-sidebar {
         padding: 8px 10px;
         gap: 2px;
     }
-
     .page-sidebar a {
         padding: 7px 9px;
         font-size: 13px;
     }
-
     .page-sidebar-title {
         font-size: 11px;
         margin-bottom: 4px;

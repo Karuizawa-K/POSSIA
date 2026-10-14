@@ -1,35 +1,24 @@
-
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-
 body {
     background-color:#f9fbfd;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-  
 }
-
 .login-logo {
   max-width: 200px;
   width: 60%;
 }
-
-/* Admin Settings sits inline with the other navbar items, so the shared
-   navbar layout from navigation.css applies here unchanged. */
-
 .nav-user-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
-
-/* Text link to match the other navbar items; navigation.css also styles this
-   class, and it loads later, so both definitions are kept in step. */
 .admin-settings-btn {
     padding: 6px 12px;
     border: 1px solid transparent;
@@ -40,22 +29,19 @@ body {
     font-weight: 600;
     cursor: pointer;
 }
-
 .admin-settings-btn:hover {
     background: #e8eef5;
     color: #173d72;
 }
-
+/* Admin settings page */
 .admin-settings-content {
     width: min(1100px, calc(100% - 40px));
     margin: 40px auto;
     flex: 1;
 }
-
 .admin-settings-content[hidden] {
     display: none;
 }
-
 .account-form-section,
 .accounts-section {
     margin-bottom: 32px;
@@ -65,13 +51,12 @@ body {
     background: #ffffff;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
-
 .account-form-section h2,
 .accounts-section h2 {
     margin-bottom: 18px;
     color: #1e293b;
 }
-
+/* Account form section */
 #accountForm {
     display: grid;
     grid-template-columns: minmax(120px, 180px) minmax(200px, 1fr);
@@ -79,7 +64,6 @@ body {
     gap: 12px 16px;
     max-width: 700px;
 }
-
 #accountForm input,
 #accountForm select {
     width: 100%;
@@ -89,16 +73,13 @@ body {
     border-radius: 4px;
     font: inherit;
 }
-
 .admin-password-field {
     position: relative;
     width: 100%;
 }
-
 .admin-password-field input {
     padding-right: 64px !important;
 }
-
 .admin-password-toggle {
     position: absolute;
     top: 50%;
@@ -111,63 +92,52 @@ body {
     font: inherit;
     cursor: pointer;
 }
-
 .admin-password-toggle:focus-visible {
     outline: 2px solid #3481ec;
     outline-offset: 2px;
     border-radius: 3px;
 }
-
 #accountForm .admin-password-field {
     grid-column: 2;
 }
-
 #accountForm small {
     grid-column: 2;
     margin-top: -8px;
     color: #64748b;
 }
-
 .account-form-actions {
     grid-column: 2;
     display: flex;
     gap: 8px;
 }
-
 #statusMessage {
     margin-bottom: 16px;
     color: #166534;
 }
-
 #statusMessage:empty {
     display: none;
 }
-
 #statusMessage.error-message {
     color: #b91c1c;
 }
-
+/* Accounts table section */
 .accounts-table-wrapper {
     overflow-x: auto;
 }
-
 .accounts-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
 }
-
 .accounts-table th,
 .accounts-table td {
     padding: 12px;
     border-bottom: 1px solid #e2e8f0;
 }
-
 .accounts-table th {
     color: #334155;
     background: #f8fafc;
 }
-
 .account-action-btn {
     margin-right: 8px;
     padding: 6px 10px;
@@ -176,72 +146,61 @@ body {
     background: #ffffff;
     cursor: pointer;
 }
-
 .account-action-btn:disabled {
     cursor: not-allowed;
     opacity: 0.5;
 }
-
 .delete-account-btn {
     color: #b91c1c;
 }
-
 @media (max-width: 600px) {
     #accountForm {
         grid-template-columns: 1fr;
     }
-
     #accountForm small,
     #accountForm .admin-password-field,
     #accountForm .account-form-actions {
         grid-column: 1;
     }
 }
-
+/* Narrow layout adjustments */
 @media (max-width: 480px) {
-    .admin-settings-content {
+.admin-settings-content {
         padding: 14px;
     }
-
-    .accounts-table-wrapper {
+.accounts-table-wrapper {
         -webkit-overflow-scrolling: touch;
     }
-
     .accounts-table th,
     .accounts-table td {
         padding: 9px 8px;
         font-size: 13px;
     }
-
     .account-action-btn {
         padding: 8px 10px;
     }
-
     .account-form-actions {
         flex-wrap: wrap;
     }
-
     .account-form-actions > button {
         flex: 1 1 auto;
         min-height: 40px;
     }
 }
-
 .logout {
-    color: rgb(4, 4, 4); 
+    color: rgb(4, 4, 4);
     background: none;
     border: none;
     font-size: inherit;
-    text-decoration: none; 
+    text-decoration: none;
     cursor: pointer;
     transition: transform 0.3s ease;
 }
-
 .logout:hover {
     color: #ff4d4d;
     transform: translateY(-5px);
 }
-
+/* Dashboard page */
 .main-content {
     flex: 1;
     display: flex;
@@ -249,39 +208,37 @@ body {
     align-items: stretch;
     width: min(1200px, calc(100% - 60px));
     margin: 0 auto;
-    padding-top: 80px; 
+    padding-top: 80px;
 }
-
+/* Welcome section */
 .welcome-section h1 {
     font-size: 40px;
     color: #1e293b;
     margin-bottom: 8px;
 }
-
 .welcome-section p {
     color: #64748b;
     font-size: 16px;
     margin-bottom: 48px;
 }
+/* Workspace cards section */
 .cards-wrapper {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 30px;
 }
-
 .cards-wrapper.staff-view {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-
 .Btn {
     display: flex;
     align-items: center;
-    justify-content: center; 
-    text-align: center;     
+    justify-content: center;
+    text-align: center;
     border: none;
-    outline: none; 
+    outline: none;
     width: 100%;
-    height: 250px; 
+    height: 250px;
     border-radius: 5px;
     color: #1e293b;
     padding: 20px;
@@ -291,29 +248,24 @@ body {
     background-color: rgb(170, 220, 239);
     transition: transform 0.2s ease, box-shadow 0.2s ease, color 0.4s ease, background-color 0.4s ease;
 }
-
 .Btn[hidden] {
     display: none;
 }
-
 .Btn h2 {
     font-size: 24px;
     font-weight: 200;
     margin-bottom: 8px;
 }
-
 .Btn p {
     font-size: 16px;
     color: #1e293b;
 }
-
 .Btn:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 12px rgba(0,0,0,0.25);
     background-color: #0073ba;
     color: #ffffff;
 }
-
 .card-text h2 {
     font-size: 45px;
     font-weight: 400;
@@ -321,15 +273,13 @@ body {
     margin-top: 5px;
     text-transform: uppercase;
 }
-
 .card-text p {
     font-size: 13px;
     opacity: 0.9;
 }
-
 footer{
-    background-color: #f3f3f3;    
-    border-top: solid 1px #e9ecef; 
+    background-color: #f3f3f3;
+    border-top: solid 1px #e9ecef;
     color: #64748b;
     display: flex;
     justify-content: center;
@@ -337,42 +287,35 @@ footer{
     padding: 20px 30px;
     font-size: 14px;
 }
-
+/* Tablet layout adjustments */
 @media (max-width: 900px) {
     .main-content {
         padding-top: 48px;
     }
-
-    .cards-wrapper {
+.cards-wrapper {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
-
 @media (max-width: 600px) {
     .main-content {
         width: calc(100% - 32px);
         padding-top: 32px;
     }
-
-    .welcome-section h1 {
+.welcome-section h1 {
         font-size: 32px;
     }
-
     .cards-wrapper,
     .cards-wrapper.staff-view {
         grid-template-columns: 1fr;
         gap: 16px;
     }
-
     .Btn {
         height: 180px;
     }
-
     .navbar {
         padding: 10px 16px;
         gap: 12px;
     }
-
     .login-logo {
         width: 100%;
         max-width: 150px;

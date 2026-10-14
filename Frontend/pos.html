@@ -12,6 +12,7 @@
 
 <body>
     
+    <!-- Navigation bar -->
     <nav class="navbar">
         <div class="nav-left">
             <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
@@ -41,10 +42,10 @@
             <a href="#payment-methods">Payment</a>
         </aside>
         <div class="page-main">
-    <!-- POS APPLICATION AREA -->
+    <!-- Checkout section -->
     <section class="app-container">
         
-        <!-- LEFT: Product Catalog -->
+        <!-- Product catalog section -->
         <div class="catalog-section" id="catalogSection">
             <header class="catalog-header">
                 <label class="search-label" for="product-search">Search items</label>
@@ -72,7 +73,7 @@
             </div>
         </div>
 
-        <!-- RIGHT: Cart Sidebar -->
+        <!-- Cart section -->
         <aside class="cart-section" id="cartSection">
             <div class="cart-header">
                 <h2>Current Order</h2>
@@ -123,6 +124,7 @@
 
     </section>
 
+    <!-- Discount dialog -->
     <dialog class="pos-dialog" id="discount-dialog">
         <form id="discount-form" method="dialog">
             <h2>Apply Discount</h2>
@@ -136,6 +138,7 @@
         </form>
     </dialog>
 
+    <!-- Payment dialog -->
     <dialog class="pos-dialog" id="payment-dialog">
         <form id="payment-form" method="dialog">
             <h2 id="payment-dialog-title">Payment</h2>
@@ -149,6 +152,7 @@
         </form>
     </dialog>
 
+    <!-- Barcode scanner dialog -->
     <dialog class="pos-dialog scanner-dialog" id="scanner-dialog" aria-labelledby="scanner-title">
         <div class="scanner-content">
             <h2 id="scanner-title">Scan barcode</h2>
@@ -165,6 +169,7 @@
         </div>
     </dialog>
 
+    <!-- Receipt dialog -->
     <dialog class="receipt-dialog" id="receipt-dialog" aria-labelledby="receipt-title">
         <article class="receipt-content" id="receipt-content">
             <header class="receipt-header">

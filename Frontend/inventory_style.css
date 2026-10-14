@@ -4,19 +4,16 @@
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-
 .login-logo {
   max-width: 200px;
   width: 70%;
   margin-top: -10px;
 }
-
-/* Navbar theme: fixed horizontal padding and near-black text. */
+/* Navbar theme */
 body {
     --nav-color: rgb(1, 1, 1);
     --nav-padding: 12px 30px;
 }
-
 .nav-left {
     display: flex;
     align-items: center;
@@ -24,7 +21,6 @@ body {
     font-weight: 600;
     letter-spacing: 1px;
 }
-
 .dashboard {
     color: #7b7e81;
     border: none;
@@ -33,65 +29,55 @@ body {
     border-radius: 4px;
     font-size: inherit;
     font-weight: inherit;
-    text-decoration: none; 
+    text-decoration: none;
     cursor: pointer;
     transition: color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
 }
-
 .dashboard:hover {
     transform: translateY(-5px);
     color: #5d97d2;
     background-color: #f1f5f9;
 }
-
 .nav-center {
     text-align: center;
     flex: 2;
-    margin-right: 25px;  
+    margin-right: 25px;
 }
-
 .nav-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
     color: #173d72;
 }
-
 .nav-subtitle {
     font-size: 12px;
     color: #6b7280;
     letter-spacing: 0.5px;
 }
-
 .nav-right {
     font-size: 15px;
     opacity: 0.9;
 }
-
 .logout {
-    color: rgb(4, 4, 4); 
+    color: rgb(4, 4, 4);
     background: none;
     border: none;
     font-size: inherit;
-    text-decoration: none; 
+    text-decoration: none;
     cursor: pointer;
     transition: transform 0.3s ease;
 }
-
 .logout:hover {
     color: #ff4d4d;
     transform: translateY(-5px);
 }
-
-/* INVENTORY UI  */
-
+/* Inventory page */
 .inventory-container {
     padding: 30px;
     max-width: 1200px;
     margin: 0 auto;
     color: #333;
 }
-
 .inventory-container h2 {
     font-size: 18px;
     margin-bottom: 20px;
@@ -99,8 +85,7 @@ body {
     border-bottom: 2px solid #bdbdbd;
     padding-bottom: 10px;
 }
-
-/* Data Input Section */
+/* Product editor section */
 .input-section {
     background-color: #fff;
     border: 1px solid #e9ecef;
@@ -109,31 +94,26 @@ body {
     margin-bottom: 30px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-
 .input-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
     gap: 20px;
     align-items: end;
 }
-
 .input-grid > .form-group {
     min-width: 0;
 }
-
 .form-group {
     display: flex;
     flex-direction: column;
 }
-
 .form-group label {
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 8px;
     color: #555;
 }
-
-.form-group input, 
+.form-group input,
 .form-group select {
     padding: 10px 12px;
     border: 1px solid #ccc;
@@ -142,41 +122,34 @@ body {
     outline: none;
     transition: border-color 0.2s ease;
 }
-
-.form-group input:focus, 
+.form-group input:focus,
 .form-group select:focus {
     border-color: #5d97d2;
 }
-
 .form-actions {
     display: flex;
 }
-
 .barcode-field {
     display: flex;
     gap: 8px;
     width: 100%;
     min-width: 0;
 }
-
 .barcode-field input {
     flex: 1 1 0;
     width: 0;
     min-width: 0;
 }
-
 .barcode-field .btn-secondary {
     flex: 0 0 auto;
     width: auto;
     white-space: nowrap;
 }
-
 .field-note {
     margin: 8px 0 0;
     font-size: 12px;
     color: #777;
 }
-
 .barcode-preview {
     margin-top: 20px;
     padding: 16px;
@@ -188,22 +161,19 @@ body {
     align-items: center;
     gap: 12px;
 }
-
 .barcode-preview h3 {
     margin: 0;
     font-size: 15px;
 }
-
 .barcode-preview .field-note {
     margin: 0;
 }
-
 .barcode-preview svg {
     max-width: 100%;
     height: auto;
     background-color: #fff;
 }
-
+/* Barcode dialog */
 .barcode-dialog {
     width: min(520px, calc(100% - 32px));
     margin: auto;
@@ -212,11 +182,9 @@ body {
     border-radius: 8px;
     color: #333;
 }
-
 .barcode-dialog::backdrop {
     background: rgba(15, 23, 42, 0.5);
 }
-
 .barcode-dialog-content {
     display: flex;
     flex-direction: column;
@@ -224,28 +192,23 @@ body {
     gap: 14px;
     text-align: center;
 }
-
 .barcode-dialog-content h2 {
     margin: 0;
     color: #173d72;
 }
-
 .barcode-dialog-content p {
     margin: 0;
 }
-
 .barcode-dialog-content svg {
     max-width: 100%;
     height: auto;
 }
-
 .dialog-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
     width: 100%;
 }
-
 .barcode-row-button {
     display: block;
     margin-top: 6px;
@@ -258,15 +221,12 @@ body {
     font-size: 12px;
     cursor: pointer;
 }
-
 .barcode-row-button:hover {
     background: #dfe9f5;
 }
-
 .barcode-preview .form-actions {
     width: 100%;
 }
-
 .btn-submit {
     background-color: #173d72;
     color: #fff;
@@ -279,12 +239,10 @@ body {
     width: 100%;
     transition: background-color 0.2s ease;
 }
-
 .btn-submit:hover {
     background-color: #112d54;
 }
-
-/* Inventory Grid Section */
+/* Inventory grid section */
 .grid-section {
     background-color: #fff;
     border: 1px solid #e9ecef;
@@ -292,24 +250,20 @@ body {
     padding: 25px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-
 .table-responsive {
     overflow-x: auto;
 }
-
 .inventory-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
 }
-
-.inventory-table th, 
+.inventory-table th,
 .inventory-table td {
     padding: 14px 15px;
     text-align: left;
     border-bottom: 2px solid #d4cfcf;
 }
-
 .inventory-table th {
     background-color: #f8f9fa;
     font-size: 15px;
@@ -318,28 +272,22 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .inventory-table td {
     font-size: 14px;
     vertical-align: middle;
 }
-
 .inventory-table tbody tr:hover {
     background-color: #f8f9fa;
 }
-
 .inventory-table td.out-of-stock {
     color: #c62828;
     font-weight: 700;
 }
-
-/* Actions styling */
 .action-cells {
     display: flex;
     gap: 8px;
     align-items: center;
 }
-
 .action-input {
     width: 70px;
     padding: 8px;
@@ -347,8 +295,7 @@ body {
     border-radius: 4px;
     font-size: 14px;
 }
-
-.btn-stockin, 
+.btn-stockin,
 .btn-stockout {
     padding: 8px 12px;
     border: none;
@@ -358,73 +305,59 @@ body {
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
-
 .btn-stockin {
     background-color: #e8f5e9;
     color: #2e7d32;
 }
-
 .btn-stockin:hover {
     background-color: #c8e6c9;
 }
-
 .btn-stockout {
     background-color: #ffebee;
     color: #c62828;
 }
-
 .btn-stockout:hover {
     background-color: #ffcdd2;
 }
-
 .inventory-container[hidden],
 .admin-only[hidden],
 [hidden] {
     display: none !important;
 }
-
 .page-description,
 .section-note {
     color: #6b7280;
     margin-bottom: 16px;
 }
-
+/* Status messages */
 .status-message {
     min-height: 1.4em;
     margin-bottom: 12px;
     color: #2e7d32;
 }
-
 .status-message.error-message {
     color: #c62828;
 }
-
 .section-heading {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 16px;
 }
-
 .section-heading h2 {
     flex: 1;
 }
-
 .inventory-filters {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
     gap: 16px;
     margin: 8px 0 18px;
 }
-
-/* Let grid children shrink below their content width so long product names
-   cannot force the page wider than the viewport. */
 .inventory-filters > *,
 .input-grid > *,
 .category-form > * {
     min-width: 0;
 }
-
 .category-form {
     display: grid;
     grid-template-columns: minmax(200px, 1fr) auto;
@@ -432,11 +365,9 @@ body {
     gap: 16px;
     margin-bottom: 20px;
 }
-
 .category-form .btn-submit {
     width: auto;
 }
-
 .inventory-table td input[type="text"] {
     width: min(100%, 360px);
     padding: 8px 10px;
@@ -444,28 +375,23 @@ body {
     border-radius: 4px;
     font: inherit;
 }
-
 .inventory-table td input[type="text"]:disabled {
     padding-left: 0;
     border-color: transparent;
     background: transparent;
     color: inherit;
 }
-
 .inventory-table td button + button {
     margin-left: 8px;
 }
-
 .inventory-filters .form-group {
     gap: 6px;
 }
-
 .inventory-filters label {
     font-size: 14px;
     font-weight: 600;
     color: #0d0c0ca3;
 }
-
 .inventory-filters input,
 .inventory-filters select {
     padding: 10px 12px;
@@ -473,48 +399,40 @@ body {
     border-radius: 4px;
     font-size: 14px;
 }
-
 .grid-section + .grid-section {
     margin-top: 24px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
-
 .grid-section {
     margin-top: 24px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
-
 .inventory-table th,
 .inventory-table td {
     white-space: nowrap;
 }
-
 .inventory-table td.admin-actions {
     min-width: 310px;
     white-space: normal;
 }
-
 .admin-actions {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
 }
-
 .stock-adjustment {
     display: grid;
     grid-template-columns: minmax(60px, 75px) minmax(145px, 1fr);
     gap: 6px;
     width: 100%;
 }
-
 .stock-adjustment input {
     min-width: 0;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
-
 .btn-secondary {
     color: #173d72;
     background: #eef3f9;
@@ -525,116 +443,92 @@ body {
     font-weight: 600;
     cursor: pointer;
 }
-
 .btn-secondary:hover {
     background: #dfe9f5;
 }
-
 .btn-submit:disabled,
 .btn-secondary:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }
-
+/* Tablet layout adjustments */
 @media (max-width: 700px) {
     .navbar {
         padding: 10px 12px;
         flex-wrap: wrap;
         gap: 8px;
     }
-
     .nav-center {
         order: -1;
         flex-basis: 100%;
         margin: 0;
     }
-
     .nav-left,
     .nav-right {
         font-size: 13px;
     }
-
     .inventory-container {
         padding: 16px;
     }
-
     .input-section,
-    .grid-section {
+.grid-section {
         padding: 16px;
     }
-
     .category-form {
         grid-template-columns: 1fr;
     }
-
     .section-heading {
         align-items: flex-start;
         flex-direction: column;
     }
-
-    /* Non-table rows wrap rather than forcing the page wider. */
     .form-actions,
     .barcode-field,
     .section-heading {
         flex-wrap: wrap;
     }
-
     .form-actions > button {
         flex: 1 1 auto;
     }
-
     .barcode-field input {
         flex: 1 1 100%;
     }
-
     .stock-adjustment {
         grid-template-columns: minmax(0, 1fr);
     }
 }
-
+/* Mobile layout adjustments */
 @media (max-width: 480px) {
     .inventory-container {
         padding: 12px;
     }
-
     .inventory-container h2 {
         font-size: 16px;
     }
-
     .table-responsive {
         -webkit-overflow-scrolling: touch;
     }
-
-    /* The wide admin cell forced the whole page to scroll sideways. */
     .inventory-table td.admin-actions {
         min-width: 0;
     }
-
     .stock-adjustment {
         grid-template-columns: minmax(0, 1fr);
     }
-
     .admin-actions,
     .admin-actions > button {
         width: 100%;
     }
-
     .admin-actions {
         gap: 6px;
     }
-
     .barcode-field {
         flex-wrap: wrap;
     }
-
     .barcode-field input {
         flex: 1 1 100%;
     }
-
     .form-actions {
         flex-wrap: wrap;
     }
-
     .form-actions > button {
         flex: 1 1 auto;
         min-height: 40px;

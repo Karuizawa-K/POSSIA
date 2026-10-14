@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
+    <!-- Navigation bar -->
     <nav class="navbar">
         <div class="nav-left">
             <a class="dashboard" href="dashboard.html">⟵ Back to Dashboard</a>
@@ -40,6 +41,7 @@
     <main id="adminSettings" class="admin-settings-content" hidden>
         <p id="statusMessage" role="status" aria-live="polite"></p>
 
+        <!-- Account form section -->
         <section class="account-form-section" id="accountFormSection">
             <h2 id="formHeading">Create Account</h2>
             <form id="accountForm">
@@ -70,6 +72,7 @@
             </form>
         </section>
 
+        <!-- Accounts list section -->
         <section class="accounts-section" id="accountsSection">
             <h2>Accounts</h2>
             <div class="accounts-table-wrapper">
@@ -91,6 +94,7 @@
             </div>
         </section>
 
+        <!-- Recovery codes section -->
         <section class="accounts-section" id="recoveryCodesSection">
             <h2>My Recovery Codes</h2>
             <p id="recoveryCodesStatus" class="field-note">Loading...</p>

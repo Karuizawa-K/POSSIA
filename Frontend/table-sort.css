@@ -1,3 +1,4 @@
+/* Sort button */
 .table-sort-button {
     display: inline-flex;
     align-items: center;
@@ -13,22 +14,19 @@
     text-align: left;
     cursor: pointer;
 }
-
 .table-sort-button:hover {
     color: #173d72;
 }
-
 .table-sort-button:focus-visible {
     outline: 2px solid #3481ec;
     outline-offset: 2px;
     border-radius: 2px;
 }
-
 .table-sort-indicator {
     color: #173d72;
     white-space: nowrap;
 }
-
+/* Mobile layout adjustments */
 @media (max-width: 600px) {
     .table-sort-button {
         min-height: 36px;

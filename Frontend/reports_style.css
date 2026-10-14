@@ -4,19 +4,16 @@
     box-sizing: border-box;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
-
 .login-logo {
   max-width: 200px;
   width: 70%;
   margin-top: -10px;
 }
-
-/* Navbar theme: fixed horizontal padding and near-black text. */
+/* Navbar theme */
 body {
     --nav-color: rgb(1, 1, 1);
     --nav-padding: 12px 30px;
 }
-
 .nav-left {
     display: flex;
     align-items: center;
@@ -24,7 +21,6 @@ body {
     font-weight: 600;
     letter-spacing: 1px;
 }
-
 .dashboard {
     color: #7b7e81;
     border: none;
@@ -33,73 +29,62 @@ body {
     border-radius: 4px;
     font-size: inherit;
     font-weight: inherit;
-    text-decoration: none; 
+    text-decoration: none;
     cursor: pointer;
     transition: color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
 }
-
 .dashboard:hover {
     transform: translateY(-5px);
     color: #5d97d2;
     background-color: #f1f5f9;
 }
-
 .nav-center {
     text-align: center;
     flex: 2;
-    margin-right: 25px;  
+    margin-right: 25px;
 }
-
 .nav-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 700;
     color: #173d72;
 }
-
 .nav-subtitle {
     font-size: 12px;
     color: #6b7280;
     letter-spacing: 0.5px;
 }
-
 .nav-right {
     font-size: 15px;
     opacity: 0.9;
 }
-
 .logout {
-    color: rgb(4, 4, 4); 
+    color: rgb(4, 4, 4);
     background: none;
     border: none;
     font-size: inherit;
-    text-decoration: none; 
+    text-decoration: none;
     cursor: pointer;
     transition: transform 0.3s ease;
 }
-
 .logout:hover {
     color: #ff4d4d;
     transform: translateY(-5px);
 }
-
-/* REPORTS UI */
-
+/* Reports page */
 .reports-container {
     padding: 30px;
     max-width: 1200px;
     margin: 0 auto;
     color: #333;
 }
-
-/* Summary Section */
+/* Summary cards section */
 .summary-section {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
     margin-bottom: 30px;
 }
-
 .summary-card {
     background-color: #fff;
     border: 1px solid #e9ecef;
@@ -107,7 +92,6 @@ body {
     padding: 20px 25px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.02);
 }
-
 .summary-card h3 {
     font-size: 13px;
     font-weight: 600;
@@ -116,18 +100,15 @@ body {
     letter-spacing: 0.5px;
     margin-bottom: 8px;
 }
-
 .summary-card .value {
     font-size: 26px;
     font-weight: 700;
     color: #173d72;
 }
-
 .summary-card .value.alert {
     color: #d32f2f;
 }
-
-/* Common Box Style for Sections */
+/* Filter section */
 .filter-section, .data-section {
     background-color: #fff;
     border: 1px solid rgb(188, 184, 184);
@@ -136,7 +117,6 @@ body {
     margin-bottom: 30px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.15);
 }
-
 .filter-section h2,
 .data-section h2,
 .report-results h2 {
@@ -147,31 +127,22 @@ body {
     padding-bottom: 10px;
     border-bottom: 2px solid #bdbdbd;
 }
-
-/* Filter Grid */
+/* Filter grid */
 .filter-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
     align-items: end;
 }
-
-/* Grid and flex children default to min-width:auto, which lets long values
-   (receipt numbers, generated timestamps) force a track wider than the
-   viewport. Letting tracks shrink is what keeps the page from scrolling
-   sideways. */
 .filter-grid > *,
 .summary-section > *,
 .report-view .table-wrapper {
     min-width: 0;
 }
-
 .chart-wrap canvas {
     max-width: 100%;
 }
-
-/* Loading placeholder shown while a report request is in flight. Reserves
-   space so the page does not jump when results replace it. */
+/* Loading state */
 .report-loading {
     display: flex;
     flex-direction: column;
@@ -183,12 +154,10 @@ body {
     color: #64748b;
     text-align: center;
 }
-
 .report-loading p {
     margin: 0;
     font-size: 15px;
 }
-
 .report-loading-spinner {
     display: block;
     width: 38px;
@@ -198,32 +167,28 @@ body {
     border-radius: 50%;
     animation: report-loading-spin 900ms linear infinite;
 }
-
 @keyframes report-loading-spin {
     to {
         transform: rotate(360deg);
     }
 }
-
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .report-loading-spinner {
         animation: none;
     }
 }
-
 .form-group {
     display: flex;
     flex-direction: column;
 }
-
 .form-group label {
     font-size: 15px;
     font-weight: 600;
     color: #0d0c0ca3;
     margin-bottom: 8px;
 }
-
-.form-group input, 
+.form-group input,
 .form-group select {
     padding: 10px 12px;
     border: 1px solid #d1d5db;
@@ -232,23 +197,18 @@ body {
     outline: none;
     background-color: #fafafa;
     transition: border-color 0.2s ease;
-    /* Date inputs carry a large intrinsic width (text plus picker icon).
-       Capping keeps them inside their grid track instead of widening it. */
     max-width: 100%;
 }
-
-.form-group input:focus, 
+.form-group input:focus,
 .form-group select:focus {
     border-color: #5d97d2;
     background-color: #fff;
 }
-
-/* Action Buttons */
 .form-actions {
     display: flex;
     gap: 10px;
 }
-
+/* Action buttons */
 .btn-generate, .btn-export {
     padding: 10px 20px;
     border-radius: 4px;
@@ -259,51 +219,42 @@ body {
     text-align: center;
     transition: all 0.2s ease;
 }
-
 .btn-generate:disabled,
 .btn-export:disabled {
     opacity: 0.55;
     cursor: not-allowed;
 }
-
 .btn-generate {
     background-color: #173d72;
     color: #fff;
     border: none;
 }
-
 .btn-generate:hover {
     background-color: #112d54;
 }
-
 .btn-export {
     background-color: #fff;
     color: #173d72;
     border: 1px solid #173d72;
 }
-
 .btn-export:hover {
     background-color: #f8fafc;
 }
-
-/* Table Styles */
+/* Results tables section */
 .table-wrapper {
     overflow-x: auto;
 }
-
 .report-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 10px;
 }
-
-.report-table th, 
+.report-table th,
 .report-table td {
     padding: 14px 16px;
     text-align: left;
     border-bottom: 1px solid #e9ecef;
 }
-
 .report-table th {
     background-color: #f9fafb;
     font-size: 12px;
@@ -312,17 +263,14 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
-
 .report-table td {
     font-size: 14px;
     color: #374151;
 }
-
 .report-table tbody tr:hover {
     background-color: #f9fafb;
 }
-
-/* Status Indicators */
+/* Status indicators */
 .status {
     display: inline-block;
     padding: 4px 8px;
@@ -330,60 +278,49 @@ body {
     font-size: 12px;
     font-weight: 600;
 }
-
 .status-in {
     background-color: #e6f4ea;
     color: #1e8e3e;
 }
-
 .status-out {
     background-color: #fce8e6;
     color: #d93025;
 }
-
 .reports-container[hidden],
 [hidden] {
     display: none !important;
 }
-
+/* Status messages */
 .report-message {
     min-height: 1.4em;
     margin-bottom: 12px;
     color: #166534;
 }
-
 .report-message:empty {
     display: none;
 }
-
 .report-message.error-message {
     color: #b91c1c;
 }
-
 .report-results {
     margin-bottom: 30px;
 }
-
 .chart-wrap {
     height: 300px;
     margin-bottom: 28px;
 }
-
 .chart-wrap:last-child {
     margin-bottom: 0;
 }
-
 .chart-wrap h3 {
     font-size: 15px;
     font-weight: 600;
     color: #374151;
     margin-bottom: 10px;
 }
-
 .chart-wrap canvas {
     max-height: 260px;
 }
-
 .report-heading {
     display: flex;
     justify-content: space-between;
@@ -391,138 +328,110 @@ body {
     gap: 16px;
     margin-bottom: 20px;
 }
-
 .report-heading h2 {
     margin-bottom: 6px;
 }
-
 .report-heading p {
     color: #64748b;
 }
-
 .report-results .summary-section {
     grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
-
 .report-results .data-section {
     margin-bottom: 0;
 }
-
 .report-table td {
     white-space: pre-line;
 }
-
 .report-table td:last-child {
     min-width: 220px;
 }
-
+/* Tablet layout adjustments */
 @media (max-width: 700px) {
     .navbar {
         padding: 10px 12px;
         flex-wrap: wrap;
         gap: 8px;
     }
-
     .nav-center {
         order: -1;
         flex-basis: 100%;
         margin: 0;
     }
-
     .reports-container {
         padding: 16px;
     }
-
     .filter-section,
     .data-section {
         padding: 16px;
     }
-
     .form-actions,
     .report-heading {
         flex-wrap: wrap;
     }
-
-    /* Long words (receipt numbers, timestamps) must not force the row wider
-       than the screen. */
     .form-actions > button,
     .report-heading > * {
         min-width: 0;
         max-width: 100%;
     }
 }
-
+/* Mobile layout adjustments */
 @media (max-width: 480px) {
     .reports-container {
         padding: 12px;
     }
-
     .filter-section,
     .data-section {
         padding: 14px;
     }
-
     .filter-section h2,
     .data-section h2,
     .report-results h2 {
         font-size: 20px;
     }
-
-    .summary-section {
+.summary-section {
         gap: 12px;
     }
-
     .summary-card {
         padding: 14px 16px;
     }
-
     .summary-card .value {
         font-size: 22px;
     }
-
     .chart-wrap {
         height: 240px;
     }
-
     .chart-wrap canvas {
         max-height: 200px;
     }
-
     .report-table {
         font-size: 12px;
     }
-
     .report-table th,
     .report-table td {
         padding: 9px 8px;
     }
-
-    /* The 220px floor forced sideways page scrolling on a phone. */
     .report-table td:last-child {
         min-width: 130px;
     }
-
-    .table-wrapper {
+.table-wrapper {
         -webkit-overflow-scrolling: touch;
     }
-
     .btn-generate,
     .btn-export {
         min-height: 40px;
     }
 }
-
+/* Print styles */
 @media print {
     body {
         background: #fff;
     }
-
     .navbar,
     .filter-section,
-    .report-message {
+.report-message {
         display: none !important;
     }
-
     .reports-container {
         max-width: none;
         padding: 0;

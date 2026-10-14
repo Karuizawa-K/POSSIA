@@ -2,7 +2,6 @@
   box-sizing: border-box;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
-
 body {
   margin: 0;
   min-height: 100vh;
@@ -11,7 +10,7 @@ body {
   background-size: cover;
   background-position: center;
 }
-
+/* Login card */
 .card {
   width: 400px;
   max-width: 90%;
@@ -20,39 +19,32 @@ body {
   border-radius: 5px;
   box-shadow: 0 8px 30px rgba(5, 5, 5, 0.529);
 }
-
 .login-logo {
   max-width: 285px;
   margin-top: -150px;
 }
-
-.card-content { 
+.card-content {
   margin-top: 110px;
   color: #0F172A;
 }
-
 .forget_pass {
 display: block;
-text-align: right; 
-margin-bottom: 15px; 
-font-size: 15px; 
-text-decoration: none; 
+text-align: right;
+margin-bottom: 15px;
+font-size: 15px;
+text-decoration: none;
 color: #2b78c5;
 }
-
 h1, h2 {
   margin-top: 0;
 }
-
 .subtitle {
   color: #6b6b6b;
 }
-
 label {
   display: block;
   margin: 14px 0 6px;
 }
-
 input {
   width: 100%;
   padding: 12px 16px;
@@ -63,15 +55,13 @@ input {
   outline: none;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
-
+/* Login form */
 .password-input-wrapper {
   position: relative;
 }
-
 .password-input-wrapper input {
   padding-right: 72px;
 }
-
 .password-visibility-toggle {
   position: absolute;
   top: 50%;
@@ -83,7 +73,6 @@ input {
   color: #1E293B;
   transform: translateY(-50%);
 }
-
 button {
   width: 100%;
   margin-top: 18px;
@@ -94,19 +83,16 @@ button {
   color: white;
   cursor: pointer;
 }
-
 button:hover {
   opacity: .9;
 }
-
 .hidden {
   display: none;
 }
-
+/* Status messages */
 #message {
   min-height: 20px;
 }
-
 .recovery-link {
   margin-top: 8px;
   padding: 6px 0;
@@ -114,77 +100,60 @@ button:hover {
   color: #2b78c5;
   text-align: right;
 }
-
 .secondary-button {
   margin-top: 6px;
   background: #64748B;
 }
-
 #recoveryMessage {
   min-height: 20px;
 }
-
+/* Tablet layout adjustments */
 @media (max-width: 600px) {
   body {
     padding: 16px;
-    /* Center horizontally only. Vertical centering in a flex container clips
-       tall content (e.g. the recovery form) off the top where it cannot be
-       scrolled to, so the block stays top-aligned. */
     align-items: flex-start;
     justify-content: center;
   }
-
   .card {
     width: 100%;
     max-width: 100%;
     padding: 28px 22px;
   }
-
-  /* Undo the desktop overlap offsets that have no room on a phone. */
   .login-logo {
     max-width: 170px;
     margin-top: 0;
   }
-
   .card-content {
     margin-top: 20px;
   }
-
   h1 {
     font-size: 1.5rem;
   }
-
   h2 {
     font-size: 1.15rem;
   }
-
   input {
     padding: 11px 14px;
     font-size: 16px;
   }
-
   button {
     padding: 11px;
   }
 }
-
+/* Mobile layout adjustments */
 @media (max-width: 400px) {
   body {
     padding: 10px;
   }
-
   .card {
     padding: 22px 16px;
   }
-
   .login-logo {
     max-width: 140px;
   }
-
   label {
     margin: 12px 0 5px;
   }
-
   .forget_pass {
     font-size: 14px;
   }

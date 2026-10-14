@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
+    <!-- Navigation bar -->
     <nav class="navbar">
         <div class="nav-left">
             <button class="dashboard" type="button" onclick="window.location.href='dashboard.html'">⟵ Back to Dashboard</button>
@@ -44,6 +45,7 @@
         <div class="page-main">
     <main class="reports-container" id="reportsPage" hidden>
         <p id="reportMessage" class="report-message" role="status" aria-live="polite"></p>
+        <!-- Report filters section -->
         <section class="filter-section" id="reportFilterSection">
             <h2>Generate Report</h2>
             <form class="filter-grid" id="reportForm">
@@ -88,6 +90,7 @@
             </form>
         </section>
 
+        <!-- Report results section -->
         <div class="report-results" id="reportResults" hidden></div>
     </main>
         </div>
