@@ -630,11 +630,14 @@ async function generateReport() {
     }
     const params = `period=${encodeURIComponent(salesPeriod.value)}&date=${encodeURIComponent(periodDate.value)}`;
     const isSales = reportCategory.value === "sales";
+    // Match the selected period so the label never claims "today" for a
+    // weekly, monthly, or yearly range.
+    const periodLabel = salesPeriod.options[salesPeriod.selectedIndex].text.toLowerCase();
     const button = document.getElementById("generateReportButton");
     button.disabled = true;
     button.textContent = "Generating...";
     showLoadingState(isSales
-        ? "Loading today's sales report..."
+        ? `Loading ${periodLabel} sales report...`
         : "Loading inventory and stock movements...");
     try {
         // Fetch first, then swap the content in. Clearing up front empties the
