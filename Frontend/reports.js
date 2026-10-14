@@ -599,6 +599,26 @@ function renderInventoryPage() {
     renderMovementsView(currentMovementData);
 }
 
+// Visible feedback while the request is in flight. Without it the results
+// area is simply empty for the whole fetch (long on a Render cold start),
+// which reads as a broken page. Replaced by clearResults() on success and
+// error alike, so there is no separate cleanup path.
+function showLoadingState(label) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "report-loading";
+    wrapper.setAttribute("role", "status");
+    const spinner = document.createElement("span");
+    spinner.className = "report-loading-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    const text = document.createElement("p");
+    text.textContent = label;
+    wrapper.append(spinner, text);
+    reportResults.replaceChildren(wrapper);
+    reportResults.hidden = false;
+    // Nothing worth printing exists mid-request.
+    printButton.disabled = true;
+}
+
 // ---------- Generate ----------
 
 async function generateReport() {
@@ -613,6 +633,9 @@ async function generateReport() {
     const button = document.getElementById("generateReportButton");
     button.disabled = true;
     button.textContent = "Generating...";
+    showLoadingState(isSales
+        ? "Loading today's sales report..."
+        : "Loading inventory and stock movements...");
     try {
         // Fetch first, then swap the content in. Clearing up front empties the
         // page during the request, which collapses the layout on narrow
