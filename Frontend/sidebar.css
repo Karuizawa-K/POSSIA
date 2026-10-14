@@ -68,6 +68,17 @@
     flex-direction: column;
 }
 
+/* Flex items are sized by their content, so an auto margin on a column flex
+   item shrink-wraps it to that content. With the results area empty (first
+   load, or between clearing and re-rendering) these containers collapsed to
+   the width of the form and the whole page flashed to a narrow layout.
+   Forcing full width keeps every state identical; the existing max-width and
+   auto margins still center them once the content is wider. */
+.page-main > main.reports-container,
+.page-main > main.inventory-container {
+    width: 100%;
+}
+
 html.sidebar-smooth {
     scroll-behavior: smooth;
 }
