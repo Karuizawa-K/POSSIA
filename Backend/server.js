@@ -33,30 +33,33 @@ const GENERIC_RESET_MESSAGE =
   "That recovery code or username is not valid.";
 
 const app = express();
+app.set("trust proxy", 1);
+// Frontend is hosted separately on Vercel; the backend is API-only.
+// Set FRONTEND_URL on Render to the Vercel URL (comma-separated for previews),
+// e.g. FRONTEND_URL=https://possia-apbmerchandising.vercel.app
 const frontendOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(",").map((origin) => origin.trim())
-  : true;
+  ? process.env.FRONTEND_URL.split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+  : ["https://possia-apbmerchandising.vercel.app"];
 
 app.use(
   cors({
     origin: frontendOrigins,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    maxAge: 86400,
   })
 );
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "..", "Frontend")));
-app.use(
-  "/vendor/zxing",
-  express.static(path.join(__dirname, "node_modules", "@zxing", "browser", "umd"))
-);
-app.use(
-  "/vendor/jsbarcode",
-  express.static(path.join(__dirname, "node_modules", "jsbarcode", "dist"))
-);
 
-// Test route
+// Health routes (Render health checks + API status; no static UI served here).
 app.get("/", (req, res) => {
-  res.json({ message: "Login API is running." });
+  res.json({ message: "POSSIA API is running." });
+});
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
 });
 
 async function requireAuth(req, res, next) {

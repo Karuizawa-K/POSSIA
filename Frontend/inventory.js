@@ -1,3 +1,6 @@
+// apiUrl() is defined in config.js (loaded before this file) and prefixes
+// paths with the Render backend URL. Fall back to same-origin when missing.
+const apiUrl = window.apiUrl || ((path) => path);
 const inventoryPage = document.getElementById("inventoryPage");
 const inventoryRows = document.getElementById("inventoryRows");
 const movementRows = document.getElementById("movementRows");
@@ -34,7 +37,7 @@ function showMessage(message, isError = false) {
 
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem("token");
-    const response = await fetch(url, {
+    const response = await fetch(apiUrl(url), {
         ...options,
         headers: {
             Authorization: `Bearer ${token}`,

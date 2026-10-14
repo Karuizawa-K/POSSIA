@@ -1,3 +1,6 @@
+// apiUrl() is defined in config.js (loaded before this file) and prefixes
+// paths with the Render backend URL. Fall back to same-origin when missing.
+const apiUrl = window.apiUrl || ((path) => path);
 const productGrid = document.getElementById("product-grid");
 const cartGrid = document.getElementById("cart-items");
 const productSearch = document.getElementById("product-search");
@@ -229,10 +232,10 @@ async function loadPos() {
 
     try {
         const [profileResponse, productsResponse] = await Promise.all([
-            fetch("/api/profile", {
+            fetch(apiUrl("/api/profile"), {
                 headers: { Authorization: `Bearer ${token}` }
             }),
-            fetch("/api/products", {
+            fetch(apiUrl("/api/products"), {
                 headers: { Authorization: `Bearer ${token}` }
             })
         ]);
@@ -267,7 +270,7 @@ async function loadPos() {
 async function refreshProducts() {
     const token = localStorage.getItem("token");
     try {
-        const response = await fetch("/api/products", {
+        const response = await fetch(apiUrl("/api/products"), {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (response.status === 401) {
@@ -548,7 +551,7 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
     checkoutInProgress = true;
     renderCart();
     try {
-        const response = await fetch("/api/sales", {
+        const response = await fetch(apiUrl("/api/sales"), {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,

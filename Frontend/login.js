@@ -1,6 +1,9 @@
 // =========================
 // LOGIN
 // =========================
+// apiUrl() is defined in config.js (loaded before this file) and prefixes
+// paths with the Render backend URL. Fall back to same-origin when missing.
+const apiUrl = window.apiUrl || ((path) => path);
 
 const loginForm = document.getElementById("loginForm");
 const passwordInput = document.getElementById("password");
@@ -53,7 +56,7 @@ loginForm.addEventListener("submit", async (event) => {
     const message = document.getElementById("message");
 
     try {
-        const response = await fetch("/api/login", {
+        const response = await fetch(apiUrl("/api/login"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -95,7 +98,7 @@ recoveryForm.addEventListener("submit", async (event) => {
 
     resetPasswordButton.disabled = true;
     try {
-        const response = await fetch("/api/password/reset", {
+        const response = await fetch(apiUrl("/api/password/reset"), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

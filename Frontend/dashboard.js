@@ -1,4 +1,6 @@
 // Loads the signed in user and fetches user role
+// apiUrl() is defined in config.js (loaded before this file).
+const apiUrl = window.apiUrl || ((path) => path);
 async function loadSession() {
     try {
         const token = localStorage.getItem("token");
@@ -7,7 +9,7 @@ async function loadSession() {
             return null;
         }
 
-        const response = await fetch("/api/profile", {
+        const response = await fetch(apiUrl("/api/profile"), {
             headers: {
                 Authorization: `Bearer ${token}`
             }
