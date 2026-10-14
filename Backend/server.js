@@ -7,7 +7,6 @@ const path = require("path");
 const { randomBytes, timingSafeEqual } = require("crypto");
 require("dotenv").config({ path: path.join(__dirname, ".env") });
 
-// Import DB models
 const User = require("./models/users");
 const Category = require("./models/categories");
 const Product = require("./models/products");
@@ -34,9 +33,6 @@ const GENERIC_RESET_MESSAGE =
 
 const app = express();
 app.set("trust proxy", 1);
-// Frontend is hosted separately on Vercel; the backend is API-only.
-// Set FRONTEND_URL on Render to the Vercel URL (comma-separated for previews),
-// e.g. FRONTEND_URL=https://possia-apbmerchandising.vercel.app
 const frontendOrigins = process.env.FRONTEND_URL
   ? process.env.FRONTEND_URL.split(",")
       .map((origin) => origin.trim())
@@ -54,7 +50,6 @@ app.use(
 
 app.use(express.json());
 
-// Health routes (Render health checks + API status; no static UI served here).
 app.get("/", (req, res) => {
   res.json({ message: "POSSIA API is running." });
 });
@@ -62,6 +57,7 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Rejects requests without a valid, non-archived session token.
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -109,7 +105,6 @@ async function requireAuth(req, res, next) {
   }
 }
 
-// List products for the point-of-sale catalog
 app.get("/api/products", requireAuth, async (req, res) => {
   try {
     const products = await Product.find({ isActive: { $ne: false } })
@@ -133,7 +128,6 @@ app.get("/api/products", requireAuth, async (req, res) => {
   }
 });
 
-// Inventory is viewable by all signed-in users; management remains Admin-only.
 app.get("/api/inventory", requireAuth, async (req, res) => {
   try {
     const filter = req.authUser.role === "Admin" ? {} : { isActive: { $ne: false } };
@@ -169,7 +163,6 @@ app.get("/api/inventory", requireAuth, async (req, res) => {
   }
 });
 
-// Complete a sale atomically with its details, payment, receipt, and stock updates.
 app.post("/api/sales", requireAuth, async (req, res) => {
   const { items, discount, paymentMethod, amountPaid, referenceNumber } = req.body || {};
   if (
@@ -331,7 +324,6 @@ app.post("/api/sales", requireAuth, async (req, res) => {
   }
 });
 
-// Login
 app.post("/api/login", async (req, res) => {
   try {
     const { username, password } = req.body || {};
@@ -348,8 +340,6 @@ app.post("/api/login", async (req, res) => {
 
     const user = await User.findOne({ username: username.trim() });
 
-    // Archived accounts are rejected with the same message so archived
-    // usernames cannot be probed.
     if (!user || user.isActive === false) {
       return res.status(401).json({
         message: "Invalid username or password.",
@@ -405,10 +395,12 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+// Trims a username for comparison.
 function normalizeUsername(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+// Finds a stored hash matching a supplied recovery code.
 function findMatchingRecoveryCode(hashes, code) {
   if (!Array.isArray(hashes) || hashes.length === 0) {
     return null;
@@ -423,7 +415,6 @@ function findMatchingRecoveryCode(hashes, code) {
   return null;
 }
 
-// Admin-only self-service: the forgot-password form for the single Admin account.
 app.post("/api/password/reset", async (req, res) => {
   const { code, newPassword, confirmPassword } = req.body || {};
   const username = normalizeUsername((req.body || {}).username);
@@ -485,6 +476,7 @@ app.post("/api/password/reset", async (req, res) => {
   }
 });
 
+// Summarizes remaining recovery codes for the Admin.
 function recoveryCodesStatus(hashes) {
   const total = Array.isArray(hashes) ? hashes.length : 0;
   return {
@@ -494,7 +486,6 @@ function recoveryCodesStatus(hashes) {
   };
 }
 
-// Admin Settings lets the Admin mint a fresh set while still logged in.
 app.post("/api/admin/recovery-codes/regenerate", requireAdmin, async (req, res) => {
   try {
     const codes = generateRecoveryCodes();
@@ -520,6 +511,7 @@ app.post("/api/admin/recovery-codes/regenerate", requireAdmin, async (req, res) 
   }
 });
 
+// Rejects requests from any non-Admin session.
 async function requireAdmin(req, res, next) {
   await requireAuth(req, res, () => {
     if (req.authUser.role !== "Admin") {
@@ -533,6 +525,7 @@ async function requireAdmin(req, res, next) {
   });
 }
 
+// Validates product create and update payloads.
 function isValidInventoryProductInput(input, { partial = false, allowBlankBarcode = false } = {}) {
   const fields = ["productName", "categoryId", "unitPrice"];
   const allFields = [...fields, "barcode"];
@@ -560,6 +553,7 @@ function isValidInventoryProductInput(input, { partial = false, allowBlankBarcod
   );
 }
 
+// Shapes a product and category into an API response.
 function inventoryProductResponse(product, category) {
   return {
     id: product._id,
@@ -649,7 +643,6 @@ app.delete("/api/admin/inventory/categories/:categoryId", requireAdmin, async (r
   }
 });
 
-// Generate an unused in-store EAN-13 barcode for an explicit preview request.
 app.get("/api/admin/inventory/next-barcode", requireAdmin, async (req, res) => {
   try {
     const barcode = await generateUniqueBarcode(Product);
@@ -778,6 +771,7 @@ app.patch("/api/admin/inventory/products/:productId/status", requireAdmin, async
   }
 });
 
+// Applies a stock-in or stock-out change inside a transaction.
 async function adjustInventoryStock(req, res, direction) {
   const { productId } = req.params;
   const { quantity, reason = "" } = req.body || {};
@@ -897,7 +891,6 @@ app.get("/api/admin/inventory/movements", requireAdmin, async (req, res) => {
   }
 });
 
-// Period-filtered stock movement history for the Reports tab.
 app.get("/api/admin/reports/movements", requireAdmin, async (req, res) => {
   const { period, date } = req.query;
   const range = getReportPeriod(period, date);
@@ -1251,7 +1244,6 @@ app.get("/api/admin/reports/inventory", requireAdmin, async (req, res) => {
   }
 });
 
-// List accounts (Admin only)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
   try {
     const users = await User.find()
@@ -1276,8 +1268,6 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Create an account (Admin only). The single Admin is created by the operator,
-// so accounts created here are always Staff.
 app.post("/api/admin/users", requireAdmin, async (req, res) => {
   try {
     const { username, fullName, password, role } = req.body || {};
@@ -1349,7 +1339,6 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
-// Edit an account (Admin only)
 app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1444,8 +1433,6 @@ app.put("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
-// Archive an account (Admin only). Accounts are never hard-deleted so they
-// can be reactivated; archiving also bumps tokenVersion to end sessions.
 app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1491,7 +1478,6 @@ app.delete("/api/admin/users/:userId", requireAdmin, async (req, res) => {
   }
 });
 
-// Reactivate an archived account (Admin only)
 app.patch("/api/admin/users/:userId/status", requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1528,7 +1514,6 @@ app.patch("/api/admin/users/:userId/status", requireAdmin, async (req, res) => {
 });
 
 
-// Protected profile route
 app.get("/api/profile", async (req, res) => {
   try {
     const authHeader = req.headers.authorization;
@@ -1573,6 +1558,7 @@ app.get("/api/profile", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+// Connects to MongoDB and starts the HTTP listener.
 async function startServer() {
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI must be set to your MongoDB Atlas connection string.");

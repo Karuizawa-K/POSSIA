@@ -217,6 +217,24 @@ body {
     opacity: 0.5;
 }
 
+.qty-input {
+    width: 62px;
+    min-height: 30px;
+    padding: 4px 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
+    background: #ffffff;
+    color: #0f2046;
+    font-size: 13px;
+    text-align: center;
+}
+
+.qty-input:focus {
+    outline: none;
+    border-color: #3481ec;
+    box-shadow: 0 0 0 2px #eaf2ff;
+}
+
 .grid-empty {
     padding: 30px !important;
     color: #9ca3af;
@@ -273,6 +291,11 @@ body {
     min-width: 28px;
     min-height: 28px;
     padding: 2px 8px;
+}
+
+.qty-input {
+    width: 58px;
+    min-height: 28px;
 }
 
 .cart-footer {

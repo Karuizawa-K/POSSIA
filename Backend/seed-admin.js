@@ -11,6 +11,7 @@ const {
 } = require("./utils/recovery-codes");
 
 const USERNAME_PATTERN = /^[a-zA-Z0-9._-]{3,32}$/;
+// Reads one line from the terminal, optionally masking the input.
 function prompt(label, maskInput = false) {
   return new Promise((resolve, reject) => {
     let value = "";
@@ -55,6 +56,7 @@ function prompt(label, maskInput = false) {
   });
 }
 
+// Creates the single Admin account interactively.
 async function main() {
   if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== "function") {
     throw new Error("Run this command in an interactive terminal.");
@@ -114,6 +116,7 @@ async function main() {
   }
 }
 
+// Prints newly issued recovery codes to the console.
 function printRecoveryCodes(codes) {
   console.log("");
   console.log("=".repeat(62));

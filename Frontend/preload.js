@@ -1,21 +1,13 @@
-// Shared cache for preloaded report payloads.
-//
-// The dashboard warms "today's sales" so the Reports tab can paint its
-// default view immediately instead of waiting on a round-trip. Loaded by
-// dashboard.html and reports.html.
-//
-// Entries are namespaced, day-scoped and age-scoped, so a stale or leftover
-// entry can never be served. Every operation is best-effort: private mode or a
-// full quota just means the Reports page falls back to fetching normally.
 (function () {
     var PREFIX = "possia.reportCache.";
     var VERSION = "v1";
 
+    // Builds the namespaced storage key for a cached report.
     function cacheKey(name) {
         return PREFIX + name + "." + VERSION;
     }
 
-    // Same calendar day the backend groups sales by (Asia/Manila).
+    // Returns today's date string in the report time zone.
     function today() {
         try {
             return new Intl.DateTimeFormat("en-CA", {
@@ -31,6 +23,7 @@
 
     window.PossiaReportCache = {
         today: today,
+        // Stores a report payload with its timestamp and day stamp.
         save: function (name, payload) {
             try {
                 localStorage.setItem(cacheKey(name), JSON.stringify({
@@ -44,8 +37,7 @@
                 return false;
             }
         },
-        // Returns the payload only when it belongs to today and is fresh
-        // enough to paint with; otherwise null so the caller fetches.
+        // Returns a same-day payload that is still within the freshness window.
         read: function (name, maxAgeMs) {
             try {
                 var raw = localStorage.getItem(cacheKey(name));
@@ -64,6 +56,7 @@
                 return null;
             }
         },
+        // Deletes every cached report entry.
         clearAll: function () {
             try {
                 var doomed = [];
@@ -77,7 +70,6 @@
                     localStorage.removeItem(doomed[j]);
                 }
             } catch (error) {
-                // Nothing to do; entries are already day/age scoped.
             }
         }
     };

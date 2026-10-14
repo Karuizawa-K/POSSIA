@@ -10,8 +10,7 @@ const {
   hashRecoveryCode,
 } = require("./utils/recovery-codes");
 
-// Operator-only recovery for the single Admin account: sets a new password and
-// issues a fresh set of recovery codes. Same trust level that creates the Admin.
+// Reads one line from the terminal, optionally masking the input.
 function prompt(label, maskInput = false) {
   return new Promise((resolve, reject) => {
     let value = "";
@@ -56,6 +55,7 @@ function prompt(label, maskInput = false) {
   });
 }
 
+// Prints the replacement recovery codes to the console.
 function printRecoveryCodes(codes) {
   console.log("");
   console.log("=".repeat(62));
@@ -70,6 +70,7 @@ function printRecoveryCodes(codes) {
   console.log("");
 }
 
+// Resets the Admin password and reissues recovery codes.
 async function main() {
   if (!process.stdin.isTTY || typeof process.stdin.setRawMode !== "function") {
     throw new Error("Run this command in an interactive terminal.");
@@ -116,7 +117,6 @@ async function main() {
           password: hashedPassword,
           adminRecoveryCodeHashes: recoveryCodes.map(hashRecoveryCode),
         },
-        // Signs the Admin out of every existing session.
         $inc: { tokenVersion: 1 },
       }
     );

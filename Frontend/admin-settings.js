@@ -1,5 +1,3 @@
-// apiUrl() is defined in config.js (loaded before this file) and prefixes
-// paths with the Render backend URL. Fall back to same-origin when missing.
 const apiUrl = window.apiUrl || ((path) => path);
 const accountForm = document.getElementById("accountForm");
 const accountsList = document.getElementById("accountsList");
@@ -23,11 +21,13 @@ let currentUserId;
 let editingUserId = null;
 let issuedRecoveryCodes = [];
 
+// Writes the page status line, optionally as an error.
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
     statusMessage.classList.toggle("error-message", isError);
 }
 
+// Sends an authenticated API request and throws on failure.
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem("token");
     const response = await fetch(apiUrl(url), {
@@ -50,6 +50,7 @@ async function apiRequest(url, options = {}) {
     return data;
 }
 
+// Returns the account form to create-account mode.
 function resetAccountForm() {
     editingUserId = null;
     accountForm.reset();
@@ -61,6 +62,7 @@ function resetAccountForm() {
     cancelEditButton.hidden = true;
 }
 
+// Renders the accounts table with edit and archive controls.
 function renderAccounts(users) {
     accountsList.replaceChildren();
 
@@ -123,6 +125,7 @@ function renderAccounts(users) {
     window.makeTableSortable(accountsList.closest("table"));
 }
 
+// Loads an account into the form for editing.
 function startEditing(user) {
     editingUserId = user.id;
     document.getElementById("username").value = user.username;
@@ -138,11 +141,13 @@ function startEditing(user) {
     accountForm.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Fetches and renders the current account list.
 async function loadAccounts() {
     const data = await apiRequest("/api/admin/users");
     renderAccounts(data.users);
 }
 
+// Archives or reactivates an account after confirmation.
 async function updateAccountStatus(user) {
     const isArchived = user.isActive === false;
     if (isArchived) {
@@ -179,6 +184,7 @@ async function updateAccountStatus(user) {
     }
 }
 
+// Creates a new account or saves edits to an existing one.
 accountForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const confirmed = window.confirm(editingUserId
@@ -221,6 +227,7 @@ const downloadCodesButton = document.getElementById("downloadCodesButton");
 const recoveryCodesDisplay = document.getElementById("recoveryCodesDisplay");
 const recoveryCodesList = document.getElementById("recoveryCodesList");
 
+// Shows how many recovery codes remain.
 function renderRecoveryCodesStatus(user) {
     const remaining = user.recoveryCodesRemaining;
     const total = user.recoveryCodesTotal;
@@ -237,6 +244,7 @@ function renderRecoveryCodesStatus(user) {
         (user.recoveryCodesLow ? " Running low - generate a new set soon." : "");
 }
 
+// Displays newly issued recovery codes once.
 function showIssuedCodes(codes) {
     issuedRecoveryCodes = Array.isArray(codes) ? codes : [];
     recoveryCodesList.replaceChildren();
@@ -250,6 +258,7 @@ function showIssuedCodes(codes) {
     downloadCodesButton.hidden = false;
 }
 
+// Issues a fresh set of recovery codes.
 async function regenerateRecoveryCodes() {
     if (!window.confirm(
         "Generate new recovery codes? Your current codes will stop working immediately."
@@ -281,6 +290,7 @@ copyCodesButton.addEventListener("click", async () => {
     }
 });
 
+// Downloads the visible recovery codes as a text file.
 downloadCodesButton.addEventListener("click", () => {
     if (issuedRecoveryCodes.length === 0) {
         return;
@@ -301,6 +311,7 @@ downloadCodesButton.addEventListener("click", () => {
 
 regenerateCodesButton.addEventListener("click", regenerateRecoveryCodes);
 
+// Verifies Admin access before revealing the page.
 async function authorizeAdminSettings() {
     const token = localStorage.getItem("token");
     if (!token) {

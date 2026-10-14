@@ -5,11 +5,12 @@ const GROUP_LENGTH = 4;
 const GROUP_COUNT = 3;
 const PATTERN = /^[A-Z2-9]{4}(?:-[A-Z2-9]{4}){2}$/;
 
+// Hashes a recovery code so only the digest is ever stored.
 function hashRecoveryCode(code) {
   return createHash("sha256").update(String(code)).digest("hex");
 }
 
-// Alphabet omits I, O, 0 and 1 so codes stay readable when relayed by phone.
+// Builds one readable XXXX-XXXX-XXXX code from a phone-safe alphabet.
 function generateRecoveryCode() {
   const groupSize = GROUP_LENGTH * GROUP_COUNT;
   const characters = [];
@@ -22,6 +23,7 @@ function generateRecoveryCode() {
     .replace(/-$/, "");
 }
 
+// Returns a batch of unique recovery codes.
 function generateRecoveryCodes(count = 8) {
   const codes = [];
   while (codes.length < count) {
@@ -33,6 +35,7 @@ function generateRecoveryCodes(count = 8) {
   return codes;
 }
 
+// Trims and upper-cases user input into a comparable recovery code.
 function normalizeRecoveryCode(value) {
   return typeof value === "string" ? value.trim().toUpperCase() : "";
 }

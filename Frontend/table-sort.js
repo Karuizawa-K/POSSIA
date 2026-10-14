@@ -4,6 +4,7 @@ const tableSortCollator = new Intl.Collator(undefined, {
     sensitivity: "base"
 });
 
+// Resolves a cell to a comparable sort value for the column's sort type.
 function tableSortValue(cell, sortType) {
     if (!cell) {
         return "";
@@ -26,6 +27,7 @@ function tableSortValue(cell, sortType) {
     return cell.textContent.trim();
 }
 
+// Reorders a table's body rows to match its current sort state.
 function applyTableSort(table) {
     const state = tableSortStates.get(table);
     if (!state || state.key === null) {
@@ -59,6 +61,7 @@ function applyTableSort(table) {
     }
 }
 
+// Adds click-to-sort header buttons to a table and keeps its sort state.
 function makeTableSortable(table) {
     if (!table) {
         return;

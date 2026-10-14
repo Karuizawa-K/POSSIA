@@ -1,8 +1,3 @@
-// =========================
-// LOGIN
-// =========================
-// apiUrl() is defined in config.js (loaded before this file) and prefixes
-// paths with the Render backend URL. Fall back to same-origin when missing.
 const apiUrl = window.apiUrl || ((path) => path);
 
 const loginForm = document.getElementById("loginForm");
@@ -15,6 +10,7 @@ const newPasswordInput = document.getElementById("newPassword");
 const confirmNewPasswordInput = document.getElementById("confirmNewPassword");
 const resetPasswordButton = document.getElementById("resetPasswordButton");
 
+// Toggles a password field between hidden text and plain text.
 function wirePasswordToggle(input, button) {
     button.addEventListener("click", () => {
         const isPasswordHidden = input.type === "password";
@@ -48,6 +44,7 @@ document.getElementById("cancelRecovery").addEventListener("click", () => {
     document.getElementById("showRecoveryForm").classList.remove("hidden");
 });
 
+// Signs in, stores the token, and opens the dashboard.
 loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
@@ -74,10 +71,7 @@ loginForm.addEventListener("submit", async (event) => {
             return;
         }
 
-        // Save JWT token
         localStorage.setItem("token", data.token);
-
-        // Go to dashboard
         window.location.href = "dashboard.html";
 
     } catch (error) {
@@ -86,6 +80,7 @@ loginForm.addEventListener("submit", async (event) => {
     }
 });
 
+// Resets the Admin password using a single-use recovery code.
 recoveryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const message = document.getElementById("recoveryMessage");

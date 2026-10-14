@@ -1,6 +1,7 @@
 const REPORT_TIME_ZONE = "Asia/Manila";
 const REPORT_UTC_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 
+// Formats a date as a YYYY-MM-DD string in the report time zone.
 function dateValueInReportTimeZone(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: REPORT_TIME_ZONE,
@@ -12,6 +13,7 @@ function dateValueInReportTimeZone(date = new Date()) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
+// Parses YYYY-MM-DD into a UTC-midnight date, rejecting invalid dates.
 function parseCalendarDate(dateValue) {
   if (typeof dateValue !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
     return null;
@@ -30,10 +32,12 @@ function parseCalendarDate(dateValue) {
   return date;
 }
 
+// Converts a Manila calendar midnight into its UTC instant.
 function manilaMidnightToUtc(calendarDate) {
   return new Date(calendarDate.getTime() - REPORT_UTC_OFFSET_MILLISECONDS);
 }
 
+// Resolves a period preset and anchor date into a UTC start/end range.
 function getReportPeriod(period, dateValue, now = new Date()) {
   if (!["daily", "weekly", "monthly", "yearly"].includes(period)) {
     return null;

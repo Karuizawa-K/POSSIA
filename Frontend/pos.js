@@ -1,5 +1,5 @@
-// apiUrl() is defined in config.js (loaded before this file) and prefixes
-// paths with the Render backend URL. Fall back to same-origin when missing.
+
+
 const apiUrl = window.apiUrl || ((path) => path);
 const productGrid = document.getElementById("product-grid");
 const cartGrid = document.getElementById("cart-items");
@@ -21,6 +21,7 @@ const currency = new Intl.NumberFormat("en-PH", {
     currency: "PHP"
 });
 
+// Replaces a grid's rows with a single message row.
 function showGridMessage(grid, message) {
     grid.replaceChildren();
     const row = document.createElement("tr");
@@ -32,12 +33,14 @@ function showGridMessage(grid, message) {
     grid.append(row);
 }
 
+// Creates a text cell for a table row.
 function makeCell(value) {
     const cell = document.createElement("td");
     cell.textContent = value;
     return cell;
 }
 
+// Returns the cart subtotal in centavos.
 function getSubtotalCents() {
     return [...cart.values()].reduce(
         (sum, { product, quantity }) =>
@@ -46,6 +49,7 @@ function getSubtotalCents() {
     );
 }
 
+// Populates and opens the receipt dialog.
 function showReceipt(receipt) {
     const setReceiptText = (id, value) => {
         document.getElementById(id).textContent = value;
@@ -83,6 +87,7 @@ function showReceipt(receipt) {
     document.getElementById("receipt-dialog").showModal();
 }
 
+// Renders the catalog table for the current search.
 function renderProducts() {
     const query = productSearch.value.trim().toLowerCase();
     const visibleProducts = products.filter((product) =>
@@ -121,6 +126,7 @@ function renderProducts() {
     window.makeTableSortable(productGrid.closest("table"));
 }
 
+// Adds units of a product to the cart if stock allows.
 function addToCart(product, quantity = 1) {
     const selected = cart.get(product.id);
     const currentQuantity = selected ? selected.quantity : 0;
@@ -141,6 +147,7 @@ function addToCart(product, quantity = 1) {
     return true;
 }
 
+// Steps a cart line's quantity by the given amount.
 function changeQuantity(productId, change) {
     const selected = cart.get(productId);
     if (!selected) {
@@ -157,6 +164,32 @@ function changeQuantity(productId, change) {
     renderCart();
 }
 
+// Applies a quantity typed into a cart line, or reverts it.
+function commitTypedQuantity(productId, rawValue) {
+    const selected = cart.get(productId);
+    if (!selected) {
+        return;
+    }
+
+    const parsed = Number.parseInt(rawValue, 10);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+        renderCart();
+        return;
+    }
+    if (parsed > selected.product.stockQuantity) {
+        window.alert(`Only ${selected.product.stockQuantity} × ${selected.product.productName} in stock.`);
+        renderCart();
+        return;
+    }
+    if (parsed === selected.quantity) {
+        return;
+    }
+
+    selected.quantity = parsed;
+    renderCart();
+}
+
+// Renders cart lines, totals, and checkout state.
 function renderCart() {
     cartGrid.replaceChildren();
     if (cart.size === 0) {
@@ -194,8 +227,24 @@ function renderCart() {
         decreaseButton.setAttribute("aria-label", `Remove one ${product.productName}`);
         decreaseButton.addEventListener("click", () => changeQuantity(productId, -1));
 
-        const quantityText = document.createElement("span");
-        quantityText.textContent = ` ${quantity} `;
+        const quantityInput = document.createElement("input");
+        quantityInput.type = "number";
+        quantityInput.className = "qty-input";
+        quantityInput.min = "1";
+        quantityInput.step = "1";
+        quantityInput.inputMode = "numeric";
+        quantityInput.value = String(quantity);
+        quantityInput.max = String(product.stockQuantity);
+        quantityInput.setAttribute("aria-label", `Quantity for ${product.productName}`);
+        quantityInput.addEventListener("change", () =>
+            commitTypedQuantity(productId, quantityInput.value)
+        );
+        quantityInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                commitTypedQuantity(productId, quantityInput.value);
+            }
+        });
 
         const increaseButton = document.createElement("button");
         increaseButton.type = "button";
@@ -204,7 +253,7 @@ function renderCart() {
         increaseButton.setAttribute("aria-label", `Add one ${product.productName}`);
         increaseButton.disabled = quantity >= product.stockQuantity;
         increaseButton.addEventListener("click", () => changeQuantity(productId, 1));
-        quantityCell.append(decreaseButton, quantityText, increaseButton);
+        quantityCell.append(decreaseButton, quantityInput, increaseButton);
 
         row.append(quantityCell, makeCell(currency.format(amountCents / 100)));
         cartGrid.append(row);
@@ -222,6 +271,7 @@ function renderCart() {
     window.makeTableSortable(cartGrid.closest("table"));
 }
 
+// Loads the profile and product catalog for the POS.
 async function loadPos() {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -253,7 +303,7 @@ async function loadPos() {
             productsResponse.json()
         ]);
         document.getElementById("userInfo").textContent = profileData.user.fullName;
-        // Staff use the POS too, so only the Admin sees the access marker.
+        
         document.getElementById("pageSubtitle").textContent =
             profileData.user.role === "Admin" ? "Point of Sale • Admin Access" : "Point of Sale";
         products = productsData.products;
@@ -265,6 +315,7 @@ async function loadPos() {
     }
 }
 
+// Reloads stock levels after a completed sale.
 async function refreshProducts() {
     const token = localStorage.getItem("token");
     try {
@@ -288,6 +339,7 @@ async function refreshProducts() {
     }
 }
 
+// Stops the camera stream and releases it.
 function stopBarcodeScanner() {
     if (barcodeControls) {
         barcodeControls.stop();
@@ -300,6 +352,7 @@ function stopBarcodeScanner() {
     video.srcObject = null;
 }
 
+// Plays a short tone to confirm or reject a scan.
 function playScanBeep(success = true) {
     try {
         scanAudioContext ||= new (window.AudioContext || window.webkitAudioContext)();
@@ -316,22 +369,24 @@ function playScanBeep(success = true) {
         oscillator.start();
         oscillator.stop(scanAudioContext.currentTime + (success ? 0.12 : 0.25));
     } catch (error) {
-        // Audio feedback is best-effort; scanning works without it.
+        
     }
 }
 
+// Reads the quantity to add per scanned barcode.
 function scanQuantityPerScan() {
     const value = Number.parseInt(document.getElementById("scan-qty-per").value, 10);
     return Number.isInteger(value) && value > 0 ? value : 1;
 }
 
-// Convenience-store flow: every successful scan adds to the cart immediately
-// with a beep while the camera keeps running. The status line reports misses
-// (unknown barcode, out of stock) without interrupting scanning.
+
+
+
+// Adds a scanned item to the cart while scanning continues.
 function handleScannedBarcode(barcode) {
     const now = Date.now();
-    // Short debounce so one held-up barcode doesn't flood the cart, while
-    // repeat scans of the same item still work like a real till.
+    
+    
     if (barcode === lastScannedBarcode && now - lastScannedAt < 800) {
         return;
     }
@@ -377,6 +432,7 @@ function handleScannedBarcode(barcode) {
         : "Camera active. Keep scanning, or press Close when done.";
 }
 
+// Requests the camera and begins decoding barcodes.
 async function startBarcodeScanner() {
     if (barcodeControls) {
         return;
@@ -447,8 +503,8 @@ document.getElementById("discount-btn").addEventListener("click", () => {
     discountInput.focus();
 });
 
-// Cancel is a plain button, not a submit: the dialog inputs are required, so a
-// submit would be blocked by native validation and the dialog would stay open.
+
+
 document.getElementById("cancel-discount-btn").addEventListener("click", () => {
     document.getElementById("discount-error").textContent = "";
     document.getElementById("discount-dialog").close();
@@ -665,8 +721,8 @@ document.getElementById("close-receipt-btn").addEventListener("click", () => {
     document.getElementById("receipt-dialog").close();
 });
 
-// Clicking the backdrop outside the dialog content dismisses it, matching the
-// inventory barcode dialog.
+
+
 for (const dialogId of [
     "discount-dialog",
     "payment-dialog",
@@ -682,7 +738,7 @@ for (const dialogId of [
 }
 
 document.getElementById("refreshButton").addEventListener("click", () => {
-    // A reload empties the cart, so ask first when there is an order in progress.
+    
     if (cart.size > 0) {
         const confirmed = window.confirm(
             "Refreshing clears the current order. Continue?"

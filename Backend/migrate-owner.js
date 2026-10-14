@@ -5,6 +5,7 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 const User = require("./models/users");
 const SystemSetting = require("./models/system_settings");
 
+// Assigns the oldest Admin as the system owner when unset.
 async function main() {
     if (!process.env.MONGODB_URI) {
         throw new Error("MONGODB_URI must be configured in Backend/.env.");

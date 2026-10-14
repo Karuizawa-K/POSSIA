@@ -2,6 +2,7 @@ const { randomInt } = require("crypto");
 
 const IN_STORE_PREFIXES = ["20", "21", "22", "23", "24", "25", "26", "27", "28", "29"];
 
+// Computes the EAN-13 check digit for twelve leading digits.
 function ean13CheckDigit(firstTwelveDigits) {
   const digits = String(firstTwelveDigits);
   if (!/^\d{12}$/.test(digits)) {
@@ -16,6 +17,7 @@ function ean13CheckDigit(firstTwelveDigits) {
   return String((10 - (sum % 10)) % 10);
 }
 
+// Builds a random in-store EAN-13 candidate barcode.
 function generateEan13Candidate(prefix) {
   const usedPrefix = IN_STORE_PREFIXES.includes(prefix) ? prefix : IN_STORE_PREFIXES[0];
   let body = "";
@@ -27,6 +29,7 @@ function generateEan13Candidate(prefix) {
   return `${firstTwelve}${ean13CheckDigit(firstTwelve)}`;
 }
 
+// Returns a candidate barcode that no product already uses.
 async function generateUniqueBarcode(Product, { attempts = 10 } = {}) {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const candidate = generateEan13Candidate();

@@ -1,5 +1,5 @@
-// apiUrl() is defined in config.js (loaded before this file) and prefixes
-// paths with the Render backend URL. Fall back to same-origin when missing.
+
+
 const apiUrl = window.apiUrl || ((path) => path);
 const reportsPage = document.getElementById("reportsPage");
 const reportForm = document.getElementById("reportForm");
@@ -24,11 +24,13 @@ const currency = new Intl.NumberFormat("en-PH", {
     currency: "PHP"
 });
 
+// Writes the page status line, optionally as an error.
 function setMessage(message, isError = false) {
     reportMessage.textContent = message;
     reportMessage.classList.toggle("error-message", isError);
 }
 
+// Sends an authenticated API request and throws on failure.
 async function apiRequest(url) {
     const token = localStorage.getItem("token");
     const response = await fetch(apiUrl(url), {
@@ -45,6 +47,7 @@ async function apiRequest(url) {
     return data;
 }
 
+// Returns today's date string in the report time zone.
 function localDateValue(date = new Date()) {
     const parts = new Intl.DateTimeFormat("en-CA", {
         timeZone: REPORT_TIME_ZONE,
@@ -56,15 +59,17 @@ function localDateValue(date = new Date()) {
     return `${values.year}-${values.month}-${values.day}`;
 }
 
+// Limits the date picker to today or earlier.
 function updateDatepickerMaximum() {
     periodDate.max = localDateValue();
 }
 
+// Shows or hides filters based on the report category.
 function updateReportControls() {
     updateDatepickerMaximum();
     const isSales = reportCategory.value === "sales";
-    // Period/date always apply: sales views and stock movements use them.
-    // The inventory snapshot is a current-stock view and ignores them.
+    
+    
     document.getElementById("paymentGroup").hidden = !isSales;
     document.getElementById("inventoryCategoryGroup").hidden = isSales;
     document.getElementById("periodDateLabel").textContent =
@@ -73,6 +78,7 @@ function updateReportControls() {
                 salesPeriod.value === "yearly" ? "Any Date in Year" : "Date";
 }
 
+// Appends a text cell to a table row.
 function addCell(row, value) {
     const cell = document.createElement("td");
     cell.textContent = value == null ? "" : String(value);
@@ -80,24 +86,26 @@ function addCell(row, value) {
     return cell;
 }
 
-// ---------- Stacked-page builders ----------
 
+
+// Tells the sidebar helper that sections were added.
 function notifySectionsChanged() {
     window.dispatchEvent(new CustomEvent("page-sections-changed"));
 }
 
-// Sidebar links per category. The reports page owns this visibility itself
-// instead of relying on observers firing at the right moment: the stacked
-// views are created after load, and a cached or older sidebar.js would hide
-// these links forever.
+
+
+
+
 const REPORT_VIEW_IDS = {
     sales: ["view-overview", "view-trend", "view-categories", "view-payments", "view-discounts"],
     inventory: ["view-snapshot", "view-movements"],
 };
 
+// Shows sidebar links for the active category's views.
 function syncReportSidebar() {
-    // Let the shared helper wire observers/active-state for the new sections
-    // first, then set visibility authoritatively so it cannot be undone.
+    
+    
     notifySectionsChanged();
     const available = new Set(
         (REPORT_VIEW_IDS[reportCategory.value] || []).filter((id) => document.getElementById(id))
@@ -112,6 +120,7 @@ function syncReportSidebar() {
     }
 }
 
+// Destroys charts and empties the results area.
 function clearResults() {
     for (const key of Object.keys(charts)) {
         try {
@@ -125,8 +134,9 @@ function clearResults() {
     reportResults.hidden = true;
 }
 
-// One stacked view section: heading + Export button, summary cards, chart slot,
-// then tables. Returns handles for the renderers below.
+
+
+// Builds one stacked view section and returns its handles.
 function makeViewSection(id, title, periodText, exportKey) {
     const section = document.createElement("section");
     section.className = "data-section report-view";
@@ -161,6 +171,7 @@ function makeViewSection(id, title, periodText, exportKey) {
     return { section, summary, chartSlot };
 }
 
+// Fills a view section with summary cards.
 function addViewSummary(summary, items) {
     summary.replaceChildren();
     for (const [label, value, isAlert] of items) {
@@ -176,6 +187,7 @@ function addViewSummary(summary, items) {
     }
 }
 
+// Adds a titled, sortable table to a view section.
 function addViewTable(section, title, headers, rows, emptyMessage, sortTypes = [], sortValues = []) {
     const titleElement = document.createElement("h2");
     titleElement.textContent = title;
@@ -224,8 +236,9 @@ function addViewTable(section, title, headers, rows, emptyMessage, sortTypes = [
     window.makeTableSortable(table);
 }
 
-// Charts are visual summaries only; tables stay the source of truth.
-// Fails soft when the CDN library is blocked.
+
+
+// Renders a chart into a view section when the library loaded.
 function addViewChart(chartSlot, title, type, labels, values, label) {
     if (!window.Chart || labels.length === 0) {
         return;
@@ -258,6 +271,7 @@ function addViewChart(chartSlot, title, type, labels, values, label) {
     });
 }
 
+// Rebuilds the inventory category dropdown, keeping the selection.
 function populateInventoryCategoryFilter(products) {
     const names = [...new Set(
         products.map((product) => product.categoryName || "Uncategorized")
@@ -279,10 +293,12 @@ function populateInventoryCategoryFilter(products) {
     }
 }
 
+// Formats a timestamp for report tables.
 function formatDate(value) {
     return new Date(value).toLocaleString();
 }
 
+// Builds the human-readable period range label.
 function reportPeriodLabel(data) {
     const start = new Date(data.startDate);
     const end = new Date(new Date(data.endDateExclusive).getTime() - 1);
@@ -296,12 +312,14 @@ function reportPeriodLabel(data) {
     return `${dateFormat.format(start)} – ${dateFormat.format(end)}`;
 }
 
+// Combines the period name with its date range.
 function salesPeriodText(data) {
     return `${salesPeriod.options[salesPeriod.selectedIndex].text} • ${reportPeriodLabel(data)}`;
 }
 
-// ---------- Sales views (one enriched payload) ----------
 
+
+// Renders the sales summary, transactions, and top products.
 function renderOverviewView(data) {
     const view = makeViewSection("view-overview", "Sales Overview", salesPeriodText(data), "overview");
     const summary = [
@@ -365,6 +383,7 @@ function renderOverviewView(data) {
     );
 }
 
+// Renders the sales trend chart and table.
 function renderTrendView(data) {
     const view = makeViewSection("view-trend", "Sales Trend", salesPeriodText(data), "trend");
     const buckets = data.trend?.buckets || [];
@@ -396,6 +415,7 @@ function renderTrendView(data) {
     );
 }
 
+// Renders revenue grouped by product category.
 function renderCategoriesView(data) {
     const view = makeViewSection("view-categories", "Category Sales", salesPeriodText(data), "categories");
     const rows = data.categoryBreakdown || [];
@@ -421,6 +441,7 @@ function renderCategoriesView(data) {
     );
 }
 
+// Renders the sales split by payment method.
 function renderPaymentsView(data) {
     const view = makeViewSection("view-payments", "Payment Split", salesPeriodText(data), "payments");
     const rows = data.paymentBreakdown || [];
@@ -455,6 +476,7 @@ function renderPaymentsView(data) {
     );
 }
 
+// Renders every discounted transaction in the period.
 function renderDiscountsView(data) {
     const view = makeViewSection("view-discounts", "Discounts Audit", salesPeriodText(data), "discounts");
     const rows = data.discountedTransactions || [];
@@ -488,6 +510,7 @@ function renderDiscountsView(data) {
     );
 }
 
+// Renders all sales views from one payload.
 function renderSalesPage(data) {
     renderOverviewView(data);
     renderTrendView(data);
@@ -496,8 +519,9 @@ function renderSalesPage(data) {
     renderDiscountsView(data);
 }
 
-// ---------- Inventory views ----------
 
+
+// Renders the current inventory snapshot and low stock.
 function renderSnapshotView(data) {
     const view = makeViewSection("view-snapshot", "Inventory Snapshot", "Current stock snapshot", "snapshot");
     populateInventoryCategoryFilter(data.products);
@@ -559,6 +583,7 @@ function renderSnapshotView(data) {
     );
 }
 
+// Renders stock movements for the chosen period.
 function renderMovementsView(data) {
     const view = makeViewSection("view-movements", "Stock Movements", salesPeriodText(data), "movements");
     addViewSummary(view.summary, [
@@ -591,6 +616,7 @@ function renderMovementsView(data) {
     );
 }
 
+// Renders both inventory views from cached payloads.
 function renderInventoryPage() {
     if (!currentInventoryData || !currentMovementData) {
         return;
@@ -599,10 +625,11 @@ function renderInventoryPage() {
     renderMovementsView(currentMovementData);
 }
 
-// Visible feedback while the request is in flight. Without it the results
-// area is simply empty for the whole fetch (long on a Render cold start),
-// which reads as a broken page. Replaced by clearResults() on success and
-// error alike, so there is no separate cleanup path.
+
+
+
+
+// Shows a placeholder while a report request is in flight.
 function showLoadingState(label) {
     const wrapper = document.createElement("div");
     wrapper.className = "report-loading";
@@ -615,12 +642,13 @@ function showLoadingState(label) {
     wrapper.append(spinner, text);
     reportResults.replaceChildren(wrapper);
     reportResults.hidden = false;
-    // Nothing worth printing exists mid-request.
+    
     printButton.disabled = true;
 }
 
-// ---------- Generate ----------
 
+
+// Fetches the active report category and renders it.
 async function generateReport() {
     setMessage("");
     updateDatepickerMaximum();
@@ -630,8 +658,8 @@ async function generateReport() {
     }
     const params = `period=${encodeURIComponent(salesPeriod.value)}&date=${encodeURIComponent(periodDate.value)}`;
     const isSales = reportCategory.value === "sales";
-    // Match the selected period so the label never claims "today" for a
-    // weekly, monthly, or yearly range.
+    
+    
     const periodLabel = salesPeriod.options[salesPeriod.selectedIndex].text.toLowerCase();
     const button = document.getElementById("generateReportButton");
     button.disabled = true;
@@ -640,9 +668,9 @@ async function generateReport() {
         ? `Loading ${periodLabel} sales report...`
         : "Loading inventory and stock movements...");
     try {
-        // Fetch first, then swap the content in. Clearing up front empties the
-        // page during the request, which collapses the layout on narrow
-        // viewports (the media queries re-evaluate) and looks like a flash.
+        
+        
+        
         let salesData = null;
         let inventoryData = null;
         let movementData = null;
@@ -673,8 +701,8 @@ async function generateReport() {
         printButton.disabled = false;
         syncReportSidebar();
     } catch (error) {
-        // Nothing new rendered, so drop the stale report rather than leaving
-        // the previous period on screen under an error message.
+        
+        
         clearResults();
         setMessage(error.message, true);
     } finally {
@@ -683,8 +711,9 @@ async function generateReport() {
     }
 }
 
-// ---------- CSV export (one file per view) ----------
 
+
+// Escapes a value for safe CSV output.
 function escapeCsv(value) {
     let text = value == null ? "" : String(value);
     if (/^[\s]*[=+\-@]/.test(text)) {
@@ -693,6 +722,7 @@ function escapeCsv(value) {
     return `"${text.replace(/"/g, '""')}"`;
 }
 
+// Builds sales overview CSV rows.
 function overviewCsvRows(data) {
     const headers = [
         "Date", "Receipt", "Cashier", "Payment Method", "Amount Paid",
@@ -736,6 +766,7 @@ function overviewCsvRows(data) {
     return [headers, ...rows];
 }
 
+// Builds sales trend CSV rows.
 function trendCsvRows(data) {
     return [
         ["Period", "Transactions", "Net Sales"],
@@ -747,6 +778,7 @@ function trendCsvRows(data) {
     ];
 }
 
+// Builds category sales CSV rows.
 function categoryCsvRows(data) {
     return [
         ["Category", "Units Sold", "Revenue"],
@@ -758,6 +790,7 @@ function categoryCsvRows(data) {
     ];
 }
 
+// Builds payment split CSV rows.
 function paymentCsvRows(data) {
     return [
         ["Method", "Transactions", "Total Sales", "Average Ticket"],
@@ -770,6 +803,7 @@ function paymentCsvRows(data) {
     ];
 }
 
+// Builds discounts audit CSV rows.
 function discountCsvRows(data) {
     return [
         ["Date", "Receipt", "Cashier", "Payment Method", "Discount", "Net Sales"],
@@ -784,6 +818,7 @@ function discountCsvRows(data) {
     ];
 }
 
+// Builds inventory snapshot CSV rows.
 function snapshotCsvRows(data) {
     const selectedCategory = inventoryCategoryFilter.value;
     const shown = selectedCategory
@@ -812,6 +847,7 @@ function snapshotCsvRows(data) {
     ];
 }
 
+// Builds stock movement CSV rows.
 function movementCsvRows(data) {
     return [
         ["Date", "Type", "Product", "Barcode", "Quantity", "Reason", "Recorded By"],
@@ -837,6 +873,7 @@ const EXPORT_VIEWS = {
     movements: { rows: movementCsvRows, data: () => currentMovementData, file: "stock-movements" },
 };
 
+// Downloads rows as a CSV file.
 function downloadCsv(rows, filename) {
     const content = `\uFEFF${rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n")}`;
     const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
@@ -847,6 +884,7 @@ function downloadCsv(rows, filename) {
     URL.revokeObjectURL(link.href);
 }
 
+// Exports one rendered view as CSV.
 function exportView(key) {
     const view = EXPORT_VIEWS[key];
     const data = view?.data();
@@ -856,6 +894,7 @@ function exportView(key) {
     downloadCsv(view.rows(data), view.file);
 }
 
+// Opens a print window containing the current results.
 function printReport() {
     if (!currentReport) {
         return;
@@ -895,12 +934,12 @@ reportForm.addEventListener("submit", (event) => {
 });
 reportCategory.addEventListener("change", () => {
     updateReportControls();
-    // Hide links for views that are not generated yet for this category.
+    
     syncReportSidebar();
 });
 salesPeriod.addEventListener("change", updateReportControls);
 inventoryCategoryFilter.addEventListener("change", () => {
-    // Category narrows the cached snapshot without refetching.
+    
     if (reportCategory.value === "inventory" && currentInventoryData && currentMovementData) {
         clearResults();
         renderInventoryPage();
@@ -921,14 +960,16 @@ document.getElementById("logoutButton").addEventListener("click", () => {
     window.location.replace("/");
 });
 
-// A preloaded payload is only painted when it is same-day and recent; the
-// background refresh afterwards makes the final numbers exact.
+
+
 const CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 
+// Returns the preloaded sales payload when still fresh.
 function readCachedSales() {
     return window.PossiaReportCache?.read("sales", CACHE_MAX_AGE_MS) || null;
 }
 
+// Renders a sales payload into the results area.
 function showSalesData(data) {
     currentSalesData = data;
     currentReport = data;
@@ -939,8 +980,9 @@ function showSalesData(data) {
     syncReportSidebar();
 }
 
-// Re-fetch after painting the cached view so sales completed on the POS since
-// the preload are included. Failures keep the cached render on screen.
+
+
+// Refetches sales so the shown numbers stay exact.
 async function refreshSalesInBackground() {
     try {
         const query = `/api/admin/reports/sales?period=${encodeURIComponent(salesPeriod.value)}` +
@@ -953,6 +995,7 @@ async function refreshSalesInBackground() {
     }
 }
 
+// Verifies Admin access, then renders the default report.
 async function authorizeReports() {
     if (!localStorage.getItem("token")) {
         window.location.replace("/");
@@ -965,15 +1008,15 @@ async function authorizeReports() {
             return;
         }
         document.getElementById("userInfo").textContent = user.fullName;
-        // Default view: today's full sales report, so the page is useful
-        // before Generate is ever pressed.
+        
+        
         reportCategory.value = "sales";
         salesPeriod.value = "daily";
         periodDate.value = localDateValue();
         updateReportControls();
         reportsPage.hidden = false;
 
-        // Paint instantly from the dashboard preload, then correct in background.
+        
         const cached = readCachedSales();
         if (cached) {
             showSalesData(cached);

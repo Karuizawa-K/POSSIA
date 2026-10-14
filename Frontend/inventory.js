@@ -1,5 +1,3 @@
-// apiUrl() is defined in config.js (loaded before this file) and prefixes
-// paths with the Render backend URL. Fall back to same-origin when missing.
 const apiUrl = window.apiUrl || ((path) => path);
 const inventoryPage = document.getElementById("inventoryPage");
 const inventoryRows = document.getElementById("inventoryRows");
@@ -30,11 +28,13 @@ let categories = [];
 let editingProductId = null;
 let dialogBarcodeProductName = "";
 
+// Writes the page status line, optionally as an error.
 function showMessage(message, isError = false) {
     statusMessage.textContent = message;
     statusMessage.classList.toggle("error-message", isError);
 }
 
+// Sends an authenticated API request and throws on failure.
 async function apiRequest(url, options = {}) {
     const token = localStorage.getItem("token");
     const response = await fetch(apiUrl(url), {
@@ -56,6 +56,7 @@ async function apiRequest(url, options = {}) {
     return data;
 }
 
+// Appends a text cell to a table row.
 function addCell(row, value) {
     const cell = document.createElement("td");
     cell.textContent = value;
@@ -63,6 +64,7 @@ function addCell(row, value) {
     return cell;
 }
 
+// Replaces a table body with a single placeholder row.
 function appendEmptyRow(target, colspan, message) {
     const row = document.createElement("tr");
     const cell = addCell(row, message);
@@ -70,6 +72,7 @@ function appendEmptyRow(target, colspan, message) {
     target.replaceChildren(row);
 }
 
+// Filters products by the active search and dropdown values.
 function visibleProducts() {
     const query = document.getElementById("inventorySearch").value.trim().toLowerCase();
     const selectedCategory = categoryFilter.value;
@@ -93,6 +96,7 @@ function visibleProducts() {
     });
 }
 
+// Renders the inventory table for the current filters.
 function renderInventory() {
     const shownProducts = visibleProducts();
     const admin = currentRole === "Admin";
@@ -181,6 +185,7 @@ function renderInventory() {
     window.makeTableSortable(inventoryRows.closest("table"));
 }
 
+// Rebuilds the category dropdowns and management table.
 function renderCategories() {
     categorySelect.replaceChildren();
     categoryFilter.replaceChildren();
@@ -206,6 +211,7 @@ function renderCategories() {
     }
 }
 
+// Renders Admin-only category rename and delete controls.
 function renderCategoryManagement() {
     if (!categoryRows || currentRole !== "Admin") {
         return;
@@ -276,6 +282,7 @@ function renderCategoryManagement() {
     window.makeTableSortable(categoryRows.closest("table"));
 }
 
+// Renames a category and reloads inventory data.
 async function renameCategory(category, categoryName) {
     const normalizedName = categoryName.trim();
     if (normalizedName.length < 2 || normalizedName.length > 100) {
@@ -294,6 +301,7 @@ async function renameCategory(category, categoryName) {
     }
 }
 
+// Deletes an unused category after confirmation.
 async function deleteCategory(category) {
     if (!window.confirm(`Delete category "${category.categoryName}"? This is allowed only if no products use it.`)) {
         return;
@@ -310,6 +318,7 @@ async function deleteCategory(category) {
     }
 }
 
+// Fetches and renders products with their categories.
 async function loadInventory() {
     const data = await apiRequest("/api/inventory");
     products = data.products;
@@ -319,11 +328,12 @@ async function loadInventory() {
 }
 
 
-// barcode functions
+// Picks the symbology matching a barcode value.
 function barcodeFormatFor(value) {
     return /^\d{13}$/.test(value) ? "EAN13" : "CODE128";
 }
 
+// Draws a barcode into an SVG element.
 function renderBarcode(svg, value, productName) {
     if (!window.JsBarcode) {
         throw new Error("Barcode renderer is unavailable. Reload the page and try again.");
@@ -339,6 +349,7 @@ function renderBarcode(svg, value, productName) {
     svg.setAttribute("aria-label", `Barcode for ${productName}: ${value}`);
 }
 
+// Refreshes the barcode preview in the product form.
 function renderBarcodePreview() {
     const value = barcodeInput.value.trim();
     if (!value) {
@@ -358,6 +369,7 @@ function renderBarcodePreview() {
     }
 }
 
+// Opens the barcode print dialog for a product.
 function showInventoryBarcode(product) {
     const barcode = (product.barcode || "").trim();
     if (!barcode) {
@@ -376,6 +388,7 @@ function showInventoryBarcode(product) {
     }
 }
 
+// Requests a fresh unused barcode from the API.
 async function requestGeneratedBarcode() {
     try {
         const { barcode } = await apiRequest("/api/admin/inventory/next-barcode");
@@ -387,6 +400,7 @@ async function requestGeneratedBarcode() {
     }
 }
 
+// Escapes text for safe insertion into the print window.
 function escapeHtml(value) {
     return value.replace(/[&<>"']/g, (character) => ({
         "&": "&amp;",
@@ -397,6 +411,7 @@ function escapeHtml(value) {
     })[character]);
 }
 
+// Opens a print window containing one barcode label.
 function printBarcodeLabel(svg, value, productName) {
     if (!value) {
         showMessage("Generate or enter a barcode before printing.", true);
@@ -437,13 +452,12 @@ window.onload = function () {
     printWindow.document.close();
 }
 
-// The sidebar's scroll-spy helper no longer hides links, so this page owns the
-// visibility of its own links: role-gated sections stay hidden for Staff, and
-// the editor link only appears while the editor is open.
+// Finds a sidebar link by its target anchor id.
 function sidebarLink(anchor) {
     return document.querySelector(`.page-sidebar a[href="#${anchor}"]`);
 }
 
+// Shows or hides the product editor and its sidebar link.
 function setProductEditorVisible(visible) {
     productEditor.hidden = !visible;
     const link = sidebarLink("productEditor");
@@ -452,6 +466,7 @@ function setProductEditorVisible(visible) {
     }
 }
 
+// Applies role-based visibility to this page's sidebar links.
 function syncInventorySidebar() {
     const isAdmin = currentRole === "Admin";
     for (const anchor of ["categorySection", "historySection"]) {
@@ -466,6 +481,7 @@ function syncInventorySidebar() {
     }
 }
 
+// Returns the product form to add-new mode.
 function resetProductForm() {
     editingProductId = null;
     productForm.reset();
@@ -483,6 +499,7 @@ function resetProductForm() {
     showProductFormButton.hidden = false;
 }
 
+// Loads a product into the editor form.
 function startEditing(product) {
     editingProductId = product.id;
     barcodeInput.value = product.barcode || "";
@@ -502,6 +519,7 @@ function startEditing(product) {
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// Archives or reactivates a product after confirmation.
 async function updateProductStatus(product) {
     const isActive = !product.isActive;
     const action = isActive ? "reactivate" : "archive";
@@ -520,6 +538,7 @@ async function updateProductStatus(product) {
     }
 }
 
+// Applies a stock-in or stock-out adjustment.
 async function adjustStock(product, direction, quantityInput, reasonInput) {
     const quantity = Number(quantityInput.value);
     const reason = reasonInput.value.trim();
@@ -550,6 +569,7 @@ async function adjustStock(product, direction, quantityInput, reasonInput) {
     }
 }
 
+// Fetches and renders recent stock movements.
 async function loadMovements() {
     if (currentRole !== "Admin") {
         return;
@@ -637,7 +657,6 @@ showProductFormButton.addEventListener("click", () => {
     resetProductForm();
     setProductEditorVisible(true);
     showProductFormButton.hidden = true;
-    // Cancel stays available while adding, not only while editing.
     document.getElementById("cancelEditButton").hidden = false;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 });
@@ -681,6 +700,7 @@ document.getElementById("logoutButton").addEventListener("click", () => {
     window.location.replace("/");
 });
 
+// Authorizes the page and loads its initial data.
 async function initializeInventory() {
     if (!localStorage.getItem("token")) {
         window.location.replace("/");
@@ -693,7 +713,6 @@ async function initializeInventory() {
         document.getElementById("accessDescription").textContent = currentRole === "Admin"
             ? "Manage products and stock. Stock changes are recorded in the movement history."
             : "Active inventory of APB Merchandising.";
-        // Staff can open this page, so only the Admin sees the access marker.
         document.getElementById("pageSubtitle").textContent =
             currentRole === "Admin" ? "Inventory • Admin Access" : "Inventory";
         for (const element of document.querySelectorAll(".admin-only")) {
