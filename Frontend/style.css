@@ -123,3 +123,66 @@ button:hover {
 #recoveryMessage {
   min-height: 20px;
 }
+
+@media (max-width: 600px) {
+  body {
+    padding: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 100%;
+    padding: 28px 22px;
+  }
+
+  /* Undo the desktop overlap offsets that have no room on a phone. */
+  .login-logo {
+    max-width: 170px;
+    margin-top: 0;
+  }
+
+  .card-content {
+    margin-top: 20px;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.15rem;
+  }
+
+  input {
+    padding: 11px 14px;
+    font-size: 16px;
+  }
+
+  button {
+    padding: 11px;
+  }
+}
+
+@media (max-width: 400px) {
+  body {
+    padding: 10px;
+  }
+
+  .card {
+    padding: 22px 16px;
+  }
+
+  .login-logo {
+    max-width: 140px;
+  }
+
+  label {
+    margin: 12px 0 5px;
+  }
+
+  .forget_pass {
+    font-size: 14px;
+  }
+}

@@ -69,5 +69,8 @@
         });
         structureObserver.observe(document.body, { childList: true, subtree: true });
     }
+    // Pages with dynamically generated sections (stacked reports) notify us
+    // explicitly, since unhiding an ancestor never fires per-target observers.
+    window.addEventListener("page-sections-changed", wireLinks);
     wireLinks();
 })();

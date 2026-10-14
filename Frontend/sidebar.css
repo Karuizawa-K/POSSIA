@@ -96,3 +96,21 @@ html.sidebar-smooth {
         margin: 0 4px 0 0;
     }
 }
+
+@media (max-width: 480px) {
+    .page-sidebar {
+        margin: 10px 10px 0;
+        padding: 8px;
+        gap: 2px;
+    }
+
+    .page-sidebar a {
+        padding: 7px 9px;
+        font-size: 13px;
+    }
+
+    .page-sidebar-title {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+}

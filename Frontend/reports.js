@@ -82,6 +82,10 @@ function addCell(row, value) {
 
 // ---------- Stacked-page builders ----------
 
+function notifySectionsChanged() {
+    window.dispatchEvent(new CustomEvent("page-sections-changed"));
+}
+
 function clearResults() {
     for (const key of Object.keys(charts)) {
         try {
@@ -608,6 +612,7 @@ async function generateReport() {
         }
         reportResults.hidden = false;
         printButton.disabled = false;
+        notifySectionsChanged();
     } catch (error) {
         setMessage(error.message, true);
     } finally {
@@ -833,6 +838,7 @@ inventoryCategoryFilter.addEventListener("change", () => {
         clearResults();
         renderInventoryPage();
         reportResults.hidden = false;
+        notifySectionsChanged();
     }
 });
 reportResults.addEventListener("click", (event) => {

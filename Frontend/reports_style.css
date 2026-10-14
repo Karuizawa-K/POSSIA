@@ -390,6 +390,66 @@
     }
 }
 
+@media (max-width: 480px) {
+    .reports-container {
+        padding: 12px;
+    }
+
+    .filter-section,
+    .data-section {
+        padding: 14px;
+    }
+
+    .filter-section h2,
+    .data-section h2,
+    .report-results h2 {
+        font-size: 20px;
+    }
+
+    .summary-section {
+        gap: 12px;
+    }
+
+    .summary-card {
+        padding: 14px 16px;
+    }
+
+    .summary-card .value {
+        font-size: 22px;
+    }
+
+    .chart-wrap {
+        height: 240px;
+    }
+
+    .chart-wrap canvas {
+        max-height: 200px;
+    }
+
+    .report-table {
+        font-size: 12px;
+    }
+
+    .report-table th,
+    .report-table td {
+        padding: 9px 8px;
+    }
+
+    /* The 220px floor forced sideways page scrolling on a phone. */
+    .report-table td:last-child {
+        min-width: 130px;
+    }
+
+    .table-wrapper {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .btn-generate,
+    .btn-export {
+        min-height: 40px;
+    }
+}
+
 @media print {
     body {
         background: #fff;

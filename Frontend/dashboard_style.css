@@ -235,6 +235,35 @@ body {
     }
 }
 
+@media (max-width: 480px) {
+    .admin-settings-content {
+        padding: 14px;
+    }
+
+    .accounts-table-wrapper {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .accounts-table th,
+    .accounts-table td {
+        padding: 9px 8px;
+        font-size: 13px;
+    }
+
+    .account-action-btn {
+        padding: 8px 10px;
+    }
+
+    .account-form-actions {
+        flex-wrap: wrap;
+    }
+
+    .account-form-actions > button {
+        flex: 1 1 auto;
+        min-height: 40px;
+    }
+}
+
 .logout {
     color: rgb(4, 4, 4); 
     background: none;

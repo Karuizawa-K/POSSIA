@@ -568,3 +568,52 @@
         flex-direction: column;
     }
 }
+
+@media (max-width: 480px) {
+    .inventory-container {
+        padding: 12px;
+    }
+
+    .inventory-container h2 {
+        font-size: 16px;
+    }
+
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* The wide admin cell forced the whole page to scroll sideways. */
+    .inventory-table td.admin-actions {
+        min-width: 0;
+    }
+
+    .stock-adjustment {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-actions,
+    .admin-actions > button {
+        width: 100%;
+    }
+
+    .admin-actions {
+        gap: 6px;
+    }
+
+    .barcode-field {
+        flex-wrap: wrap;
+    }
+
+    .barcode-field input {
+        flex: 1 1 100%;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+    }
+
+    .form-actions > button {
+        flex: 1 1 auto;
+        min-height: 40px;
+    }
+}
