@@ -170,6 +170,10 @@
     min-width: 0;
 }
 
+.chart-wrap canvas {
+    max-width: 100%;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;
@@ -191,6 +195,9 @@
     outline: none;
     background-color: #fafafa;
     transition: border-color 0.2s ease;
+    /* Date inputs carry a large intrinsic width (text plus picker icon).
+       Capping keeps them inside their grid track instead of widening it. */
+    max-width: 100%;
 }
 
 .form-group input:focus, 

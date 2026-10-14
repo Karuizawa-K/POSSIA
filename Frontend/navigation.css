@@ -240,6 +240,14 @@
         flex-wrap: wrap;
     }
 
+    /* The back label is nowrap; cap it so it ellipsizes instead of pushing the
+       page wider than the screen on the narrowest devices. */
+    .navbar .nav-left .dashboard {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
     .navbar .nav-center {
         align-items: flex-start;
         text-align: left;

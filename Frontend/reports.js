@@ -603,11 +603,6 @@ function renderInventoryPage() {
 
 async function generateReport() {
     setMessage("");
-    clearResults();
-    currentSalesData = null;
-    currentInventoryData = null;
-    currentMovementData = null;
-    currentReport = null;
     updateDatepickerMaximum();
     if (!periodDate.value || periodDate.value > periodDate.max) {
         setMessage("Choose a report date that is not in the future.", true);
@@ -617,32 +612,48 @@ async function generateReport() {
     const isSales = reportCategory.value === "sales";
     const button = document.getElementById("generateReportButton");
     button.disabled = true;
+    button.textContent = "Generating...";
     try {
+        // Fetch first, then swap the content in. Clearing up front empties the
+        // page during the request, which collapses the layout on narrow
+        // viewports (the media queries re-evaluate) and looks like a flash.
+        let salesData = null;
+        let inventoryData = null;
+        let movementData = null;
         if (isSales) {
             let query = `/api/admin/reports/sales?${params}`;
             if (paymentFilter.value) {
                 query += `&payment=${encodeURIComponent(paymentFilter.value)}`;
             }
-            currentSalesData = await apiRequest(query);
-            currentReport = currentSalesData;
-            renderSalesPage(currentSalesData);
+            salesData = await apiRequest(query);
         } else {
-            const [inventoryData, movementData] = await Promise.all([
+            [inventoryData, movementData] = await Promise.all([
                 apiRequest("/api/admin/reports/inventory"),
                 apiRequest(`/api/admin/reports/movements?${params}`)
             ]);
-            currentInventoryData = inventoryData;
-            currentMovementData = movementData;
-            currentReport = inventoryData;
+        }
+
+        clearResults();
+        currentSalesData = salesData;
+        currentInventoryData = inventoryData;
+        currentMovementData = movementData;
+        currentReport = isSales ? salesData : inventoryData;
+        if (isSales) {
+            renderSalesPage(salesData);
+        } else {
             renderInventoryPage();
         }
         reportResults.hidden = false;
         printButton.disabled = false;
         syncReportSidebar();
     } catch (error) {
+        // Nothing new rendered, so drop the stale report rather than leaving
+        // the previous period on screen under an error message.
+        clearResults();
         setMessage(error.message, true);
     } finally {
         button.disabled = false;
+        button.textContent = "Generate Report";
     }
 }
 
