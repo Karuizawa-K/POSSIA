@@ -23,31 +23,7 @@ let issuedRecoveryCodes = [];
 
 // Writes the page status line, optionally as an error.
 function showMessage(message, isError = false) {
-    statusMessage.textContent = message;
-    statusMessage.classList.toggle("error-message", isError);
-}
-
-// Sends an authenticated API request and throws on failure.
-async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(apiUrl(url), {
-        ...options,
-        headers: {
-            Authorization: `Bearer ${token}`,
-            ...(options.body ? { "Content-Type": "application/json" } : {}),
-            ...options.headers
-        }
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-        if (response.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
-        }
-        throw new Error(data.message || "Request failed.");
-    }
-    return data;
+    setStatusMessage(statusMessage, message, isError);
 }
 
 // Returns the account form to create-account mode.
@@ -315,14 +291,14 @@ regenerateCodesButton.addEventListener("click", regenerateRecoveryCodes);
 async function authorizeAdminSettings() {
     const token = localStorage.getItem("token");
     if (!token) {
-        window.location.replace("/");
+        redirectToLogin();
         return;
     }
 
     try {
         const { user } = await apiRequest("/api/profile");
         if (user.role !== "Admin") {
-            window.location.replace("dashboard.html");
+            redirectToDashboard();
             return;
         }
 
@@ -338,8 +314,7 @@ async function authorizeAdminSettings() {
 }
 
 document.getElementById("logoutButton").addEventListener("click", () => {
-    localStorage.removeItem("token");
-    window.location.replace("/");
+    logout();
 });
 
 authorizeAdminSettings();

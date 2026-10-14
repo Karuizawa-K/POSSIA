@@ -5,7 +5,7 @@ async function loadSession() {
     try {
         const token = localStorage.getItem("token");
         if (!token) {
-            window.location.replace("/");
+            redirectToLogin();
             return null;
         }
 
@@ -16,8 +16,7 @@ async function loadSession() {
         });
 
         if (!response.ok) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
+            logout();
             return null;
         }
 
@@ -35,7 +34,7 @@ async function loadSession() {
         return data.user.role;
     } catch (error) {
         console.error("Unable to load user session:", error);
-        window.location.replace("/");
+        redirectToLogin();
         return null;
     }
 }
@@ -102,7 +101,5 @@ document.getElementById("adminSettingsButton")
 // Signs the user out and clears the cached report payload.
 document.getElementById("logoutButton")
     .addEventListener("click", () => {
-        localStorage.removeItem("token");
-        window.PossiaReportCache?.clearAll();
-        window.location.replace("/");
+        logout({ clearReportCache: true });
     });

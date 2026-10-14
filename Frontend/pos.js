@@ -275,7 +275,7 @@ function renderCart() {
 async function loadPos() {
     const token = localStorage.getItem("token");
     if (!token) {
-        window.location.replace("/");
+        redirectToLogin();
         return;
     }
 
@@ -290,8 +290,7 @@ async function loadPos() {
         ]);
 
         if (profileResponse.status === 401 || productsResponse.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
+            logout();
             return;
         }
         if (!profileResponse.ok || !productsResponse.ok) {
@@ -323,8 +322,7 @@ async function refreshProducts() {
             headers: { Authorization: `Bearer ${token}` }
         });
         if (response.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
+            logout();
             return;
         }
         if (!response.ok) {
@@ -659,8 +657,7 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
         const data = await response.json();
 
         if (response.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
+            logout();
             return;
         }
         if (!response.ok) {
@@ -751,8 +748,7 @@ document.getElementById("refreshButton").addEventListener("click", () => {
 });
 
 document.getElementById("logoutButton").addEventListener("click", () => {
-    localStorage.removeItem("token");
-    window.location.replace("/");
+    logout();
 });
 
 loadPos();

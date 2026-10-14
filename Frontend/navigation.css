@@ -5,11 +5,11 @@
     gap: 16px;
     width: 100%;
     min-height: 76px;
-    height: auto;
-    padding: 12px clamp(12px, 3vw, 30px);
-    background: #f3f3f3;
-    border-bottom: 1px solid #e9ecef;
-    color: #111827;
+    height: var(--nav-height, auto);
+    padding: var(--nav-padding, 12px clamp(12px, 3vw, 30px));
+    background: var(--nav-bg, #f3f3f3);
+    border-bottom: 1px solid var(--nav-border, #e9ecef);
+    color: var(--nav-color, #111827);
 }
 
 .navbar .nav-left,

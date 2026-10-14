@@ -30,38 +30,7 @@ let dialogBarcodeProductName = "";
 
 // Writes the page status line, optionally as an error.
 function showMessage(message, isError = false) {
-    statusMessage.textContent = message;
-    statusMessage.classList.toggle("error-message", isError);
-}
-
-// Sends an authenticated API request and throws on failure.
-async function apiRequest(url, options = {}) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(apiUrl(url), {
-        ...options,
-        headers: {
-            Authorization: `Bearer ${token}`,
-            ...(options.body ? { "Content-Type": "application/json" } : {}),
-            ...options.headers
-        }
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        if (response.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
-        }
-        throw new Error(data.message || "Request failed.");
-    }
-    return data;
-}
-
-// Appends a text cell to a table row.
-function addCell(row, value) {
-    const cell = document.createElement("td");
-    cell.textContent = value;
-    row.append(cell);
-    return cell;
+    setStatusMessage(statusMessage, message, isError);
 }
 
 // Replaces a table body with a single placeholder row.
@@ -696,14 +665,13 @@ categoryFilter.addEventListener("change", renderInventory);
 document.getElementById("stockStatusFilter").addEventListener("change", renderInventory);
 document.getElementById("statusFilter").addEventListener("change", renderInventory);
 document.getElementById("logoutButton").addEventListener("click", () => {
-    localStorage.removeItem("token");
-    window.location.replace("/");
+    logout();
 });
 
 // Authorizes the page and loads its initial data.
 async function initializeInventory() {
     if (!localStorage.getItem("token")) {
-        window.location.replace("/");
+        redirectToLogin();
         return;
     }
     try {

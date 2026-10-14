@@ -14,14 +14,12 @@ body {
     overflow: hidden;
 }
 
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 30px;
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    height: 75px;
+/* POS navbar theme: white bar with wider padding and a fixed height. */
+body {
+    --nav-bg: #ffffff;
+    --nav-border: #e5e7eb;
+    --nav-padding: 15px 30px;
+    --nav-height: 75px;
 }
 
 .nav-left, .nav-right {

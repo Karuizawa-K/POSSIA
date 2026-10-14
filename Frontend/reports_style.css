@@ -11,14 +11,10 @@
   margin-top: -10px;
 }
 
-.navbar {  
-    background-color: #f3f3f3;    
-    border-bottom: solid 1px #e9ecef; 
-    color: rgb(1, 1, 1);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 30px;
+/* Navbar theme: fixed horizontal padding and near-black text. */
+body {
+    --nav-color: rgb(1, 1, 1);
+    --nav-padding: 12px 30px;
 }
 
 .nav-left {

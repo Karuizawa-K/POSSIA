@@ -26,25 +26,7 @@ const currency = new Intl.NumberFormat("en-PH", {
 
 // Writes the page status line, optionally as an error.
 function setMessage(message, isError = false) {
-    reportMessage.textContent = message;
-    reportMessage.classList.toggle("error-message", isError);
-}
-
-// Sends an authenticated API request and throws on failure.
-async function apiRequest(url) {
-    const token = localStorage.getItem("token");
-    const response = await fetch(apiUrl(url), {
-        headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await response.json();
-    if (!response.ok) {
-        if (response.status === 401) {
-            localStorage.removeItem("token");
-            window.location.replace("/");
-        }
-        throw new Error(data.message || "Request failed.");
-    }
-    return data;
+    setStatusMessage(reportMessage, message, isError);
 }
 
 // Returns today's date string in the report time zone.
@@ -78,13 +60,7 @@ function updateReportControls() {
                 salesPeriod.value === "yearly" ? "Any Date in Year" : "Date";
 }
 
-// Appends a text cell to a table row.
-function addCell(row, value) {
-    const cell = document.createElement("td");
-    cell.textContent = value == null ? "" : String(value);
-    row.append(cell);
-    return cell;
-}
+
 
 
 
@@ -955,9 +931,7 @@ reportResults.addEventListener("click", (event) => {
 });
 printButton.addEventListener("click", printReport);
 document.getElementById("logoutButton").addEventListener("click", () => {
-    localStorage.removeItem("token");
-    window.PossiaReportCache?.clearAll();
-    window.location.replace("/");
+    logout({ clearReportCache: true });
 });
 
 
@@ -998,13 +972,13 @@ async function refreshSalesInBackground() {
 // Verifies Admin access, then renders the default report.
 async function authorizeReports() {
     if (!localStorage.getItem("token")) {
-        window.location.replace("/");
+        redirectToLogin();
         return;
     }
     try {
         const { user } = await apiRequest("/api/profile");
         if (user.role !== "Admin") {
-            window.location.replace("dashboard.html");
+            redirectToDashboard();
             return;
         }
         document.getElementById("userInfo").textContent = user.fullName;
