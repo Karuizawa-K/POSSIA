@@ -81,26 +81,37 @@ html.sidebar-smooth {
         flex-direction: column;
     }
 
+    /* Horizontal strip stays reachable while scrolling the long stacked
+       results, so links do not require scrolling back to the top. */
     .page-sidebar {
-        position: static;
+        position: sticky;
+        top: 0;
+        z-index: 60;
         width: auto;
-        margin: 12px 12px 0;
-        padding: 10px;
+        margin: 0;
+        padding: 10px 12px;
         flex-direction: row;
         flex-wrap: wrap;
         align-items: center;
         max-height: none;
+        border-radius: 0;
+        border-width: 0 0 1px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
     .page-sidebar-title {
         margin: 0 4px 0 0;
     }
+
+    /* Keep jumped-to sections clear of the sticky strip. */
+    .page-main [id] {
+        scroll-margin-top: 76px;
+    }
 }
 
 @media (max-width: 480px) {
     .page-sidebar {
-        margin: 10px 10px 0;
-        padding: 8px;
+        padding: 8px 10px;
         gap: 2px;
     }
 

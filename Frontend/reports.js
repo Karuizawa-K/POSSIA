@@ -86,6 +86,32 @@ function notifySectionsChanged() {
     window.dispatchEvent(new CustomEvent("page-sections-changed"));
 }
 
+// Sidebar links per category. The reports page owns this visibility itself
+// instead of relying on observers firing at the right moment: the stacked
+// views are created after load, and a cached or older sidebar.js would hide
+// these links forever.
+const REPORT_VIEW_IDS = {
+    sales: ["view-overview", "view-trend", "view-categories", "view-payments", "view-discounts"],
+    inventory: ["view-snapshot", "view-movements"],
+};
+
+function syncReportSidebar() {
+    // Let the shared helper wire observers/active-state for the new sections
+    // first, then set visibility authoritatively so it cannot be undone.
+    notifySectionsChanged();
+    const available = new Set(
+        (REPORT_VIEW_IDS[reportCategory.value] || []).filter((id) => document.getElementById(id))
+    );
+    for (const link of document.querySelectorAll(".page-sidebar a[href^='#']")) {
+        const id = link.getAttribute("href").slice(1);
+        if (id === "reportFilterSection") {
+            link.hidden = false;
+            continue;
+        }
+        link.hidden = !available.has(id);
+    }
+}
+
 function clearResults() {
     for (const key of Object.keys(charts)) {
         try {
@@ -612,7 +638,7 @@ async function generateReport() {
         }
         reportResults.hidden = false;
         printButton.disabled = false;
-        notifySectionsChanged();
+        syncReportSidebar();
     } catch (error) {
         setMessage(error.message, true);
     } finally {
@@ -830,7 +856,11 @@ reportForm.addEventListener("submit", (event) => {
     event.preventDefault();
     generateReport();
 });
-reportCategory.addEventListener("change", updateReportControls);
+reportCategory.addEventListener("change", () => {
+    updateReportControls();
+    // Hide links for views that are not generated yet for this category.
+    syncReportSidebar();
+});
 salesPeriod.addEventListener("change", updateReportControls);
 inventoryCategoryFilter.addEventListener("change", () => {
     // Category narrows the cached snapshot without refetching.
@@ -838,7 +868,7 @@ inventoryCategoryFilter.addEventListener("change", () => {
         clearResults();
         renderInventoryPage();
         reportResults.hidden = false;
-        notifySectionsChanged();
+        syncReportSidebar();
     }
 });
 reportResults.addEventListener("click", (event) => {

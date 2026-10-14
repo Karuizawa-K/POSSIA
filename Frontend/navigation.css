@@ -196,32 +196,60 @@
 }
 
 @media (max-width: 480px) {
+    /* Single column: title, then user row, then the back button. Side-by-side
+       tracks collided at phone widths once titles/usernames grew. */
     .navbar {
-        grid-template-columns: minmax(0, 1fr) auto;
-        grid-template-areas:
-            "center right"
-            "left left";
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .navbar .nav-left {
+        min-width: 0;
+        order: 3;
     }
 
     .navbar .nav-center {
         align-items: flex-start;
         text-align: left;
+        order: 1;
     }
 
     .navbar .nav-right {
-        max-width: 48vw;
+        order: 2;
+        justify-content: flex-start;
+        max-width: none;
+        white-space: normal;
     }
 
     .navbar .nav-user-row {
-        justify-content: flex-end;
+        flex-wrap: wrap;
+        justify-content: flex-start;
     }
 
     .navbar #userInfo {
-        max-width: 28vw;
+        max-width: 100%;
     }
 
-    .navbar .nav-left {
-        min-width: 0;
+    .navbar .nav-title {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .navbar .nav-subtitle {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .navbar .dashboard,
+    .navbar .logout,
+    .navbar .admin-settings-btn {
+        min-height: 40px;
     }
 
     .navbar .login-logo {
