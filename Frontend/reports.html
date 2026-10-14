@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="reports_style.css">
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="table-sort.css">
+    <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
     <nav class="navbar">
@@ -28,14 +29,27 @@
         </div>
     </nav>
 
+    <div class="page-layout">
+        <aside class="page-sidebar" aria-label="Page sections">
+            <p class="page-sidebar-title">On this page</p>
+            <a href="#reportFilterSection">Generate Report</a>
+            <a href="#view-overview">Overview</a>
+            <a href="#view-trend">Trend</a>
+            <a href="#view-categories">Categories</a>
+            <a href="#view-payments">Payments</a>
+            <a href="#view-discounts">Discounts</a>
+            <a href="#view-snapshot">Snapshot</a>
+            <a href="#view-movements">Movements</a>
+        </aside>
+        <div class="page-main">
     <main class="reports-container" id="reportsPage" hidden>
         <p id="reportMessage" class="report-message" role="status" aria-live="polite"></p>
-        <section class="filter-section">
+        <section class="filter-section" id="reportFilterSection">
             <h2>Generate Report</h2>
             <form class="filter-grid" id="reportForm">
                 <div class="form-group">
-                    <label for="reportType">Report</label>
-                    <select id="reportType">
+                    <label for="reportCategory">Report Category</label>
+                    <select id="reportCategory">
                         <option value="sales">Sales Report</option>
                         <option value="inventory">Inventory Report</option>
                     </select>
@@ -53,45 +67,35 @@
                     <label for="periodDate" id="periodDateLabel">Date</label>
                     <input type="date" id="periodDate" required>
                 </div>
+                <div class="form-group" id="paymentGroup">
+                    <label for="paymentFilter">Payment</label>
+                    <select id="paymentFilter">
+                        <option value="">All methods</option>
+                        <option value="Cash">Cash</option>
+                        <option value="GCash">GCash</option>
+                    </select>
+                </div>
+                <div class="form-group" id="inventoryCategoryGroup" hidden>
+                    <label for="inventoryCategoryFilter">Category</label>
+                    <select id="inventoryCategoryFilter">
+                        <option value="">All categories</option>
+                    </select>
+                </div>
                 <div class="form-actions">
                     <button type="submit" class="btn-generate" id="generateReportButton">Generate Report</button>
-                    <button type="button" class="btn-export" id="exportReportButton" disabled>Export CSV</button>
                     <button type="button" class="btn-export" id="printReportButton" disabled>Print</button>
                 </div>
             </form>
         </section>
 
-        <section class="report-results" id="reportResults" hidden>
-            <div class="report-heading">
-                <div>
-                    <h2 id="resultsTitle">Report Results</h2>
-                    <p id="resultsPeriod"></p>
-                </div>
-                <p id="generatedAt"></p>
-            </div>
-            <section class="summary-section" id="summaryCards" aria-label="Report summary"></section>
-            <section class="data-section">
-                <h2 id="tableTitle">Details</h2>
-                <div class="table-wrapper">
-                    <table class="report-table">
-                        <thead id="reportTableHead"></thead>
-                        <tbody id="reportTableBody"></tbody>
-                    </table>
-                </div>
-            </section>
-            <section class="data-section" id="additionalReportSection" hidden>
-                <h2 id="additionalTableTitle"></h2>
-                <div class="table-wrapper">
-                    <table class="report-table">
-                        <thead id="additionalTableHead"></thead>
-                        <tbody id="additionalTableBody"></tbody>
-                    </table>
-                </div>
-            </section>
-        </section>
+        <div class="report-results" id="reportResults" hidden></div>
     </main>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
     <script src="table-sort.js" defer></script>
     <script src="config.js" defer></script>
+    <script src="sidebar.js" defer></script>
     <script src="reports.js" defer></script>
 </body>
 </html>

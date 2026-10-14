@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="inventory_style.css">
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="table-sort.css">
+    <link rel="stylesheet" href="sidebar.css">
 </head>
 
 <body>
@@ -29,6 +30,15 @@
         </div>
     </nav>
 
+    <div class="page-layout">
+        <aside class="page-sidebar" aria-label="Page sections">
+            <p class="page-sidebar-title">On this page</p>
+            <a href="#productEditor">Product Editor</a>
+            <a href="#inventorySection">Current Inventory</a>
+            <a href="#categorySection">Manage Categories</a>
+            <a href="#historySection">Stock History</a>
+        </aside>
+        <div class="page-main">
     <main class="inventory-container" id="inventoryPage" hidden>
         <p class="page-description" id="accessDescription"></p>
         <p class="status-message" id="statusMessage" role="status" aria-live="polite"></p>
@@ -76,7 +86,7 @@
             </div>
         </section>
 
-        <section class="grid-section">
+        <section class="grid-section" id="inventorySection">
             <div class="section-heading">
                 <h2>Current Inventory</h2>
                 <button type="button" class="btn-submit admin-only" id="showProductFormButton" hidden>Add Product</button>
@@ -172,6 +182,8 @@
             </div>
         </section>
     </main>
+        </div>
+    </div>
     <dialog class="barcode-dialog" id="inventoryBarcodeDialog" aria-labelledby="inventoryBarcodeTitle">
         <div class="barcode-dialog-content">
             <h2 id="inventoryBarcodeTitle"></h2>
@@ -186,6 +198,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
     <script src="table-sort.js" defer></script>
     <script src="config.js" defer></script>
+    <script src="sidebar.js" defer></script>
     <script src="inventory.js" defer></script>
 </body>
 </html>

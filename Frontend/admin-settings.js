@@ -67,7 +67,7 @@ function renderAccounts(users) {
     if (users.length === 0) {
         const row = document.createElement("tr");
         const cell = document.createElement("td");
-        cell.colSpan = 5;
+        cell.colSpan = 6;
         cell.textContent = "No accounts found.";
         row.append(cell);
         accountsList.append(row);
@@ -77,11 +77,15 @@ function renderAccounts(users) {
 
     for (const user of users) {
         const row = document.createElement("tr");
+        const isArchived = user.isActive === false;
         for (const value of [user.username, user.fullName, user.role]) {
             const cell = document.createElement("td");
             cell.textContent = value;
             row.append(cell);
         }
+        const statusCell = document.createElement("td");
+        statusCell.textContent = isArchived ? "Archived" : "Active";
+        row.append(statusCell);
         const createdCell = document.createElement("td");
         createdCell.textContent = user.createdAt
             ? new Date(user.createdAt).toLocaleDateString()
@@ -99,20 +103,20 @@ function renderAccounts(users) {
         editButton.addEventListener("click", () => startEditing(user));
         actionsCell.append(editButton);
 
-        const deleteButton = document.createElement("button");
-        deleteButton.type = "button";
-        deleteButton.className = "account-action-btn delete-account-btn";
-        deleteButton.textContent = "Delete";
-        const cannotDeleteSelf = user.id === currentUserId;
-        const cannotDeleteAdmin = user.role === "Admin";
-        deleteButton.disabled = cannotDeleteSelf || cannotDeleteAdmin;
-        deleteButton.title = cannotDeleteSelf
-            ? "You cannot delete your own account."
-            : cannotDeleteAdmin
-                ? "The Admin account cannot be deleted. Ask your system operator to replace it."
-                : "Delete account";
-        deleteButton.addEventListener("click", () => deleteAccount(user));
-        actionsCell.append(deleteButton);
+        const statusButton = document.createElement("button");
+        statusButton.type = "button";
+        statusButton.className = "account-action-btn delete-account-btn";
+        statusButton.textContent = isArchived ? "Reactivate" : "Archive";
+        const cannotChangeSelf = user.id === currentUserId;
+        const cannotChangeAdmin = user.role === "Admin";
+        statusButton.disabled = cannotChangeSelf || cannotChangeAdmin;
+        statusButton.title = cannotChangeSelf
+            ? "You cannot change your own account status."
+            : cannotChangeAdmin
+                ? "The Admin account cannot be archived. Ask your system operator to replace it."
+                : isArchived ? "Reactivate account" : "Archive account";
+        statusButton.addEventListener("click", () => updateAccountStatus(user));
+        actionsCell.append(statusButton);
         row.append(actionsCell);
         accountsList.append(row);
     }
@@ -139,8 +143,27 @@ async function loadAccounts() {
     renderAccounts(data.users);
 }
 
-async function deleteAccount(user) {
-    if (!window.confirm(`Delete the account for "${user.username}"? This cannot be undone.`)) {
+async function updateAccountStatus(user) {
+    const isArchived = user.isActive === false;
+    if (isArchived) {
+        if (!window.confirm(`Reactivate the account for "${user.username}"?`)) {
+            return;
+        }
+        try {
+            const data = await apiRequest(`/api/admin/users/${encodeURIComponent(user.id)}/status`, {
+                method: "PATCH",
+                body: JSON.stringify({ isActive: true })
+            });
+            resetAccountForm();
+            showMessage(data.message);
+            await loadAccounts();
+        } catch (error) {
+            showMessage(error.message, true);
+        }
+        return;
+    }
+
+    if (!window.confirm(`Archive the account for "${user.username}"? They will be signed out and unable to sign in. You can reactivate the account later.`)) {
         return;
     }
 
@@ -158,6 +181,12 @@ async function deleteAccount(user) {
 
 accountForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const confirmed = window.confirm(editingUserId
+        ? "Save changes to this account?"
+        : "Create this Staff account?");
+    if (!confirmed) {
+        return;
+    }
     const payload = {
         username: document.getElementById("username").value.trim(),
         fullName: document.getElementById("fullName").value.trim()

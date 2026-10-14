@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="dashboard_style.css">
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="table-sort.css">
+    <link rel="stylesheet" href="sidebar.css">
 </head>
 <body>
     <nav class="navbar">
@@ -28,10 +29,18 @@
         </div>
     </nav>
 
+    <div class="page-layout">
+        <aside class="page-sidebar" aria-label="Page sections">
+            <p class="page-sidebar-title">On this page</p>
+            <a href="#accountFormSection">Account Form</a>
+            <a href="#accountsSection">Accounts</a>
+            <a href="#recoveryCodesSection">Recovery Codes</a>
+        </aside>
+        <div class="page-main">
     <main id="adminSettings" class="admin-settings-content" hidden>
         <p id="statusMessage" role="status" aria-live="polite"></p>
 
-        <section class="account-form-section">
+        <section class="account-form-section" id="accountFormSection">
             <h2 id="formHeading">Create Account</h2>
             <form id="accountForm">
                 <label for="username">Username</label>
@@ -61,7 +70,7 @@
             </form>
         </section>
 
-        <section class="accounts-section">
+        <section class="accounts-section" id="accountsSection">
             <h2>Accounts</h2>
             <div class="accounts-table-wrapper">
                 <table class="accounts-table">
@@ -70,18 +79,19 @@
                             <th data-sort-type="text">Username</th>
                             <th data-sort-type="text">Full name</th>
                             <th data-sort-type="text">Role</th>
+                            <th data-sort-type="text">Status</th>
                             <th data-sort-type="date">Created</th>
                             <th data-sortable="false">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="accountsList">
-                        <tr><td colspan="5">Loading accounts...</td></tr>
+                        <tr><td colspan="6">Loading accounts...</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
 
-        <section class="accounts-section">
+        <section class="accounts-section" id="recoveryCodesSection">
             <h2>My Recovery Codes</h2>
             <p id="recoveryCodesStatus" class="field-note">Loading...</p>
             <div class="account-form-actions">
@@ -110,9 +120,12 @@
             </div>
         </section>
     </main>
+        </div>
+    </div>
 
     <script src="table-sort.js" defer></script>
     <script src="config.js" defer></script>
+    <script src="sidebar.js" defer></script>
     <script src="admin-settings.js" defer></script>
 </body>
 </html>

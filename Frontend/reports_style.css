@@ -310,6 +310,26 @@
     margin-bottom: 30px;
 }
 
+.chart-wrap {
+    height: 300px;
+    margin-bottom: 28px;
+}
+
+.chart-wrap:last-child {
+    margin-bottom: 0;
+}
+
+.chart-wrap h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 10px;
+}
+
+.chart-wrap canvas {
+    max-height: 260px;
+}
+
 .report-heading {
     display: flex;
     justify-content: space-between;

@@ -12,10 +12,9 @@ let checkoutInProgress = false;
 const gcashReferenceNumberPattern = /^\d{13}$/;
 let barcodeReader = null;
 let barcodeControls = null;
-let scannedProduct = null;
-let handlingBarcode = false;
 let lastScannedBarcode = "";
 let lastScannedAt = 0;
+let scanAudioContext = null;
 
 const currency = new Intl.NumberFormat("en-PH", {
     style: "currency",
@@ -300,51 +299,89 @@ function stopBarcodeScanner() {
         track.stop();
     }
     video.srcObject = null;
-    document.getElementById("start-scanner-btn").disabled = false;
 }
 
+function playScanBeep(success = true) {
+    try {
+        scanAudioContext ||= new (window.AudioContext || window.webkitAudioContext)();
+        if (scanAudioContext.state === "suspended") {
+            scanAudioContext.resume();
+        }
+        const oscillator = scanAudioContext.createOscillator();
+        const gain = scanAudioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = success ? 880 : 220;
+        gain.gain.value = 0.15;
+        oscillator.connect(gain);
+        gain.connect(scanAudioContext.destination);
+        oscillator.start();
+        oscillator.stop(scanAudioContext.currentTime + (success ? 0.12 : 0.25));
+    } catch (error) {
+        // Audio feedback is best-effort; scanning works without it.
+    }
+}
+
+function scanQuantityPerScan() {
+    const value = Number.parseInt(document.getElementById("scan-qty-per").value, 10);
+    return Number.isInteger(value) && value > 0 ? value : 1;
+}
+
+// Convenience-store flow: every successful scan adds to the cart immediately
+// with a beep while the camera keeps running. The status line reports misses
+// (unknown barcode, out of stock) without interrupting scanning.
 function handleScannedBarcode(barcode) {
     const now = Date.now();
-    if (handlingBarcode || (barcode === lastScannedBarcode && now - lastScannedAt < 2500)) {
+    // Short debounce so one held-up barcode doesn't flood the cart, while
+    // repeat scans of the same item still work like a real till.
+    if (barcode === lastScannedBarcode && now - lastScannedAt < 800) {
         return;
     }
     lastScannedBarcode = barcode;
     lastScannedAt = now;
 
-    const product = products.find((item) => (item.barcode || "").trim() === barcode.trim());
+    const normalized = (barcode || "").trim();
+    const product = products.find((item) => (item.barcode || "").trim() === normalized);
+    const status = document.getElementById("scanner-status");
+    const lastScan = document.getElementById("last-scan");
     if (!product) {
-        document.getElementById("scanner-status").textContent =
-            `No item found for barcode ${barcode}. Try another barcode.`;
+        playScanBeep(false);
+        status.textContent =
+            `No item found for barcode ${normalized}. Try another barcode.`;
         return;
     }
     if (product.stockQuantity <= 0) {
-        document.getElementById("scanner-status").textContent =
+        playScanBeep(false);
+        status.textContent =
             `${product.productName} is out of stock.`;
         return;
     }
     const alreadySelected = cart.get(product.id)?.quantity || 0;
-    if (alreadySelected >= product.stockQuantity) {
-        stopBarcodeScanner();
-        document.getElementById("scanner-dialog").close();
-        window.alert(`All available stock for ${product.productName} is already in the order.`);
+    const available = product.stockQuantity - alreadySelected;
+    if (available <= 0) {
+        playScanBeep(false);
+        status.textContent =
+            `All available stock for ${product.productName} is already in the order.`;
         return;
     }
-
-    handlingBarcode = true;
-    stopBarcodeScanner();
-    document.getElementById("scanner-dialog").close();
-    scannedProduct = product;
-    document.getElementById("scanned-product-name").textContent =
-        `${product.productName} (${barcode}) — ${product.stockQuantity} in stock`;
-    const quantityInput = document.getElementById("scan-quantity");
-    quantityInput.max = String(product.stockQuantity - alreadySelected);
-    quantityInput.value = "1";
-    document.getElementById("scan-quantity-error").textContent = "";
-    document.getElementById("scan-quantity-dialog").showModal();
-    quantityInput.focus();
+    const requested = scanQuantityPerScan();
+    const added = Math.min(requested, available);
+    if (!addToCart(product, added)) {
+        playScanBeep(false);
+        status.textContent =
+            `Could not add ${product.productName}. Quantity exceeds available stock.`;
+        return;
+    }
+    playScanBeep(true);
+    lastScan.textContent = `Added ${added} × ${product.productName} (${normalized})`;
+    status.textContent = requested > available
+        ? `Only ${available} left for ${product.productName} — added ${added}. Keep scanning, or press Close.`
+        : "Camera active. Keep scanning, or press Close when done.";
 }
 
 async function startBarcodeScanner() {
+    if (barcodeControls) {
+        return;
+    }
     if (!window.isSecureContext && location.hostname !== "localhost") {
         document.getElementById("scanner-status").textContent =
             "Camera access requires a secure HTTPS connection.";
@@ -357,8 +394,6 @@ async function startBarcodeScanner() {
     }
 
     const video = document.getElementById("barcode-video");
-    const startButton = document.getElementById("start-scanner-btn");
-    startButton.disabled = true;
     document.getElementById("scanner-status").textContent =
         "Requesting camera access...";
 
@@ -382,14 +417,17 @@ async function startBarcodeScanner() {
         console.error("Unable to start barcode camera:", error);
         document.getElementById("scanner-status").textContent =
             error.name === "NotAllowedError"
-                ? "Camera permission was denied. Allow camera access in browser settings and try again."
-                : "Unable to start the camera. Check camera access and try again.";
+                ? "Camera permission was denied. Allow camera access in browser settings, then close and reopen to try again."
+                : "Unable to start the camera. Check camera access, then close and reopen to try again.";
         stopBarcodeScanner();
     }
 }
 
 productSearch.addEventListener("input", renderProducts);
 document.getElementById("clear-btn").addEventListener("click", () => {
+    if (cart.size > 0 && !window.confirm(`Clear the current order? This removes all ${cart.size} item(s).`)) {
+        return;
+    }
     cart.clear();
     discountCents = 0;
     selectedPaymentMethod = null;
@@ -547,6 +585,10 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
         payload.referenceNumber = inputValue;
     }
 
+    const totalDue = (getSubtotalCents() - discountCents) / 100;
+    if (!window.confirm(`Complete this ${selectedPaymentMethod} sale of ${currency.format(totalDue)}?`)) {
+        return;
+    }
     const token = localStorage.getItem("token");
     checkoutInProgress = true;
     renderCart();
@@ -605,50 +647,16 @@ document.getElementById("payment-form").addEventListener("submit", async (event)
 document.getElementById("scan-barcode-btn").addEventListener("click", () => {
     document.getElementById("scanner-status").textContent =
         "Position the barcode inside the camera view.";
+    document.getElementById("last-scan").textContent = "";
     document.getElementById("scanner-dialog").showModal();
+    startBarcodeScanner();
 });
 
-document.getElementById("start-scanner-btn").addEventListener("click", startBarcodeScanner);
 document.getElementById("close-scanner-btn").addEventListener("click", () => {
     stopBarcodeScanner();
     document.getElementById("scanner-dialog").close();
 });
 document.getElementById("scanner-dialog").addEventListener("close", stopBarcodeScanner);
-
-document.getElementById("cancel-scan-quantity-btn").addEventListener("click", () => {
-    document.getElementById("scan-quantity-error").textContent = "";
-    document.getElementById("scan-quantity-dialog").close();
-});
-
-document.getElementById("scan-quantity-form").addEventListener("submit", (event) => {
-    if (event.submitter.value !== "add") {
-        scannedProduct = null;
-        handlingBarcode = false;
-        return;
-    }
-    event.preventDefault();
-    const quantity = Number.parseInt(document.getElementById("scan-quantity").value, 10);
-    if (!scannedProduct || !Number.isInteger(quantity) || quantity < 1) {
-        document.getElementById("scan-quantity-error").textContent =
-            "Enter a quantity of at least 1.";
-        return;
-    }
-
-    if (!addToCart(scannedProduct, quantity)) {
-        document.getElementById("scan-quantity-error").textContent =
-            "Quantity exceeds available stock.";
-        return;
-    }
-
-    document.getElementById("scan-quantity-dialog").close();
-    document.getElementById("product-search").value = "";
-    scannedProduct = null;
-    handlingBarcode = false;
-});
-document.getElementById("scan-quantity-dialog").addEventListener("close", () => {
-    scannedProduct = null;
-    handlingBarcode = false;
-});
 
 document.getElementById("print-receipt-btn").addEventListener("click", () => {
     window.print();
@@ -664,7 +672,6 @@ for (const dialogId of [
     "discount-dialog",
     "payment-dialog",
     "scanner-dialog",
-    "scan-quantity-dialog",
     "receipt-dialog",
 ]) {
     const dialog = document.getElementById(dialogId);

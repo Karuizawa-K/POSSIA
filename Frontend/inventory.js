@@ -504,6 +504,10 @@ async function adjustStock(product, direction, quantityInput, reasonInput) {
         reasonInput.focus();
         return;
     }
+    const action = direction === "stock-in" ? "Add" : "Remove";
+    if (!window.confirm(`${action} ${quantity} unit(s) ${direction === "stock-in" ? "to" : "from"} "${product.productName}"?`)) {
+        return;
+    }
 
     try {
         const result = await apiRequest(
@@ -560,6 +564,12 @@ categoryForm.addEventListener("submit", async (event) => {
 
 productForm.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const confirmed = window.confirm(editingProductId
+        ? "Save changes to this product?"
+        : "Add this product to the inventory?");
+    if (!confirmed) {
+        return;
+    }
     const barcodeValue = barcodeInput.value.trim();
     const productBeforeEdit = editingProductId
         ? products.find((product) => product.id === editingProductId)

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="pos_style.css">
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="table-sort.css">
+    <link rel="stylesheet" href="sidebar.css">
 </head>
 
 <body>
@@ -32,11 +33,19 @@
         </div>
     </nav>
 
+    <div class="page-layout">
+        <aside class="page-sidebar" aria-label="Page sections">
+            <p class="page-sidebar-title">On this page</p>
+            <a href="#catalogSection">Product Catalog</a>
+            <a href="#cartSection">Current Order</a>
+            <a href="#payment-methods">Payment</a>
+        </aside>
+        <div class="page-main">
     <!-- POS APPLICATION AREA -->
     <section class="app-container">
         
         <!-- LEFT: Product Catalog -->
-        <div class="catalog-section">
+        <div class="catalog-section" id="catalogSection">
             <header class="catalog-header">
                 <label class="search-label" for="product-search">Search items</label>
                 <input type="search" class="search-input" id="product-search" placeholder="Name or barcode...">
@@ -64,7 +73,7 @@
         </div>
 
         <!-- RIGHT: Cart Sidebar -->
-        <aside class="cart-section">
+        <aside class="cart-section" id="cartSection">
             <div class="cart-header">
                 <h2>Current Order</h2>
                 <button class="clear-text-btn" id="clear-btn">Clear</button>
@@ -145,25 +154,15 @@
             <h2 id="scanner-title">Scan barcode</h2>
             <p id="scanner-status" role="status">Position the barcode inside the camera view.</p>
             <video id="barcode-video" playsinline muted></video>
+            <p id="last-scan" class="scanner-last-scan" role="status" aria-live="polite"></p>
+            <div class="scanner-qty-row">
+                <label for="scan-qty-per">Qty per scan</label>
+                <input id="scan-qty-per" type="number" min="1" step="1" value="1" required>
+            </div>
             <div class="dialog-actions">
                 <button class="dialog-cancel" id="close-scanner-btn" type="button">Close</button>
-                <button class="dialog-confirm" id="start-scanner-btn" type="button">Start Camera</button>
             </div>
         </div>
-    </dialog>
-
-    <dialog class="pos-dialog" id="scan-quantity-dialog" aria-labelledby="scan-quantity-title">
-        <form id="scan-quantity-form" method="dialog">
-            <h2 id="scan-quantity-title">Add scanned item</h2>
-            <p id="scanned-product-name"></p>
-            <label for="scan-quantity">Quantity</label>
-            <input id="scan-quantity" type="number" min="1" step="1" value="1" required>
-            <p class="dialog-error" id="scan-quantity-error" role="alert"></p>
-            <div class="dialog-actions">
-                <button class="dialog-cancel" id="cancel-scan-quantity-btn" type="button">Cancel</button>
-                <button class="dialog-confirm" type="submit" value="add">Add to Order</button>
-            </div>
-        </form>
     </dialog>
 
     <dialog class="receipt-dialog" id="receipt-dialog" aria-labelledby="receipt-title">
@@ -204,9 +203,13 @@
         </article>
     </dialog>
 
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.2.1/umd/zxing-browser.min.js" defer></script>
     <script src="table-sort.js" defer></script>
     <script src="config.js" defer></script>
+    <script src="sidebar.js" defer></script>
     <script src="pos.js" defer></script>
     
 </body>

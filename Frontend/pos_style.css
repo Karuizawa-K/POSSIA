@@ -569,6 +569,31 @@ body {
     object-fit: cover;
 }
 
+.scanner-last-scan {
+    margin-top: 10px;
+    min-height: 1.4em;
+    color: #166534;
+    font-weight: 600;
+}
+
+.scanner-qty-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 4px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.scanner-qty-row input {
+    width: 90px;
+    padding: 8px 10px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
 @media (max-width: 900px) {
     body {
         height: auto;
