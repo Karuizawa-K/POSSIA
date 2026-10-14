@@ -44,6 +44,38 @@ async function loadSession() {
 
     const sessionPromise = loadSession();
 
+    // Warm today's sales report so the Reports tab paints instantly instead of
+    // waiting on a round-trip. Fire-and-forget: failures are ignored because
+    // the Reports page fetches on its own. Raw fetch (not the page apiRequest)
+    // so a failure can never trigger a redirect.
+    async function prefetchTodaysSalesReport() {
+        const cache = window.PossiaReportCache;
+        const day = cache?.today();
+        const token = localStorage.getItem("token");
+        if (!cache || !day || !token) {
+            return;
+        }
+        try {
+            const response = await fetch(
+                apiUrl(`/api/admin/reports/sales?period=daily&date=${encodeURIComponent(day)}`),
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            if (!response.ok) {
+                return;
+            }
+            cache.save("sales", await response.json());
+        } catch (error) {
+            console.warn("Unable to preload today's sales report:", error);
+        }
+    }
+
+    sessionPromise.then((role) => {
+        // Reports is Admin-only, so Staff never trigger the preload.
+        if (role === "Admin") {
+            prefetchTodaysSalesReport();
+        }
+    });
+
     // Staff restriction logic for dashboard
     document.querySelectorAll(".cards-wrapper [data-page]")
         .forEach((button) => {
@@ -79,6 +111,7 @@ async function loadSession() {
     document.getElementById("logoutButton")
         .addEventListener("click", () => {
             localStorage.removeItem("token");
+            window.PossiaReportCache?.clearAll();
             window.location.replace("/");
         });
     //========================

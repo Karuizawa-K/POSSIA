@@ -880,8 +880,41 @@ reportResults.addEventListener("click", (event) => {
 printButton.addEventListener("click", printReport);
 document.getElementById("logoutButton").addEventListener("click", () => {
     localStorage.removeItem("token");
+    window.PossiaReportCache?.clearAll();
     window.location.replace("/");
 });
+
+// A preloaded payload is only painted when it is same-day and recent; the
+// background refresh afterwards makes the final numbers exact.
+const CACHE_MAX_AGE_MS = 5 * 60 * 1000;
+
+function readCachedSales() {
+    return window.PossiaReportCache?.read("sales", CACHE_MAX_AGE_MS) || null;
+}
+
+function showSalesData(data) {
+    currentSalesData = data;
+    currentReport = data;
+    clearResults();
+    renderSalesPage(data);
+    reportResults.hidden = false;
+    printButton.disabled = false;
+    syncReportSidebar();
+}
+
+// Re-fetch after painting the cached view so sales completed on the POS since
+// the preload are included. Failures keep the cached render on screen.
+async function refreshSalesInBackground() {
+    try {
+        const query = `/api/admin/reports/sales?period=${encodeURIComponent(salesPeriod.value)}` +
+            `&date=${encodeURIComponent(periodDate.value)}`;
+        const data = await apiRequest(query);
+        window.PossiaReportCache?.save("sales", data);
+        showSalesData(data);
+    } catch (error) {
+        console.error("Unable to refresh today's sales report:", error);
+    }
+}
 
 async function authorizeReports() {
     if (!localStorage.getItem("token")) {
@@ -903,6 +936,14 @@ async function authorizeReports() {
         periodDate.value = localDateValue();
         updateReportControls();
         reportsPage.hidden = false;
+
+        // Paint instantly from the dashboard preload, then correct in background.
+        const cached = readCachedSales();
+        if (cached) {
+            showSalesData(cached);
+            refreshSalesInBackground();
+            return;
+        }
         await generateReport();
     } catch (error) {
         setMessage(error.message, true);

@@ -127,7 +127,10 @@ button:hover {
 @media (max-width: 600px) {
   body {
     padding: 16px;
-    align-items: center;
+    /* Center horizontally only. Vertical centering in a flex container clips
+       tall content (e.g. the recovery form) off the top where it cannot be
+       scrolled to, so the block stays top-aligned. */
+    align-items: flex-start;
     justify-content: center;
   }
 
