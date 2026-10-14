@@ -1,16 +1,3 @@
-/* Page-width cordon.
-   Any element wider than the viewport makes the whole page scroll sideways,
-   and the navbar (width:100% of the layout viewport) then stops short of the
-   right edge, leaving a white strip - most obvious when zoomed out. `clip`
-   keeps position:sticky working, unlike `hidden` in older engines, which is
-   kept as the fallback. Data tables keep their own internal scrolling, so no
-   reachable content is masked. */
-html,
-body {
-    overflow-x: hidden;
-    overflow-x: clip;
-}
-
 .navbar {
     display: flex;
     align-items: center;

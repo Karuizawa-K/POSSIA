@@ -398,6 +398,14 @@
     .report-heading {
         flex-wrap: wrap;
     }
+
+    /* Long words (receipt numbers, timestamps) must not force the row wider
+       than the screen. */
+    .form-actions > button,
+    .report-heading > * {
+        min-width: 0;
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 480px) {

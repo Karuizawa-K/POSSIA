@@ -598,7 +598,8 @@ body {
     body {
         height: auto;
         min-height: 100vh;
-        overflow-x: hidden;
+        /* No overflow-x lock here: it would clip wide content with no way to
+           reach it and can disable pinch-zoom on mobile. */
         overflow-y: auto;
     }
 
@@ -626,6 +627,32 @@ body {
 
     .cart-items {
         max-height: 40vh;
+    }
+
+    /* Non-table rows wrap instead of overflowing. */
+    .catalog-header {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .search-input {
+        flex: 1 1 180px;
+        width: auto;
+        min-width: 0;
+    }
+
+    .payment-methods {
+        flex-wrap: wrap;
+    }
+
+    .pay-btn {
+        flex: 1 1 auto;
+        min-width: 90px;
+    }
+
+    .summary-row {
+        flex-wrap: wrap;
+        gap: 4px 12px;
     }
 }
 

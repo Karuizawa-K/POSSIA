@@ -12,15 +12,6 @@ body {
   background-position: center;
 }
 
-/* Page-width cordon: see navigation.css for the reasoning. Stops any wide
-   content from pushing the page sideways so the header always spans the
-   full screen width, including when zoomed out. */
-html,
-body {
-  overflow-x: hidden;
-  overflow-x: clip;
-}
-
 .card {
   width: 400px;
   max-width: 90%;
