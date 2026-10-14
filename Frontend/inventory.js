@@ -437,6 +437,35 @@ window.onload = function () {
     printWindow.document.close();
 }
 
+// The sidebar's scroll-spy helper no longer hides links, so this page owns the
+// visibility of its own links: role-gated sections stay hidden for Staff, and
+// the editor link only appears while the editor is open.
+function sidebarLink(anchor) {
+    return document.querySelector(`.page-sidebar a[href="#${anchor}"]`);
+}
+
+function setProductEditorVisible(visible) {
+    productEditor.hidden = !visible;
+    const link = sidebarLink("productEditor");
+    if (link) {
+        link.hidden = !visible || currentRole !== "Admin";
+    }
+}
+
+function syncInventorySidebar() {
+    const isAdmin = currentRole === "Admin";
+    for (const anchor of ["categorySection", "historySection"]) {
+        const link = sidebarLink(anchor);
+        if (link) {
+            link.hidden = !isAdmin;
+        }
+    }
+    const editorLink = sidebarLink("productEditor");
+    if (editorLink) {
+        editorLink.hidden = !isAdmin || productEditor.hidden;
+    }
+}
+
 function resetProductForm() {
     editingProductId = null;
     productForm.reset();
@@ -450,7 +479,7 @@ function resetProductForm() {
     document.getElementById("cancelEditButton").hidden = true;
     barcodePreviewSection.hidden = true;
     barcodePreviewSvg.replaceChildren();
-    productEditor.hidden = true;
+    setProductEditorVisible(false);
     showProductFormButton.hidden = false;
 }
 
@@ -468,7 +497,7 @@ function startEditing(product) {
     document.getElementById("cancelEditButton").textContent = "Cancel Edit";
     document.getElementById("cancelEditButton").hidden = false;
     renderBarcodePreview();
-    productEditor.hidden = false;
+    setProductEditorVisible(true);
     showProductFormButton.hidden = true;
     productEditor.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -592,7 +621,7 @@ productForm.addEventListener("submit", async (event) => {
             body: JSON.stringify(payload)
         });
         resetProductForm();
-        productEditor.hidden = true;
+        setProductEditorVisible(false);
         showMessage(result.message);
         await Promise.all([loadInventory(), loadMovements()]);
     } catch (error) {
@@ -602,11 +631,11 @@ productForm.addEventListener("submit", async (event) => {
 
 document.getElementById("cancelEditButton").addEventListener("click", () => {
     resetProductForm();
-    productEditor.hidden = true;
+    setProductEditorVisible(false);
 });
 showProductFormButton.addEventListener("click", () => {
     resetProductForm();
-    productEditor.hidden = false;
+    setProductEditorVisible(true);
     showProductFormButton.hidden = true;
     // Cancel stays available while adding, not only while editing.
     document.getElementById("cancelEditButton").hidden = false;
@@ -670,10 +699,11 @@ async function initializeInventory() {
         for (const element of document.querySelectorAll(".admin-only")) {
             element.hidden = currentRole !== "Admin";
         }
-        productEditor.hidden = true;
+        setProductEditorVisible(false);
         document.getElementById("statusFilterGroup").hidden = currentRole !== "Admin";
         document.getElementById("actionsHeading").hidden = currentRole !== "Admin";
         document.getElementById("historySection").hidden = currentRole !== "Admin";
+        syncInventorySidebar();
         inventoryPage.hidden = false;
         await loadInventory();
         if (currentRole === "Admin") {
