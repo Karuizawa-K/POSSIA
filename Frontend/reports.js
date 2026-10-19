@@ -368,7 +368,11 @@ function addViewTable(section, title, headers, rows, emptyMessage, sortTypes = [
     for (const [rowIndex, values] of rows.entries()) {
         const row = document.createElement("tr");
         for (const [cellIndex, value] of values.entries()) {
-            const cell = addCell(row, value);
+            const cell = value instanceof Node ? document.createElement("td") : addCell(row, value);
+            if (value instanceof Node) {
+                cell.append(value);
+                row.append(cell);
+            }
             const sortValue = sortValues[rowIndex]?.[cellIndex];
             if (sortValue !== undefined && sortValue !== null) {
                 cell.dataset.sortValue = String(sortValue);
@@ -377,6 +381,21 @@ function addViewTable(section, title, headers, rows, emptyMessage, sortTypes = [
         tableBody.append(row);
     }
     window.makeTableSortable(table);
+}
+
+// Builds a clickable receipt number for report tables.
+function makeReceiptLink(transaction) {
+    if (!transaction.receiptNumber) {
+        return "—";
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "receipt-link";
+    button.dataset.receipt = transaction.receiptNumber;
+    button.textContent = transaction.receiptNumber;
+    button.title = "View and print receipt";
+    button.setAttribute("aria-label", `View and print receipt ${transaction.receiptNumber}`);
+    return button;
 }
 
 
@@ -492,7 +511,7 @@ function renderOverviewView(data) {
                 : "No item details";
             return [
                 formatDate(transaction.date),
-                transaction.receiptNumber || "—",
+                makeReceiptLink(transaction),
                 transaction.cashier,
                 transaction.paymentMethod,
                 currency.format(transaction.subtotal),
@@ -634,7 +653,7 @@ function renderDiscountsView(data) {
         ["Date", "Receipt", "Cashier", "Payment", "Discount", "Net"],
         rows.map((transaction) => [
             formatDate(transaction.date),
-            transaction.receiptNumber || "—",
+            makeReceiptLink(transaction),
             transaction.cashier,
             transaction.paymentMethod,
             currency.format(transaction.discount),
@@ -1047,6 +1066,62 @@ function exportView(key) {
     downloadCsv(view.rows(data), view.file);
 }
 
+// Finds the full transaction behind a receipt number in the current report.
+function findTransactionByReceipt(receiptNumber) {
+    return (currentSalesData?.transactions || []).find(
+        (transaction) => transaction.receiptNumber === receiptNumber
+    ) || null;
+}
+
+// Populates the receipt dialog from report data and opens it.
+function openReceipt(receiptNumber) {
+    const transaction = findTransactionByReceipt(receiptNumber);
+    if (!transaction) {
+        setMessage("Unable to find that receipt in the current report.", true);
+        return;
+    }
+    const setText = (id, value) => {
+        document.getElementById(id).textContent = value;
+    };
+    const itemList = document.getElementById("receiptItemList");
+    itemList.replaceChildren();
+    if (!transaction.items?.length) {
+        const row = document.createElement("tr");
+        const cell = addCell(row, "No item details");
+        cell.colSpan = 4;
+        itemList.append(row);
+    } else {
+        for (const item of transaction.items) {
+            const row = document.createElement("tr");
+            addCell(row, item.productName);
+            addCell(row, String(item.quantity));
+            addCell(row, currency.format(item.unitPrice));
+            addCell(row, currency.format(item.subtotal));
+            itemList.append(row);
+        }
+    }
+    setText("receiptNumber", transaction.receiptNumber);
+    setText("receiptDate", new Date(transaction.date).toLocaleString());
+    setText("receiptCashier", transaction.cashierId || "—");
+    setText("receiptSubtotal", currency.format(transaction.subtotal));
+    setText("receiptDiscount", currency.format(transaction.discount));
+    setText("receiptTotal", currency.format(transaction.totalAmount));
+    setText(
+        "receiptPayment",
+        transaction.paymentMethod === "Cash"
+            ? `Cash received: ${currency.format(transaction.amountPaid)}`
+            : `GCash: ${currency.format(transaction.amountPaid)}`
+    );
+    setText("receiptChange", currency.format(transaction.changeAmount));
+    document.getElementById("receiptReferenceRow").hidden = !transaction.referenceNumber;
+    setText("receiptReference", transaction.referenceNumber || "");
+    document.body.classList.add("receipt-open");
+    const dialog = document.getElementById("receiptDialog");
+    if (!dialog.open) {
+        dialog.showModal();
+    }
+}
+
 // Opens a print window containing the current results.
 function printReport() {
     if (!currentReport) {
@@ -1069,6 +1144,7 @@ body{font-family:Arial,sans-serif;color:#1f2937;padding:24px}h1,h2{color:#173d72
 .report-table th,.report-table td{border:1px solid #ddd;padding:7px;text-align:left;white-space:pre-line}
 .report-heading{display:flex;justify-content:space-between;align-items:flex-start}
 .view-export-btn{display:none}
+.receipt-link{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:none}
 @media print{body{padding:0}.report-table{font-size:10px}}
 </style></head><body></body></html>`);
     const printableResults = printWindow.document.importNode(reportResults, true);
@@ -1104,9 +1180,23 @@ reportResults.addEventListener("click", (event) => {
     const button = event.target.closest("[data-export]");
     if (button) {
         exportView(button.dataset.export);
+        return;
+    }
+    const receiptLink = event.target.closest("[data-receipt]");
+    if (receiptLink) {
+        openReceipt(receiptLink.dataset.receipt);
     }
 });
 printButton.addEventListener("click", printReport);
+document.getElementById("printReceiptButton").addEventListener("click", () => {
+    window.print();
+});
+document.getElementById("closeReceiptButton").addEventListener("click", () => {
+    document.getElementById("receiptDialog").close();
+});
+document.getElementById("receiptDialog").addEventListener("close", () => {
+    document.body.classList.remove("receipt-open");
+});
 document.getElementById("logoutButton").addEventListener("click", () => {
     logout({ clearReportCache: true });
 });

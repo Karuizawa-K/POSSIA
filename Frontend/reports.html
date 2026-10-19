@@ -96,6 +96,46 @@
     </main>
         </div>
     </div>
+
+    <!-- Receipt dialog -->
+    <dialog class="receipt-dialog" id="receiptDialog" aria-labelledby="receiptDialogTitle">
+        <article class="receipt-content">
+            <header class="receipt-header">
+                <h2 id="receiptDialogTitle">APB Merchandising</h2>
+                <p>Sales Receipt</p>
+            </header>
+            <dl class="receipt-meta">
+                <div><dt>Receipt</dt><dd id="receiptNumber"></dd></div>
+                <div><dt>Date</dt><dd id="receiptDate"></dd></div>
+                <div><dt>Cashier ID</dt><dd id="receiptCashier"></dd></div>
+            </dl>
+            <table class="receipt-items">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptItemList"></tbody>
+            </table>
+            <dl class="receipt-totals">
+                <div><dt>Subtotal</dt><dd id="receiptSubtotal"></dd></div>
+                <div><dt>Discount</dt><dd id="receiptDiscount"></dd></div>
+                <div class="receipt-grand-total"><dt>Total</dt><dd id="receiptTotal"></dd></div>
+                <div><dt>Payment</dt><dd id="receiptPayment"></dd></div>
+                <div id="receiptReferenceRow" hidden><dt>Reference</dt><dd id="receiptReference"></dd></div>
+                <div><dt>Change</dt><dd id="receiptChange"></dd></div>
+            </dl>
+            <p class="receipt-thanks">Thank you for your purchase!</p>
+            <div class="receipt-actions">
+                <button class="dialog-cancel" id="closeReceiptButton" type="button">Close</button>
+                <button class="dialog-confirm" id="printReceiptButton" type="button">Print</button>
+            </div>
+        </article>
+    </dialog>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
     <script src="table-sort.js" defer></script>
     <script src="config.js" defer></script>

@@ -122,6 +122,7 @@ router.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
         date: sale.saleDate,
         receiptNumber: salePayment ? receiptsByPayment.get(salePayment._id.toString())?.receiptNumber || "" : "",
         cashier: sale.userId?.fullName || sale.userId?.username || "Unknown user",
+        cashierId: sale.userId?._id ? String(sale.userId._id).slice(-8) : "",
         paymentMethod: salePayment?.paymentMethod || "Unknown",
         amountPaid: salePayment?.amountPaid ?? sale.totalAmount,
         changeAmount: salePayment?.changeAmount ?? 0,
