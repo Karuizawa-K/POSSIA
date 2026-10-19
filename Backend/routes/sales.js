@@ -165,7 +165,8 @@ router.post("/api/sales", requireAuth, async (req, res) => {
       completedSale = {
         receiptNumber,
         receiptDate: receipt.receiptDate,
-        cashier: req.authUser.fullName,
+        // Shortened user id keeps the cashier's full name off customer receipts.
+        cashierId: String(req.authUser._id).slice(-8),
         items: saleItems.map(({ item, product, unitPriceCents, lineTotalCents }) => ({
           productName: product.productName,
           barcode: product.barcode,

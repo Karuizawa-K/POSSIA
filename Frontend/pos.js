@@ -71,7 +71,7 @@ function showReceipt(receipt) {
 
     setReceiptText("receipt-number", receipt.receiptNumber);
     setReceiptText("receipt-date", new Date(receipt.receiptDate).toLocaleString());
-    setReceiptText("receipt-cashier", receipt.cashier);
+    setReceiptText("receipt-cashier", receipt.cashierId || "—");
     setReceiptText("receipt-subtotal", currency.format(receipt.subtotal));
     setReceiptText("receipt-discount", currency.format(receipt.discount));
     setReceiptText("receipt-total", currency.format(receipt.totalAmount));
