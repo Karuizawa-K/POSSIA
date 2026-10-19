@@ -1,5 +1,8 @@
 const REPORT_TIME_ZONE = "Asia/Manila";
 const REPORT_UTC_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
+const EARLIEST_REPORT_DATE = "2022-01-01";
+// First Sunday on or after 2022-01-01; weeks starting in 2021 stay unavailable.
+const EARLIEST_REPORT_WEEK = "2022-01-02";
 
 // Formats a date as a YYYY-MM-DD string in the report time zone.
 function dateValueInReportTimeZone(date = new Date()) {
@@ -46,14 +49,20 @@ function getReportPeriod(period, dateValue, now = new Date()) {
   if (!anchor || dateValue > dateValueInReportTimeZone(now)) {
     return null;
   }
+  if (dateValue < EARLIEST_REPORT_DATE) {
+    return null;
+  }
+  if (period === "weekly" && dateValue < EARLIEST_REPORT_WEEK) {
+    return null;
+  }
 
   const start = new Date(anchor);
   const end = new Date(anchor);
   if (period === "daily") {
     end.setUTCDate(end.getUTCDate() + 1);
   } else if (period === "weekly") {
-    const daysSinceMonday = (start.getUTCDay() + 6) % 7;
-    start.setUTCDate(start.getUTCDate() - daysSinceMonday);
+    const daysSinceSunday = start.getUTCDay();
+    start.setUTCDate(start.getUTCDate() - daysSinceSunday);
     end.setTime(start.getTime());
     end.setUTCDate(end.getUTCDate() + 7);
   } else if (period === "monthly") {

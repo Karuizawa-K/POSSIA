@@ -6,12 +6,23 @@ const reportForm = document.getElementById("reportForm");
 const reportCategory = document.getElementById("reportCategory");
 const salesPeriod = document.getElementById("salesPeriod");
 const periodDate = document.getElementById("periodDate");
+const periodYear = document.getElementById("periodYear");
+const periodDateLabel = document.getElementById("periodDateLabel");
 const reportResults = document.getElementById("reportResults");
 const reportMessage = document.getElementById("reportMessage");
 const printButton = document.getElementById("printReportButton");
 const paymentFilter = document.getElementById("paymentFilter");
 const inventoryCategoryFilter = document.getElementById("inventoryCategoryFilter");
 const REPORT_TIME_ZONE = "Asia/Manila";
+const EARLIEST_REPORT_DATE = "2022-01-01";
+// First Sunday on or after 2022-01-01; weeks starting in 2021 stay unavailable.
+const EARLIEST_REPORT_WEEK = "2022-01-02";
+const REPORT_PERIOD_LABELS = {
+    daily: "Choose any specific day",
+    weekly: "Choose any week in a month",
+    monthly: "Choose any month in a year",
+    yearly: "Choose any specific year",
+};
 const CHART_COLORS = ["#173d72", "#2f6db3", "#5d97d2", "#94b8dd", "#16a34a", "#f59e0b", "#64748b", "#0f2046"];
 const charts = {};
 
@@ -41,23 +52,179 @@ function localDateValue(date = new Date()) {
     return `${values.year}-${values.month}-${values.day}`;
 }
 
-// Limits the date picker to today or earlier.
-function updateDatepickerMaximum() {
-    periodDate.max = localDateValue();
+// Parses YYYY-MM-DD into a UTC date, or null when malformed.
+function parseCalendarDate(value) {
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return null;
+    }
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(0);
+    date.setUTCFullYear(year, month - 1, day);
+    date.setUTCHours(0, 0, 0, 0);
+    if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+    ) {
+        return null;
+    }
+    return date;
+}
+
+// Formats a UTC date back to a YYYY-MM-DD string.
+function formatCalendarDate(date) {
+    const year = String(date.getUTCFullYear()).padStart(4, "0");
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+// Snaps a date back to the Sunday that starts its week.
+function sundayOf(value) {
+    const date = parseCalendarDate(value);
+    if (!date) {
+        return null;
+    }
+    const daysSinceSunday = date.getUTCDay();
+    date.setUTCDate(date.getUTCDate() - daysSinceSunday);
+    return formatCalendarDate(date);
+}
+
+// Keeps a date inside the selectable range.
+function clampAnchor(value) {
+    const today = localDateValue();
+    if (!value || value < EARLIEST_REPORT_DATE) {
+        return EARLIEST_REPORT_DATE;
+    }
+    return value > today ? today : value;
+}
+
+// Tracks the last valid anchor so switching periods keeps a sensible date.
+let lastSelectedDate = clampAnchor(localDateValue());
+
+// Returns the YYYY-MM-DD anchor the API expects for the active period.
+function reportDateValue() {
+    const period = salesPeriod.value;
+    if (period === "yearly") {
+        return periodYear.value ? `${periodYear.value}-01-01` : "";
+    }
+    if (!periodDate.value) {
+        return "";
+    }
+    if (period === "monthly") {
+        return /^\d{4}-\d{2}$/.test(periodDate.value) ? `${periodDate.value}-01` : "";
+    }
+    if (period === "weekly") {
+        return sundayOf(periodDate.value) || "";
+    }
+    return periodDate.value;
+}
+
+// Populates the year dropdown from 2022 through the current year.
+function syncYearOptions() {
+    const years = yearsWithinRange();
+    const previous = periodYear.value;
+    periodYear.replaceChildren(...years.map((year) => {
+        const option = document.createElement("option");
+        option.value = String(year);
+        option.textContent = String(year);
+        return option;
+    }));
+    const previousYear = Number(previous);
+    periodYear.value = years.includes(previousYear) ? previous : String(years[0]);
+}
+
+// Applies the tracked anchor to the control that the active period uses.
+function applyAnchorToPicker() {
+    const period = salesPeriod.value;
+    const anchor = clampAnchor(lastSelectedDate);
+    if (period === "yearly") {
+        const year = Number(anchor.slice(0, 4));
+        periodYear.value = yearsWithinRange().includes(year) ? String(year) : "";
+        return;
+    }
+    if (period === "monthly") {
+        periodDate.value = anchor.slice(0, 7);
+        return;
+    }
+    if (period === "weekly") {
+        const sunday = sundayOf(anchor) || anchor;
+        periodDate.value = sunday < EARLIEST_REPORT_WEEK ? EARLIEST_REPORT_WEEK : sunday;
+        return;
+    }
+    periodDate.value = anchor;
+}
+
+// Returns the selectable years as numbers.
+function yearsWithinRange() {
+    const currentYear = Number(localDateValue().slice(0, 4));
+    const firstYear = Number(EARLIEST_REPORT_DATE.slice(0, 4));
+    return Array.from({ length: currentYear - firstYear + 1 }, (_, index) => currentYear - index);
+}
+
+// Refreshes the upper bound so an overnight session cannot submit a future date.
+function refreshPickerMaximum() {
+    const today = localDateValue();
+    if (salesPeriod.value === "monthly") {
+        periodDate.max = today.slice(0, 7);
+    } else if (salesPeriod.value !== "yearly") {
+        periodDate.max = today;
+    }
+}
+
+// Configures the date picker bounds and type for the active period.
+function updateDatepickerBounds() {
+    const period = salesPeriod.value;
+    const useYearSelect = period === "yearly";
+
+    periodDate.hidden = useYearSelect;
+    periodYear.hidden = !useYearSelect;
+    periodDateLabel.htmlFor = useYearSelect ? "periodYear" : "periodDate";
+    periodDate.required = !useYearSelect;
+    periodYear.required = useYearSelect;
+
+    if (useYearSelect) {
+        syncYearOptions();
+        applyAnchorToPicker();
+        return;
+    }
+
+    if (period === "monthly") {
+        if (periodDate.type !== "month") {
+            periodDate.type = "month";
+        }
+        periodDate.removeAttribute("step");
+        periodDate.min = EARLIEST_REPORT_DATE.slice(0, 7);
+    } else {
+        if (periodDate.type !== "date") {
+            periodDate.type = "date";
+        }
+        if (period === "weekly") {
+            periodDate.min = EARLIEST_REPORT_WEEK;
+            periodDate.step = "7";
+        } else {
+            periodDate.min = EARLIEST_REPORT_DATE;
+            periodDate.removeAttribute("step");
+        }
+    }
+
+    refreshPickerMaximum();
+    applyAnchorToPicker();
 }
 
 // Shows or hides filters based on the report category.
 function updateReportControls() {
-    updateDatepickerMaximum();
+    const active = reportDateValue();
+    if (active) {
+        lastSelectedDate = clampAnchor(active);
+    }
+    updateDatepickerBounds();
     const isSales = reportCategory.value === "sales";
     
     
     document.getElementById("paymentGroup").hidden = !isSales;
     document.getElementById("inventoryCategoryGroup").hidden = isSales;
-    document.getElementById("periodDateLabel").textContent =
-        salesPeriod.value === "weekly" ? "Any Date in Week" :
-            salesPeriod.value === "monthly" ? "Any Date in Month" :
-                salesPeriod.value === "yearly" ? "Any Date in Year" : "Date";
+    periodDateLabel.textContent = REPORT_PERIOD_LABELS[salesPeriod.value] || REPORT_PERIOD_LABELS.daily;
 }
 
 
@@ -627,12 +794,22 @@ function showLoadingState(label) {
 // Fetches the active report category and renders it.
 async function generateReport() {
     setMessage("");
-    updateDatepickerMaximum();
-    if (!periodDate.value || periodDate.value > periodDate.max) {
+    refreshPickerMaximum();
+    const reportDate = reportDateValue();
+    if (!reportDate) {
+        setMessage("Choose a report date.", true);
+        return;
+    }
+    if (reportDate < EARLIEST_REPORT_DATE) {
+        setMessage("Choose a report date on or after January 1, 2022.", true);
+        return;
+    }
+    if (reportDate > localDateValue()) {
         setMessage("Choose a report date that is not in the future.", true);
         return;
     }
-    const params = `period=${encodeURIComponent(salesPeriod.value)}&date=${encodeURIComponent(periodDate.value)}`;
+    lastSelectedDate = reportDate;
+    const params = `period=${encodeURIComponent(salesPeriod.value)}&date=${encodeURIComponent(reportDate)}`;
     const isSales = reportCategory.value === "sales";
     
     
@@ -960,7 +1137,7 @@ function showSalesData(data) {
 async function refreshSalesInBackground() {
     try {
         const query = `/api/admin/reports/sales?period=${encodeURIComponent(salesPeriod.value)}` +
-            `&date=${encodeURIComponent(periodDate.value)}`;
+            `&date=${encodeURIComponent(reportDateValue())}`;
         const data = await apiRequest(query);
         window.PossiaReportCache?.save("sales", data);
         showSalesData(data);
@@ -986,7 +1163,7 @@ async function authorizeReports() {
         
         reportCategory.value = "sales";
         salesPeriod.value = "daily";
-        periodDate.value = localDateValue();
+        lastSelectedDate = clampAnchor(localDateValue());
         updateReportControls();
         reportsPage.hidden = false;
 

@@ -35,7 +35,7 @@ router.get("/api/admin/reports/movements", requireAdmin, async (req, res) => {
   const { period, date } = req.query;
   const range = getReportPeriod(period, date);
   if (!range) {
-    return res.status(400).json({ message: "Choose a valid report period and a date that is not in the future." });
+    return res.status(400).json({ message: "Choose a valid report period and a date between January 1, 2022 and today." });
   }
 
   try {
@@ -62,7 +62,7 @@ router.get("/api/admin/reports/sales", requireAdmin, async (req, res) => {
   const { period, date, payment } = req.query;
   const range = getReportPeriod(period, date);
   if (!range) {
-    return res.status(400).json({ message: "Choose a valid report period and a date that is not in the future." });
+    return res.status(400).json({ message: "Choose a valid report period and a date between January 1, 2022 and today." });
   }
   const paymentFilter = payment === "Cash" || payment === "GCash" ? payment : null;
 
