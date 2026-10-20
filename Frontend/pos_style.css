@@ -369,6 +369,28 @@ body {
     color: #b91c1c;
     font-size: 13px;
 }
+.change-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    min-height: 22px;
+    margin-top: 14px;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed #e5e7eb;
+    font-size: 14px;
+    color: #6b7280;
+}
+.change-preview[hidden] {
+    display: none;
+}
+.change-preview-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f2046;
+}
+.change-preview.insufficient .change-preview-value {
+    color: #b91c1c;
+}
 .dialog-actions {
     display: flex;
     justify-content: flex-end;

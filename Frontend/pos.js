@@ -49,6 +49,41 @@ function getSubtotalCents() {
     );
 }
 
+// Updates the live change preview row in the cash payment dialog.
+function updateChangePreview() {
+    const preview = document.getElementById("change-preview");
+    const value = document.getElementById("change-preview-value");
+    if (!preview || !value) {
+        return;
+    }
+
+    if (selectedPaymentMethod !== "Cash") {
+        preview.hidden = true;
+        preview.classList.remove("insufficient");
+        value.textContent = "";
+        return;
+    }
+
+    const paymentInput = document.getElementById("payment-input");
+    const amountReceivedCents = Math.round(Number(paymentInput.value) * 100);
+    const totalDueCents = getSubtotalCents() - discountCents;
+    const changeCents = amountReceivedCents - totalDueCents;
+
+    preview.hidden = false;
+    if (paymentInput.value.trim() === "" || !Number.isFinite(amountReceivedCents)) {
+        preview.classList.remove("insufficient");
+        value.textContent = "—";
+        return;
+    }
+    if (changeCents < 0) {
+        preview.classList.add("insufficient");
+        value.textContent = `Short by ${currency.format(-changeCents / 100)}`;
+        return;
+    }
+    preview.classList.remove("insufficient");
+    value.textContent = currency.format(changeCents / 100);
+}
+
 // Populates and opens the receipt dialog.
 function showReceipt(receipt) {
     const setReceiptText = (id, value) => {
@@ -586,11 +621,13 @@ document.getElementById("checkout-btn").addEventListener("click", () => {
     }
 
     document.getElementById("payment-error").textContent = "";
+    updateChangePreview();
     document.getElementById("payment-dialog").showModal();
     paymentInput.focus();
 });
 
 document.getElementById("payment-input").addEventListener("input", (event) => {
+    updateChangePreview();
     if (selectedPaymentMethod === "GCash") {
         event.target.setCustomValidity(
             event.target.value === "" || gcashReferenceNumberPattern.test(event.target.value)

@@ -144,6 +144,10 @@
             <h2 id="payment-dialog-title">Payment</h2>
             <label id="payment-input-label" for="payment-input"></label>
             <input id="payment-input" type="number" min="0" step="0.01" required>
+            <div class="change-preview" id="change-preview" aria-live="polite" hidden>
+                <span class="change-preview-label">Change</span>
+                <span class="change-preview-value" id="change-preview-value"></span>
+            </div>
             <p class="dialog-error" id="payment-error" role="alert"></p>
             <div class="dialog-actions">
                 <button class="dialog-cancel" id="cancel-payment-btn" type="button">Cancel</button>

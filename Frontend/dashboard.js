@@ -1,5 +1,26 @@
 const apiUrl = window.apiUrl || ((path) => path);
 
+// Applies the previously cached role so admin cards render on first paint.
+// The role is verified against /api/profile in loadSession() right after.
+function applyCachedRole() {
+    const token = localStorage.getItem("token");
+    const cachedRole = localStorage.getItem("possia.userRole");
+    if (!token || !cachedRole) {
+        return;
+    }
+
+    const isAdmin = cachedRole === "Admin";
+    document.getElementById("dashboardTitle").textContent =
+        isAdmin ? "Admin Dashboard" : "Dashboard";
+    document.getElementById("reportsButton").hidden = !isAdmin;
+    document.querySelector(".cards-wrapper").classList.toggle("staff-view", !isAdmin);
+    if (isAdmin) {
+        document.getElementById("adminSettingsButton").hidden = false;
+    }
+}
+
+applyCachedRole();
+
 // Loads the signed-in profile and applies role-based page state.
 async function loadSession() {
     try {
@@ -24,6 +45,7 @@ async function loadSession() {
 
         document.getElementById("userInfo").textContent = data.user.fullName;
         const isAdmin = data.user.role === "Admin";
+        localStorage.setItem("possia.userRole", data.user.role);
         document.getElementById("dashboardTitle").textContent =
             isAdmin ? "Admin Dashboard" : "Dashboard";
         document.getElementById("reportsButton").hidden = !isAdmin;

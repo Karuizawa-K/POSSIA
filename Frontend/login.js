@@ -72,6 +72,7 @@ loginForm.addEventListener("submit", async (event) => {
         }
 
         localStorage.setItem("token", data.token);
+        localStorage.setItem("possia.userRole", data.user.role);
         window.location.href = "dashboard.html";
 
     } catch (error) {

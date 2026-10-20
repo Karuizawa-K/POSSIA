@@ -23,6 +23,7 @@
   // Clears the stored session token and returns to the login page.
   function logout(options = {}) {
     localStorage.removeItem("token");
+    localStorage.removeItem("possia.userRole");
     if (options.clearReportCache) {
       window.PossiaReportCache?.clearAll();
     }

@@ -83,7 +83,7 @@ body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 20px;
-    margin-bottom: 30px;
+    margin-bottom: 24px;
 }
 .summary-card {
     background-color: #fff;
@@ -244,10 +244,15 @@ body {
 .table-wrapper {
     overflow-x: auto;
 }
+/* Fixed, uniform spacing around every datagrid inside a view box */
+.report-view .view-table-title {
+    margin-top: 32px;
+    margin-bottom: 14px;
+}
 .report-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 10px;
+    margin-top: 0;
 }
 .report-table th,
 .report-table td {
@@ -307,7 +312,7 @@ body {
 }
 .chart-wrap {
     height: 300px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 .chart-wrap:last-child {
     margin-bottom: 0;
@@ -365,6 +370,10 @@ body {
     .data-section {
         padding: 16px;
     }
+    .report-table th,
+    .report-table td {
+        padding: 12px 12px;
+    }
     .form-actions,
     .report-heading {
         flex-wrap: wrap;
@@ -403,6 +412,10 @@ body {
     }
     .chart-wrap canvas {
         max-height: 200px;
+    }
+    .report-view .view-table-title {
+        margin-top: 24px;
+        margin-bottom: 12px;
     }
     .report-table {
         font-size: 12px;
