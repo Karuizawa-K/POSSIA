@@ -94,6 +94,10 @@
                 <h2>Current Inventory</h2>
                 <button type="button" class="btn-submit admin-only" id="showProductFormButton" hidden>Add Product</button>
             </div>
+            <div class="low-stock-banner" id="lowStockBanner" role="status" hidden>
+                <span id="lowStockBannerText"></span>
+                <button type="button" class="low-stock-banner-button" id="lowStockBannerButton">View low-stock items</button>
+            </div>
             <div class="inventory-filters">
                 <div class="form-group">
                     <label for="inventorySearch">Search</label>
@@ -110,6 +114,7 @@
                     <select id="stockStatusFilter">
                         <option value="all">All stock levels</option>
                         <option value="in-stock">In stock</option>
+                        <option value="low-stock">Low stock (10 or fewer)</option>
                         <option value="out-of-stock">Out of stock</option>
                     </select>
                 </div>

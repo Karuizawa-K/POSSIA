@@ -7,6 +7,9 @@ const productForm = document.getElementById("productForm");
 const productEditor = document.getElementById("productEditor");
 const categoryForm = document.getElementById("categoryForm");
 const statusMessage = document.getElementById("statusMessage");
+const lowStockBanner = document.getElementById("lowStockBanner");
+const lowStockBannerText = document.getElementById("lowStockBannerText");
+const lowStockBannerButton = document.getElementById("lowStockBannerButton");
 const categoryFilter = document.getElementById("categoryFilter");
 const categorySelect = document.getElementById("categoryId");
 const barcodeInput = document.getElementById("barcode");
@@ -27,6 +30,25 @@ let products = [];
 let categories = [];
 let editingProductId = null;
 let dialogBarcodeProductName = "";
+const LOW_STOCK_THRESHOLD = 10;
+
+// True when a product is low on stock without being fully out.
+function isLowStock(product) {
+    return product.stockQuantity > 0 && product.stockQuantity <= LOW_STOCK_THRESHOLD;
+}
+
+// Updates the low-stock warning banner from the full product list.
+function updateLowStockBanner() {
+    if (!lowStockBanner || !lowStockBannerText) {
+        return;
+    }
+    const lowStockCount = products.filter((product) =>
+        product.isActive !== false && isLowStock(product)).length;
+    lowStockBanner.hidden = lowStockCount === 0;
+    lowStockBannerText.textContent = lowStockCount === 1
+        ? "1 active product is low on stock (10 or fewer units remaining)."
+        : `${lowStockCount} active products are low on stock (10 or fewer units remaining).`;
+}
 
 // Writes the page status line, optionally as an error.
 function showMessage(message, isError = false) {
@@ -57,6 +79,7 @@ function visibleProducts() {
         const matchesCategory = !selectedCategory || product.categoryId === selectedCategory;
         const matchesStockStatus = selectedStockStatus === "all" ||
             (selectedStockStatus === "in-stock" && product.stockQuantity > 0) ||
+            (selectedStockStatus === "low-stock" && isLowStock(product)) ||
             (selectedStockStatus === "out-of-stock" && product.stockQuantity === 0);
         const matchesStatus = selectedStatus === "all" ||
             (selectedStatus === "active" && product.isActive) ||
@@ -67,6 +90,7 @@ function visibleProducts() {
 
 // Renders the inventory table for the current filters.
 function renderInventory() {
+    updateLowStockBanner();
     const shownProducts = visibleProducts();
     const admin = currentRole === "Admin";
     if (shownProducts.length === 0) {
@@ -93,9 +117,13 @@ function renderInventory() {
         addCell(row, `₱${Number(product.unitPrice).toFixed(2)}`);
         const stockCell = addCell(row, product.stockQuantity === 0
             ? "0 (Out of stock)"
-            : String(product.stockQuantity));
+            : isLowStock(product)
+                ? `${product.stockQuantity} (Low stock)`
+                : String(product.stockQuantity));
         if (product.stockQuantity === 0) {
             stockCell.className = "out-of-stock";
+        } else if (isLowStock(product)) {
+            stockCell.className = "low-stock";
         }
         addCell(row, product.isActive ? "Active" : "Archived");
 
@@ -663,6 +691,10 @@ productNameInput.addEventListener("input", () => {
 document.getElementById("inventorySearch").addEventListener("input", renderInventory);
 categoryFilter.addEventListener("change", renderInventory);
 document.getElementById("stockStatusFilter").addEventListener("change", renderInventory);
+lowStockBannerButton.addEventListener("click", () => {
+    document.getElementById("stockStatusFilter").value = "low-stock";
+    renderInventory();
+});
 document.getElementById("statusFilter").addEventListener("change", renderInventory);
 document.getElementById("logoutButton").addEventListener("click", () => {
     logout();

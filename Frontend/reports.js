@@ -726,7 +726,7 @@ function renderSnapshotView(data) {
     );
     addViewTable(
         view.section,
-        `Low Stock (${data.lowStockThreshold} or Fewer Units; Active Products Only)`,
+        `Low Stock (${data.lowStockThreshold} or Fewer Units)`,
         ["Barcode", "Product", "Category", "Quantity"],
         data.lowStockProducts.map((product) => [
             product.barcode || "—",

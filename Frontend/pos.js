@@ -9,6 +9,8 @@ let products = [];
 let discountCents = 0;
 let selectedPaymentMethod = null;
 let checkoutInProgress = false;
+let currentUserRole = null;
+const STAFF_MAX_DISCOUNT_CENTS = 10000;
 const gcashReferenceNumberPattern = /^\d{13}$/;
 let barcodeReader = null;
 let barcodeControls = null;
@@ -337,7 +339,8 @@ async function loadPos() {
             productsResponse.json()
         ]);
         document.getElementById("userInfo").textContent = profileData.user.fullName;
-        
+        currentUserRole = profileData.user.role;
+
         document.getElementById("pageSubtitle").textContent =
             profileData.user.role === "Admin" ? "Point of Sale • Admin Access" : "Point of Sale";
         products = productsData.products;
@@ -526,10 +529,17 @@ document.getElementById("clear-btn").addEventListener("click", () => {
     renderCart();
 });
 
+// Highest discount the signed-in role may apply, in cents.
+function getMaxDiscountCents(subtotalCents) {
+    return currentUserRole === "Staff"
+        ? Math.min(subtotalCents, STAFF_MAX_DISCOUNT_CENTS)
+        : subtotalCents;
+}
+
 document.getElementById("discount-btn").addEventListener("click", () => {
     const subtotalCents = getSubtotalCents();
     const discountInput = document.getElementById("discount-amount");
-    discountInput.max = String(subtotalCents / 100);
+    discountInput.max = String(getMaxDiscountCents(subtotalCents) / 100);
     discountInput.value = (discountCents / 100).toFixed(2);
     document.getElementById("discount-error").textContent = "";
     document.getElementById("discount-dialog").showModal();
@@ -552,13 +562,16 @@ document.getElementById("discount-form").addEventListener("submit", (event) => {
     const discountAmount = Number(document.getElementById("discount-amount").value);
     const subtotalCents = getSubtotalCents();
     const requestedDiscountCents = Math.round(discountAmount * 100);
+    const maxDiscountCents = getMaxDiscountCents(subtotalCents);
     if (
         !Number.isFinite(discountAmount) ||
         discountAmount < 0 ||
-        requestedDiscountCents > subtotalCents
+        requestedDiscountCents > maxDiscountCents
     ) {
         document.getElementById("discount-error").textContent =
-            "Discount must be between ₱0.00 and the current subtotal.";
+            currentUserRole === "Staff" && subtotalCents > STAFF_MAX_DISCOUNT_CENTS
+                ? "Staff discounts are limited to ₱100.00 per transaction."
+                : "Discount must be between ₱0.00 and the current subtotal.";
         return;
     }
 

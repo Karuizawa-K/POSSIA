@@ -60,6 +60,12 @@ router.post("/api/sales", requireAuth, async (req, res) => {
     });
   }
 
+  if (req.authUser.role === "Staff" && discount > 100) {
+    return res.status(400).json({
+      message: "Staff discounts are limited to ₱100.00 per transaction.",
+    });
+  }
+
   if (
     (paymentMethod === "Cash" && (!Number.isFinite(amountPaid) || amountPaid < 0)) ||
     (paymentMethod === "GCash" &&
