@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Point of Sale Inventory System</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+
+<body>
+
+  <!-- Login card -->
+  <main class="card">
+    <div class="card-content">
+
+      <img src="../pictures/logo.png" alt="APB Logo" class="login-logo">
+      <br><br><br>
+
+      <h1>Welcome Back!</h1>
+   
+      <p class="subtitle">Sign in to your account</p>
+
+        <!-- Login form -->
+        <form id="loginForm">
+          
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required>
+
+          <label for="password">Password</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="password" required>
+            <button
+              type="button"
+              id="togglePassword"
+              class="password-visibility-toggle"
+              aria-controls="password"
+              aria-pressed="false"
+            >Show</button>
+          </div>
+
+          <button type="submit">Login</button>
+          <p id="message"></p>
+
+        </form>
+
+        <button type="button" id="showRecoveryForm" class="recovery-link">
+          Forgot password?
+        </button>
+        <!-- Password recovery form -->
+        <form id="recoveryForm" class="hidden">
+          <h2>Recover your password</h2>
+          <p class="subtitle">Admin account only. Ask an Admin to reset your password. Enter one of your recovery codes
+            (e.g. XXXX-XXXX-XXXX).</p>
+
+          <label for="recoveryUsername">Username</label>
+          <input type="text" id="recoveryUsername" autocomplete="username" required>
+
+          <label for="recoveryCode">Recovery code</label>
+          <input type="text" id="recoveryCode" placeholder="XXXX-XXXX-XXXX"
+            autocomplete="off" spellcheck="false" maxlength="14" required>
+
+          <label for="newPassword">New password</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="newPassword" autocomplete="new-password" minlength="6" required>
+            <button
+              type="button"
+              id="toggleNewPassword"
+              class="password-visibility-toggle"
+              aria-controls="newPassword"
+              aria-pressed="false"
+            >Show</button>
+          </div>
+
+          <label for="confirmNewPassword">Confirm new password</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="confirmNewPassword" autocomplete="new-password" minlength="6" required>
+            <button
+              type="button"
+              id="toggleConfirmNewPassword"
+              class="password-visibility-toggle"
+              aria-controls="confirmNewPassword"
+              aria-pressed="false"
+            >Show</button>
+          </div>
+
+          <button type="submit" id="resetPasswordButton">Reset password</button>
+          <p id="recoveryMessage" role="status" aria-live="polite"></p>
+
+          <button type="button" id="cancelRecovery" class="secondary-button">Back to login</button>
+        </form>
+
+    </div>
+  </main>
+
+    <script src="../javascript/config.js"></script>
+    <script src="../javascript/login.js"></script>
+
+  </body>
+</html>

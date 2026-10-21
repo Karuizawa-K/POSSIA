@@ -1,4 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/", "destination": "/html/index.html", "permanent": false },
+    { "source": "/dashboard", "destination": "/html/dashboard.html", "permanent": false },
+    { "source": "/dashboard.html", "destination": "/html/dashboard.html", "permanent": false },
+    { "source": "/pos", "destination": "/html/pos.html", "permanent": false },
+    { "source": "/pos.html", "destination": "/html/pos.html", "permanent": false },
+    { "source": "/inventory", "destination": "/html/inventory.html", "permanent": false },
+    { "source": "/inventory.html", "destination": "/html/inventory.html", "permanent": false },
+    { "source": "/reports", "destination": "/html/reports.html", "permanent": false },
+    { "source": "/reports.html", "destination": "/html/reports.html", "permanent": false },
+    { "source": "/admin-settings", "destination": "/html/admin-settings.html", "permanent": false },
+    { "source": "/admin-settings.html", "destination": "/html/admin-settings.html", "permanent": false }
+  ]
 }
