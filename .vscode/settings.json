@@ -2,7 +2,7 @@
   "json.schemas": [
     {
       "fileMatch": ["**/vercel.json"],
-      "url": "./vercel.schema.json"
+      "url": "https://openapi.vercel.sh/vercel.json"
     }
   ]
 }
