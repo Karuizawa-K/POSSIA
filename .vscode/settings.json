@@ -1,0 +1,8 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["**/vercel.json"],
+      "url": "./vercel.schema.json"
+    }
+  ]
+}
